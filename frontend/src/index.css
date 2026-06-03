@@ -1,0 +1,194 @@
+@import "tailwindcss";
+
+:root {
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Outfit', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Premium Warm Light Theme (Paper style) */
+  --bg-main: #fcfbfa;        /* Soft paper off-white */
+  --bg-panel: #f5f3ef;       /* Warm grey/sand panel */
+  --bg-card: #ffffff;        /* Clean card white */
+  --bg-active: #e8e5df;
+  
+  --border-stone: #e3ded5;
+  --border-light: #d6cfc1;
+
+  --color-amber: #b45309;    /* Warm amber for primary accents */
+  --color-orange: #c2410c;
+  --color-red: #dc2626;      /* Vibrant Crimson Red for chords! */
+  --color-chord: #dc2626;    /* Red chords */
+  
+  --text-primary: #1c1917;   /* Charcoal primary text */
+  --text-secondary: #44403c; /* Stone 700 secondary text */
+  --text-muted: #78716c;     /* Stone 500 muted text */
+  --bg-chord-pill: rgba(220, 38, 38, 0.05); /* very soft red backdrop */
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+  line-height: 1.5;
+  overflow-x: hidden;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-main);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-stone);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-light);
+}
+
+/* Heading Typography */
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  color: var(--text-primary);
+}
+
+/* Page animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* SVG Chord Diagram Styles */
+.chord-diagram-card {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Form inputs & dropdowns */
+input, textarea, select {
+  font-family: inherit;
+  color: var(--text-primary);
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-stone);
+  border-radius: 6px;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+input:focus, textarea:focus, select:focus {
+  border-color: var(--color-red);
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.1);
+}
+
+/* Utility buttons */
+.btn-primary {
+  background-color: var(--color-amber);
+  color: #ffffff;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+  background-color: #92400e;
+  transform: translateY(-1px);
+}
+
+/* Custom layout helpers */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Responsive grid for song list */
+.songs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 640px) {
+  .songs-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ----------------------------------------------------
+   Inline Chords Formatter
+   ---------------------------------------------------- */
+.chord-inline {
+  color: var(--color-chord);  /* RED contrast color! */
+  font-weight: 700;
+  cursor: pointer;
+  margin: 0 2px;
+  font-family: var(--font-sans);
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.chord-inline:hover {
+  color: #b91c1c;
+  text-decoration: underline;
+}
+
+.lyric-line-inline {
+  font-family: var(--font-sans);
+  line-height: 2.0;         /* Generous spacing for readability */
+  color: var(--text-primary); /* Dark charcoal contrast lyrics */
+  margin-bottom: 0.5rem;
+  white-space: pre-wrap;     /* Wrap naturally, keeping layout whitespaces */
+}
+
+.comment-line {
+  color: var(--color-amber);
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 0.9em;
+  border-bottom: 1px solid var(--border-stone);
+  padding-bottom: 4px;
+  margin-top: 18px;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Compact View Styles */
+.lyric-line-inline.compact {
+  font-family: 'Roboto Condensed', 'Arial Narrow', 'Helvetica Neue', Arial, sans-serif-condensed, sans-serif;
+  font-stretch: condensed;
+  line-height: 1.15;
+  margin-bottom: 0.15rem;
+  letter-spacing: -0.015em;
+}
+
+.chord-inline.compact {
+  font-family: 'Roboto Condensed', 'Arial Narrow', sans-serif-condensed, sans-serif;
+  font-stretch: condensed;
+  font-weight: 850;
+  margin: 0 1px;
+}
+
+.comment-line.compact {
+  font-family: 'Roboto Condensed', 'Arial Narrow', sans-serif-condensed, sans-serif;
+  margin-top: 8px;
+  margin-bottom: 2px;
+  font-size: 0.8em;
+  padding-bottom: 2px;
+  letter-spacing: 0.02em;
+}
