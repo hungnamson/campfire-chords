@@ -1,39 +1,60 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Heart, ArrowLeft, Plus, Check, Minimize2, Maximize2 } from 'lucide-react';
+import { Heart, ArrowLeft, Plus, Check, Minimize2, Maximize2, Info } from 'lucide-react';
 import { transposeChord } from '../utils/transposer';
 import ChordDiagram from './ChordDiagram';
 
-export default function SongViewer({ song, onBack, onToggleFavorite, playlists, onAddSongToPlaylist, transposeOffset, setTransposeOffset }) {
-  const [fontSize, setFontSize] = useState(() => {
-    const saved = localStorage.getItem('campfire_font_size');
-    return saved ? parseInt(saved, 10) : 16;
-  });
+export default function SongViewer({ 
+  song, 
+  onBack, 
+  onToggleFavorite, 
+  playlists, 
+  onAddSongToPlaylist, 
+  transposeOffset, 
+  setTransposeOffset,
+  fontSize,
+  isCompact,
+  instrument
+}) {
   const [isScrolling, setIsScrolling] = useState(false);
   const [scrollSpeed, setScrollSpeed] = useState(3); // 1 to 10
   const [activeChord, setActiveChord] = useState(null);
   const [showPlaylistMenu, setShowPlaylistMenu] = useState(false);
-  const [isCompact, setIsCompact] = useState(() => {
-    const saved = localStorage.getItem('campfire_is_compact');
-    return saved === 'true';
-  });
+  const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
+  const [showSongInfo, setShowSongInfo] = useState(false);
 
   const scrollIntervalRef = useRef(null);
   const songContainerRef = useRef(null);
-
-  // Persist font size and compact state changes
-  useEffect(() => {
-    localStorage.setItem('campfire_font_size', fontSize);
-  }, [fontSize]);
-
-  useEffect(() => {
-    localStorage.setItem('campfire_is_compact', isCompact);
-  }, [isCompact]);
 
   // Reset states when song changes
   useEffect(() => {
     setIsScrolling(false);
     setActiveChord(null);
+    setShowSongInfo(false);
   }, [song]);
+
+  // Dynamically calculate recommended singer tones based on the original key
+  const getSingerTones = (keyStr) => {
+    if (!keyStr) return null;
+    try {
+      const maleLow = transposeChord(keyStr, -7);
+      const maleMed = transposeChord(keyStr, -5);
+      const maleHigh = transposeChord(keyStr, -3);
+      
+      const femaleLow = transposeChord(keyStr, -2);
+      const femaleMed = transposeChord(keyStr, 0);
+      const femaleHigh = transposeChord(keyStr, 2);
+
+      return {
+        male: `${maleLow} / ${maleMed} / ${maleHigh}`,
+        female: `${femaleLow} / ${femaleMed} / ${femaleHigh}`
+      };
+    } catch {
+      return {
+        male: 'Chưa xác định',
+        female: 'Chưa xác định'
+      };
+    }
+  };
 
   // Handle Autoscroll animation
   useEffect(() => {
@@ -110,15 +131,24 @@ export default function SongViewer({ song, onBack, onToggleFavorite, playlists, 
     if (activeChord === chord) {
       setActiveChord(null);
     } else {
+      const rect = e.currentTarget.getBoundingClientRect();
+      setPopupPosition({
+        x: rect.left + rect.width / 2,
+        y: rect.bottom
+      });
       setActiveChord(chord);
     }
   };
 
-  // Close chord popup when clicking anywhere else
+  // Close chord popup when clicking anywhere else or scrolling
   useEffect(() => {
     const handleClose = () => setActiveChord(null);
     window.addEventListener('click', handleClose);
-    return () => window.removeEventListener('click', handleClose);
+    window.addEventListener('scroll', handleClose);
+    return () => {
+      window.removeEventListener('click', handleClose);
+      window.removeEventListener('scroll', handleClose);
+    };
   }, []);
 
 
@@ -147,42 +177,23 @@ export default function SongViewer({ song, onBack, onToggleFavorite, playlists, 
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          {/* Font Group */}
-          <div className="flex items-center gap-1 bg-white border border-stone-200 rounded-lg p-0.5 shadow-sm">
-            <button 
-              onClick={() => setFontSize(prev => Math.max(10, prev - 1))}
-              className="w-7 h-7 flex items-center justify-center rounded hover:bg-stone-100 text-stone-600 active:scale-95 transition font-semibold text-xs"
-              title="Decrease font size"
-            >
-              A-
-            </button>
-            <span className="text-[10px] font-mono font-bold text-stone-400 min-w-[26px] text-center">
-              {fontSize}px
+        {song.rhythm && song.rhythm.trim() && song.rhythm.toLowerCase().trim() !== 'chưa xác định' && (
+          <div className="flex items-center justify-center mx-2 shrink-0">
+            <span className="px-2.5 py-0.5 bg-stone-200/50 border border-stone-300/60 rounded-full text-[10px] font-black text-stone-600 uppercase tracking-wider select-none">
+              {song.rhythm.trim()}
             </span>
-            <button 
-              onClick={() => setFontSize(prev => Math.min(30, prev + 1))}
-              className="w-7 h-7 flex items-center justify-center rounded hover:bg-stone-100 text-stone-600 active:scale-95 transition font-semibold text-xs"
-              title="Increase font size"
-            >
-              A+
-            </button>
           </div>
+        )}
 
-          {/* Compact View Toggle */}
-          <button 
-            onClick={() => setIsCompact(!isCompact)}
-            className={`w-7 h-7 flex items-center justify-center border rounded-lg active:scale-95 transition shadow-sm ${
-              isCompact 
-                ? 'bg-amber-50 border-amber-200 text-amber-600' 
-                : 'bg-white border-stone-200 text-stone-600 hover:bg-stone-100'
-            }`}
-            title={isCompact ? "Standard View" : "Compact View"}
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Song Info Button */}
+          <button
+            onClick={() => setShowSongInfo(true)}
+            className="p-1.5 rounded-full hover:bg-stone-200 text-stone-400 hover:text-stone-700 transition-colors animate-fade-in"
+            title="Song Info"
           >
-            {isCompact ? <Maximize2 className="w-3.5 h-3.5" /> : <Minimize2 className="w-3.5 h-3.5" />}
+            <Info className="w-4.5 h-4.5" />
           </button>
-
-          <div className="h-5 w-px bg-stone-200 mx-0.5 sm:mx-1"></div>
 
           {/* Favorite Button */}
           <button
@@ -236,9 +247,9 @@ export default function SongViewer({ song, onBack, onToggleFavorite, playlists, 
       </header>
 
       {/* Main card container */}
-      <main className={`flex-grow transition-all duration-200 ${isCompact ? 'p-2 md:p-3' : 'p-4 md:p-6'}`}>
+      <main className={`flex-grow transition-all duration-200 ${isCompact ? 'p-1 md:p-3' : 'p-4 md:p-6'}`}>
         <div className={`max-w-4xl mx-auto bg-white border border-stone-200/85 rounded-2xl shadow-md select-text transition-all duration-200 ${
-          isCompact ? 'p-3 md:p-4' : 'p-6 md:p-8'
+          isCompact ? 'py-3 px-[10px]' : 'py-6 px-[30px] md:py-8'
         }`}>
           {/* Inline chords song sheet */}
           <div 
@@ -269,7 +280,7 @@ export default function SongViewer({ song, onBack, onToggleFavorite, playlists, 
                           onClick={(e) => handleChordClick(chunk.chord, e)}
                           className={`chord-inline ${isCompact ? 'compact' : ''}`}
                         >
-                          [{chunk.chord}]
+                          {isCompact ? chunk.chord : `[${chunk.chord}]`}
                         </span>
                       )}
                       {chunk.text}
@@ -283,13 +294,106 @@ export default function SongViewer({ song, onBack, onToggleFavorite, playlists, 
         </div>
       </main>
 
-      {/* Popover Chord Diagram */}
+      {/* Popover Chord Diagram (Anchored under clicked chord) */}
       {activeChord && (
         <div 
-          className="fixed bottom-24 right-6 z-50 shadow-2xl animate-fade-in"
+          className="fixed z-50 shadow-2xl animate-fade-in"
+          style={{
+            left: `${Math.max(10, Math.min(window.innerWidth - (instrument === 'piano' ? 210 : 150), popupPosition.x - (instrument === 'piano' ? 100 : 70)))}px`,
+            top: `${popupPosition.y + 8}px`
+          }}
           onClick={(e) => e.stopPropagation()}
         >
-          <ChordDiagram chord={activeChord} />
+          <ChordDiagram chord={activeChord} instrument={instrument} />
+        </div>
+      )}
+
+      {/* Song Info Modal Overlay */}
+      {showSongInfo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-sm animate-fade-in" onClick={() => setShowSongInfo(false)}>
+          <div className="bg-white border border-stone-200/80 rounded-2xl max-w-sm w-full p-5 shadow-2xl relative select-none" onClick={(e) => e.stopPropagation()}>
+            {/* Modal Header */}
+            <div className="flex items-start justify-between border-b border-stone-100 pb-3 mb-4">
+              <div>
+                <h3 className="font-bold text-stone-900 text-base leading-tight">{song.title}</h3>
+                <p className="text-xs text-stone-500 mt-1">{song.artist}</p>
+              </div>
+              <button
+                onClick={() => setShowSongInfo(false)}
+                className="p-1 rounded-full hover:bg-stone-100 text-stone-400 hover:text-stone-750 transition"
+              >
+                <Plus className="w-4.5 h-4.5 rotate-45" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="space-y-3.5 text-xs text-stone-700">
+              {/* Composer */}
+              <div className="flex justify-between items-center py-1.5 border-b border-stone-100">
+                <span className="font-semibold text-stone-500">Tác giả / Composer</span>
+                <span className="font-bold text-stone-950">{song.composer || 'Khuyết danh'}</span>
+              </div>
+
+              {/* Rhythm */}
+              <div className="flex justify-between items-center py-1.5 border-b border-stone-100">
+                <span className="font-semibold text-stone-500">Điệu / Rhythm</span>
+                <span className="font-bold text-stone-950 capitalize">{song.rhythm || 'Chưa xác định'}</span>
+              </div>
+
+              {/* Original Key */}
+              <div className="flex justify-between items-center py-1.5 border-b border-stone-100">
+                <span className="font-semibold text-stone-500">Tông gốc / Original Key</span>
+                <span className="px-1.5 py-0.5 bg-stone-100 border border-stone-200 font-mono text-[10px] font-bold text-stone-600 rounded">
+                  {song.key}
+                </span>
+              </div>
+
+              {/* Current Key */}
+              <div className="flex justify-between items-center py-1.5 border-b border-stone-100">
+                <span className="font-semibold text-stone-500">Tông hiện tại / Current Key</span>
+                <span className="px-1.5 py-0.5 bg-blue-50 border border-blue-100 font-mono text-[10px] font-bold text-blue-800 rounded">
+                  {transposeChord(song.key, transposeOffset)}
+                </span>
+              </div>
+
+              {/* Singer Tones */}
+              <div className="space-y-2 pt-1">
+                <span className="font-semibold text-stone-500 block mb-1">Tông ca sĩ gợi ý / Reference Tones</span>
+                
+                {/* Male Tones */}
+                <div className="flex justify-between items-center bg-stone-50 border border-stone-200/40 rounded-lg px-2.5 py-1.5">
+                  <span className="text-[10px] font-black uppercase text-stone-500">Tông Nam (Male)</span>
+                  <span className="font-mono text-[11px] font-bold text-blue-dark">
+                    {getSingerTones(song.key)?.male}
+                  </span>
+                </div>
+
+                {/* Female Tones */}
+                <div className="flex justify-between items-center bg-stone-50 border border-stone-200/40 rounded-lg px-2.5 py-1.5">
+                  <span className="text-[10px] font-black uppercase text-stone-500">Tông Nữ (Female)</span>
+                  <span className="font-mono text-[11px] font-bold text-blue-dark">
+                    {getSingerTones(song.key)?.female}
+                  </span>
+                </div>
+              </div>
+
+              {/* Genre (Thể loại) */}
+              <div className="flex justify-between items-center py-1.5 border-b border-stone-100 pt-2">
+                <span className="font-semibold text-stone-500">Thể loại / Genre</span>
+                <span className="font-bold text-stone-950">Nhạc trẻ / Trữ tình / Pop</span>
+              </div>
+            </div>
+
+            {/* Modal Footer / Close Action */}
+            <div className="mt-5 pt-3 border-t border-stone-100">
+              <button
+                onClick={() => setShowSongInfo(false)}
+                className="w-full py-2 bg-stone-900 hover:bg-stone-800 text-white rounded-lg text-xs font-bold transition active:scale-[0.98]"
+              >
+                Đóng / Close
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -1,10 +1,16 @@
 @import "tailwindcss";
 
-:root {
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-display: 'Outfit', sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+@theme {
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro", "SFNSDisplay-Regular", "Helvetica Neue", Helvetica, Arial, "Inter", sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro", "SFNSText-Regular", "Helvetica Neue", Helvetica, Arial, "Outfit", sans-serif;
+  --font-mono: "SF Mono", "SFProMono-Regular", Menlo, Monaco, Consolas, "JetBrains Mono", monospace;
+  
+  --color-blue-dark: #1e3a8a; /* Premium Dark Blue for maximum legibility */
+  --color-chord: #1e3a8a;    /* Dark blue chords */
+  --bg-chord-pill: rgba(30, 58, 138, 0.06); /* very soft blue backdrop */
+}
 
+:root {
   /* Premium Warm Light Theme (Paper style) */
   --bg-main: #fcfbfa;        /* Soft paper off-white */
   --bg-panel: #f5f3ef;       /* Warm grey/sand panel */
@@ -16,13 +22,11 @@
 
   --color-amber: #b45309;    /* Warm amber for primary accents */
   --color-orange: #c2410c;
-  --color-red: #dc2626;      /* Vibrant Crimson Red for chords! */
-  --color-chord: #dc2626;    /* Red chords */
+  --color-red: #dc2626;      /* Vibrant Crimson Red for general indicators */
   
   --text-primary: #1c1917;   /* Charcoal primary text */
   --text-secondary: #44403c; /* Stone 700 secondary text */
   --text-muted: #78716c;     /* Stone 500 muted text */
-  --bg-chord-pill: rgba(220, 38, 38, 0.05); /* very soft red backdrop */
 }
 
 * {
@@ -133,7 +137,7 @@ input:focus, textarea:focus, select:focus {
    Inline Chords Formatter
    ---------------------------------------------------- */
 .chord-inline {
-  color: var(--color-chord);  /* RED contrast color! */
+  color: var(--color-chord);  /* DARK BLUE contrast color! */
   font-weight: 700;
   cursor: pointer;
   margin: 0 2px;
@@ -143,7 +147,7 @@ input:focus, textarea:focus, select:focus {
 }
 
 .chord-inline:hover {
-  color: #b91c1c;
+  color: #172554;             /* Blue-950 for dark hover */
   text-decoration: underline;
 }
 
@@ -153,6 +157,7 @@ input:focus, textarea:focus, select:focus {
   color: var(--text-primary); /* Dark charcoal contrast lyrics */
   margin-bottom: 0.5rem;
   white-space: pre-wrap;     /* Wrap naturally, keeping layout whitespaces */
+  text-align: justify;
 }
 
 .comment-line {
@@ -170,7 +175,7 @@ input:focus, textarea:focus, select:focus {
 
 /* Compact View Styles */
 .lyric-line-inline.compact {
-  font-family: 'Roboto Condensed', 'Arial Narrow', 'Helvetica Neue', Arial, sans-serif-condensed, sans-serif;
+  font-family: "SF Pro Condensed", "SF Pro Text Condensed", -apple-system-condensed, 'Roboto Condensed', 'Arial Narrow', sans-serif-condensed, sans-serif;
   font-stretch: condensed;
   line-height: 1.15;
   margin-bottom: 0.15rem;
@@ -178,14 +183,14 @@ input:focus, textarea:focus, select:focus {
 }
 
 .chord-inline.compact {
-  font-family: 'Roboto Condensed', 'Arial Narrow', sans-serif-condensed, sans-serif;
+  font-family: "SF Pro Condensed", "SF Pro Text Condensed", -apple-system-condensed, 'Roboto Condensed', 'Arial Narrow', sans-serif-condensed, sans-serif;
   font-stretch: condensed;
   font-weight: 850;
   margin: 0 1px;
 }
 
 .comment-line.compact {
-  font-family: 'Roboto Condensed', 'Arial Narrow', sans-serif-condensed, sans-serif;
+  font-family: "SF Pro Condensed", "SF Pro Text Condensed", -apple-system-condensed, 'Roboto Condensed', 'Arial Narrow', sans-serif-condensed, sans-serif;
   margin-top: 8px;
   margin-bottom: 2px;
   font-size: 0.8em;

@@ -21,6 +21,61 @@ export function slugify(text) {
     .replace(/-+/g, '-'); // Collapse dashes
 }
 
+export function detectWrittenKey(chordPro, metaKey) {
+  if (!chordPro) return metaKey || 'C';
+  
+  const matches = chordPro.match(/\[([^\]]+)\]/g) || [];
+  const chords = matches.map(m => m.slice(1, -1).trim()).filter(c => /^[A-G]/i.test(c));
+  
+  if (chords.length === 0) return metaKey || 'C';
+
+  const counts = {};
+  chords.forEach(c => {
+    const base = c.split('/')[0];
+    counts[base] = (counts[base] || 0) + 1;
+  });
+
+  const lastChord = chords[chords.length - 1].split('/')[0];
+  const firstChord = chords[0].split('/')[0];
+  const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  const topChord = sorted[0]?.[0];
+
+  const parseKey = (keyStr) => {
+    if (!keyStr) return { root: 'C', isMinor: false, full: 'C' };
+    let root = keyStr[0];
+    let suffix = keyStr.slice(1);
+    if (keyStr[1] === '#' || keyStr[1] === 'b') {
+      root = keyStr.slice(0, 2);
+      suffix = keyStr.slice(2);
+    }
+    const isMinor = suffix.startsWith('m') && !suffix.startsWith('maj') && !suffix.startsWith('M');
+    return { root, isMinor, full: root + (isMinor ? 'm' : '') };
+  };
+
+  const lastParsed = parseKey(lastChord);
+  const firstParsed = parseKey(firstChord);
+  const topParsed = parseKey(topChord);
+  const metaParsed = parseKey(metaKey);
+
+  // If last chord quality matches metadata quality, use last chord
+  if (lastParsed.isMinor === metaParsed.isMinor) {
+    return lastParsed.full;
+  }
+  
+  // If top chord quality matches metadata quality, use top chord
+  if (topParsed.isMinor === metaParsed.isMinor) {
+    return topParsed.full;
+  }
+
+  // If first chord quality matches metadata quality, use first chord
+  if (firstParsed.isMinor === metaParsed.isMinor) {
+    return firstParsed.full;
+  }
+
+  // Fallback to last chord
+  return lastParsed.full;
+}
+
 const DEFAULT_SONGS = [
   {
     id: "nho-oi",
@@ -197,6 +252,12 @@ export function getSongs() {
         songModified = true;
       }
 
+      const detectedKey = detectWrittenKey(song.chordPro, song.key);
+      if (detectedKey !== song.key) {
+        updatedSong.key = detectedKey;
+        songModified = true;
+      }
+
       if (songModified) {
         modified = true;
         return updatedSong;
@@ -277,7 +338,7 @@ export function addSong(songData) {
     
     if (newLen > oldLen) {
       existing.chordPro = addSpacesAroundChords(songData.chordPro.trim());
-      existing.key = songData.key ? songData.key.trim() : existing.key;
+      existing.key = songData.key ? detectWrittenKey(songData.chordPro, songData.key.trim()) : detectWrittenKey(songData.chordPro, existing.key);
       existing.composer = songData.composer ? songData.composer.trim() : existing.composer;
       existing.rhythm = songData.rhythm ? songData.rhythm.trim() : existing.rhythm;
       
@@ -303,7 +364,7 @@ export function addSong(songData) {
     artist: songData.artist ? songData.artist.trim() : 'Khuyết Danh',
     composer: songData.composer ? songData.composer.trim() : '',
     rhythm: songData.rhythm ? songData.rhythm.trim() : 'Chưa xác định',
-    key: songData.key ? songData.key.trim() : 'C',
+    key: songData.key ? detectWrittenKey(songData.chordPro, songData.key.trim()) : detectWrittenKey(songData.chordPro, 'C'),
     chordPro: addSpacesAroundChords(songData.chordPro.trim()),
     isFavorite: songData.isFavorite || false,
     dateAdded: new Date().toISOString()
@@ -325,7 +386,7 @@ export function updateSong(id, songData) {
     artist: songData.artist ? songData.artist.trim() : 'Khuyết Danh',
     composer: songData.composer !== undefined ? songData.composer.trim() : (songs[index].composer || ''),
     rhythm: songData.rhythm ? songData.rhythm.trim() : 'Chưa xác định',
-    key: songData.key ? songData.key.trim() : 'C',
+    key: songData.key ? detectWrittenKey(songData.chordPro, songData.key.trim()) : detectWrittenKey(songData.chordPro, 'C'),
     chordPro: addSpacesAroundChords(songData.chordPro.trim()),
     isFavorite: songData.isFavorite !== undefined ? songData.isFavorite : songs[index].isFavorite
   };

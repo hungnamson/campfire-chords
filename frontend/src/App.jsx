@@ -17,10 +17,14 @@ import {
   Info,
   ChevronRight,
   ChevronLeft,
-  Upload
+  Upload,
+  X,
+  Menu,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 import SongViewer from './components/SongViewer';
-import { transposeChord } from './utils/transposer';
+import { transposeChord, NOTE_TO_SEMITONE } from './utils/transposer';
 
 const API_BASE = '/api';
 
@@ -33,6 +37,33 @@ export default function App() {
   const [searchInput, setSearchInput] = useState('');
   const [transposeOffset, setTransposeOffset] = useState(0);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [fontSize, setFontSize] = useState(() => {
+    const saved = localStorage.getItem('campfire_font_size');
+    return saved ? parseInt(saved, 10) : 16;
+  });
+  const [isCompact, setIsCompact] = useState(() => {
+    const saved = localStorage.getItem('campfire_is_compact');
+    return saved === 'true';
+  });
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+  const [instrument, setInstrument] = useState(() => {
+    return localStorage.getItem('campfire_instrument') || 'guitar';
+  });
+  const [showKeySelector, setShowKeySelector] = useState(false);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+
+  // Persist font size, compact state, and instrument changes
+  useEffect(() => {
+    localStorage.setItem('campfire_font_size', fontSize);
+  }, [fontSize]);
+
+  useEffect(() => {
+    localStorage.setItem('campfire_is_compact', isCompact);
+  }, [isCompact]);
+
+  useEffect(() => {
+    localStorage.setItem('campfire_instrument', instrument);
+  }, [instrument]);
   
   // Scraper tab inputs
   const [newSongUrl, setNewSongUrl] = useState('');
@@ -558,6 +589,35 @@ export default function App() {
     }
   };
 
+  const parseKeyRootAndType = (keyStr) => {
+    if (!keyStr) return { root: 'C', isMinor: false };
+    let root = keyStr[0];
+    let suffix = keyStr.slice(1);
+    if (keyStr[1] === '#' || keyStr[1] === 'b') {
+      root = keyStr.slice(0, 2);
+      suffix = keyStr.slice(2);
+    }
+    const isMinor = suffix.startsWith('m') && !suffix.startsWith('maj') && !suffix.startsWith('M');
+    return { root, isMinor };
+  };
+
+  const handleSelectKey = (targetKey) => {
+    if (!activeSong) return;
+    const { root: originalRoot } = parseKeyRootAndType(activeSong.key);
+    const { root: targetRoot } = parseKeyRootAndType(targetKey);
+    
+    const originalSemi = NOTE_TO_SEMITONE[originalRoot];
+    const targetSemi = NOTE_TO_SEMITONE[targetRoot];
+    
+    if (originalSemi === undefined || targetSemi === undefined) return;
+    
+    let diff = targetSemi - originalSemi;
+    while (diff > 5) diff -= 12;
+    while (diff <= -6) diff += 12;
+    
+    setTransposeOffset(diff);
+  };
+
   const removeAccents = (str) => {
     if (!str) return '';
     return str
@@ -621,70 +681,27 @@ export default function App() {
       .map(item => item.song);
   })();
 
+  const getAvailableKeys = () => {
+    if (!activeSong) return [];
+    const { isMinor } = parseKeyRootAndType(activeSong.key);
+    if (isMinor) {
+      return [
+        'Am', 'Dm', 'Em', 'Bm',
+        'Cm', 'C#m', 'Ebm', 'Fm',
+        'F#m', 'Gm', 'Abm', 'Bbm'
+      ];
+    } else {
+      return [
+        'C', 'A', 'D', 'G',
+        'Db', 'Eb', 'E', 'F',
+        'F#', 'Ab', 'Bb', 'B'
+      ];
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-[#fcfbfa] text-stone-900 font-sans pb-20 md:pb-0 md:flex">
+    <div className="min-h-screen bg-[#fcfbfa] text-stone-900 font-sans pb-20 md:pb-0 flex flex-col">
       
-      {/* Sidebar Navigation - Desktop */}
-      <aside className="hidden md:flex flex-col w-64 bg-[#f5f3ef] border-r border-[#e3ded5] p-6 select-none shrink-0">
-        <div className="flex items-center gap-3 mb-8">
-          <div className="p-2 bg-red-600/10 rounded-xl border border-red-600/20">
-            <Flame className="w-7 h-7 text-red-600 fill-red-600" />
-          </div>
-          <div>
-            <h1 className="text-lg font-bold tracking-tight font-display text-stone-900">Campfire Chords</h1>
-            <span className="text-[10px] uppercase font-bold text-stone-500">Offline Guitar App</span>
-          </div>
-        </div>
-
-        <nav className="flex flex-col gap-2 flex-grow">
-          <button 
-            onClick={() => { setActiveTab('library'); setSelectedPlaylistId(null); }}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all ${
-              activeTab === 'library' && !selectedPlaylistId 
-                ? 'bg-red-600 text-white shadow-md shadow-red-600/10' 
-                : 'text-stone-700 hover:bg-stone-200/60'
-            }`}
-          >
-            <Music className="w-4 h-4" /> Song Library
-          </button>
-          <button 
-            onClick={() => setActiveTab('setlists')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all ${
-              activeTab === 'setlists' 
-                ? 'bg-red-600 text-white shadow-md shadow-red-600/10' 
-                : 'text-stone-700 hover:bg-stone-200/60'
-            }`}
-          >
-            <ListMusic className="w-4 h-4" /> Campfire Setlists
-          </button>
-          <button 
-            onClick={() => setActiveTab('add')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all ${
-              activeTab === 'add' 
-                ? 'bg-red-600 text-white shadow-md shadow-red-600/10' 
-                : 'text-stone-700 hover:bg-stone-200/60'
-            }`}
-          >
-            <PlusCircle className="w-4 h-4" /> Add & Scrape Chords
-          </button>
-        </nav>
-
-        {/* Network status */}
-        <div className="mt-auto border-t border-stone-200/80 pt-4 flex items-center gap-2 text-xs">
-          {isOnline ? (
-            <>
-              <Wifi className="w-4 h-4 text-green-600" />
-              <span className="text-stone-500">Online. Ready to scrape.</span>
-            </>
-          ) : (
-            <>
-              <WifiOff className="w-4 h-4 text-orange-600" />
-              <span className="text-stone-500">Offline. Campfire mode.</span>
-            </>
-          )}
-        </div>
-      </aside>
-
       {/* Main dashboard content */}
       <div className="flex-grow flex flex-col min-w-0">
         
@@ -698,11 +715,15 @@ export default function App() {
 
           {/* Search Box (Center, expands) */}
           <div className="relative flex-grow max-w-lg">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+            {!isSearchFocused && (
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none transition-all duration-200" />
+            )}
             <input
               type="text"
-              placeholder="Search songs, artists, or lyrics... (Press Enter)"
+              placeholder={isSearchFocused ? "" : "Search songs, artists, or lyrics... (Press Enter)"}
               value={searchInput}
+              onFocus={() => setIsSearchFocused(true)}
+              onBlur={() => setIsSearchFocused(false)}
               onChange={(e) => {
                 const val = e.target.value;
                 setSearchInput(val);
@@ -715,45 +736,123 @@ export default function App() {
                   setSearchQuery(searchInput);
                 }
               }}
-              className="w-full pl-9 pr-4 py-2 bg-white border border-stone-200 rounded-lg text-sm placeholder-stone-400 focus:border-red-600 focus:ring-1 focus:ring-red-600/20 shadow-sm transition-all"
+              className={`w-full pr-10 py-2 bg-white border border-stone-200 rounded-lg text-sm placeholder-stone-400 focus:border-red-600 focus:ring-1 focus:ring-red-600/20 shadow-sm transition-all duration-200 ${
+                isSearchFocused ? 'pl-3' : 'pl-9'
+              }`}
             />
-          </div>
-
-          {/* Transpose Key Control Pill (Right, big and bold!) */}
-          <div className="flex items-center gap-2 bg-white border border-stone-200 rounded-full py-0.5 px-3 shadow-sm select-none shrink-0">
-            <button
-              onClick={() => setTransposeOffset(prev => prev - 1)}
-              className="w-8 h-8 flex items-center justify-center text-lg font-extrabold text-stone-600 hover:text-red-650 active:scale-90 transition"
-              title="Transpose Down"
-            >
-              -
-            </button>
-            <div className="flex flex-col items-center justify-center min-w-[52px]">
-              <span className="text-[8px] uppercase text-stone-400 font-bold leading-none tracking-wider">
-                {activeSong ? 'Key' : 'Key Shift'}
-              </span>
-              <span className="font-mono text-sm font-black text-red-600 mt-0.5 leading-none">
-                {activeSong 
-                  ? transposeChord(activeSong.key, transposeOffset) 
-                  : (transposeOffset > 0 ? `+${transposeOffset}` : transposeOffset)}
-              </span>
-            </div>
-            <button
-              onClick={() => setTransposeOffset(prev => prev + 1)}
-              className="w-8 h-8 flex items-center justify-center text-lg font-extrabold text-stone-600 hover:text-red-650 active:scale-90 transition"
-              title="Transpose Up"
-            >
-              +
-            </button>
-            {transposeOffset !== 0 && (
+            {searchInput && (
               <button
-                onClick={() => setTransposeOffset(0)}
-                className="text-[9px] uppercase font-bold text-stone-400 hover:text-red-600 pl-1.5 border-l border-stone-150 transition"
-                title="Reset Transposition"
+                onClick={() => {
+                  setSearchInput('');
+                  setSearchQuery('');
+                }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-stone-100 text-stone-400 hover:text-stone-700 transition-colors"
+                title="Clear search"
               >
-                Reset
+                <X className="w-3.5 h-3.5" />
               </button>
             )}
+          </div>
+
+          {/* Right Section: Settings Dropdown */}
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Settings Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setShowSettingsMenu(!showSettingsMenu)}
+                className="p-2 bg-white border border-stone-200 hover:bg-stone-50 rounded-full text-stone-600 hover:text-stone-900 active:scale-95 transition-all shadow-sm flex items-center justify-center"
+                title="Menu"
+              >
+                <Menu className="w-4 h-4" />
+              </button>
+              
+              {showSettingsMenu && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowSettingsMenu(false)}></div>
+                  <div className="absolute right-0 mt-2 w-48 bg-white border border-stone-200 rounded-lg shadow-xl z-50 p-1.5 text-left animate-fade-in select-none">
+                    <p className="text-[9px] uppercase font-bold tracking-wider text-stone-400 px-3 py-1.5 border-b border-stone-100">Features</p>
+                    
+                    <button
+                      onClick={() => {
+                        setActiveTab('library');
+                        setSelectedPlaylistId(null);
+                        setActiveSongId(null);
+                        setShowSettingsMenu(false);
+                      }}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-stone-50 text-xs rounded transition-colors text-left ${
+                        activeTab === 'library' && !selectedPlaylistId && !activeSongId ? 'text-red-600 font-bold bg-red-50' : 'text-stone-700 hover:bg-stone-100'
+                      }`}
+                    >
+                      <Music className="w-3.5 h-3.5" />
+                      <span>Song Library</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setActiveTab('setlists');
+                        setActiveSongId(null);
+                        setShowSettingsMenu(false);
+                      }}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-stone-55 text-xs rounded transition-colors text-left ${
+                        activeTab === 'setlists' && !activeSongId ? 'text-red-600 font-bold bg-red-50' : 'text-stone-700 hover:bg-stone-100'
+                      }`}
+                    >
+                      <ListMusic className="w-3.5 h-3.5" />
+                      <span>Campfire Setlists</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setActiveTab('add');
+                        setActiveSongId(null);
+                        setShowSettingsMenu(false);
+                      }}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-stone-55 text-xs rounded transition-colors text-left ${
+                        activeTab === 'add' && !activeSongId ? 'text-red-600 font-bold bg-red-50' : 'text-stone-700 hover:bg-stone-100'
+                      }`}
+                    >
+                      <PlusCircle className="w-3.5 h-3.5" />
+                      <span>Add & Scrape Chords</span>
+                    </button>
+
+                    {/* Instrument Selector Segmented Control */}
+                    <div className="border-t border-stone-100 mt-1.5 pt-2 px-3 pb-2 flex flex-col gap-1.5 select-none">
+                      <p className="text-[9px] uppercase font-bold tracking-wider text-stone-400">Instrument</p>
+                      <div className="grid grid-cols-3 gap-0.5 bg-stone-100 p-0.5 rounded-lg border border-stone-200">
+                        {['guitar', 'ukulele', 'piano'].map(inst => (
+                          <button
+                            key={inst}
+                            onClick={() => setInstrument(inst)}
+                            className={`py-1 text-[10px] font-extrabold capitalize rounded-md transition-all ${
+                              instrument === inst 
+                                ? 'bg-white text-stone-900 shadow-sm' 
+                                : 'text-stone-500 hover:text-stone-850'
+                            }`}
+                          >
+                            {inst === 'ukulele' ? 'Uke' : inst}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Network Status */}
+                    <div className="border-t border-stone-100 mt-1.5 pt-2 px-3 pb-1 flex items-center gap-1.5 text-[9px] text-stone-400 font-bold uppercase tracking-wider">
+                      {isOnline ? (
+                        <>
+                          <span className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0"></span>
+                          <span>Online Mode</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="w-1.5 h-1.5 rounded-full bg-orange-500 shrink-0"></span>
+                          <span>Offline Mode</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </header>
 
@@ -773,6 +872,9 @@ export default function App() {
                 onToggleFavorite={handleToggleFavorite}
                 playlists={playlists}
                 onAddSongToPlaylist={handleAddSongToPlaylist}
+                fontSize={fontSize}
+                isCompact={isCompact}
+                instrument={instrument}
               />
               
               {activePlaylistSongs.length > 0 && (
@@ -1275,36 +1377,185 @@ Ta đi tìm bóng mát"
         </main>
       </div>
 
-      {/* Bottom Nav Bar - Mobile only */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#f5f3ef]/95 border-t border-[#e3ded5] flex items-center justify-around py-2.5 shadow-2xl backdrop-blur-md">
-        <button
-          onClick={() => { setActiveTab('library'); setSelectedPlaylistId(null); }}
-          className={`flex flex-col items-center gap-1 text-[10px] font-semibold transition-all ${
-            activeTab === 'library' && !selectedPlaylistId ? 'text-red-600' : 'text-stone-500'
-          }`}
-        >
-          <Music className="w-5 h-5" />
-          <span>Library</span>
-        </button>
-        <button
-          onClick={() => setActiveTab('setlists')}
-          className={`flex flex-col items-center gap-1 text-[10px] font-semibold transition-all ${
-            activeTab === 'setlists' ? 'text-red-600' : 'text-stone-500'
-          }`}
-        >
-          <ListMusic className="w-5 h-5" />
-          <span>Setlists</span>
-        </button>
-        <button
-          onClick={() => setActiveTab('add')}
-          className={`flex flex-col items-center gap-1 text-[10px] font-semibold transition-all ${
-            activeTab === 'add' ? 'text-red-600' : 'text-stone-500'
-          }`}
-        >
-          <PlusCircle className="w-5 h-5" />
-          <span>Add Songs</span>
-        </button>
-      </nav>
+      {/* Bottom controls toolbar (replaces mobile bottom nav) */}
+      {activeSongId !== null && activeSong && (
+        (() => {
+          const currentTransposedKey = transposeChord(activeSong.key, transposeOffset);
+          
+          const getReferenceKeys = (keyStr) => {
+            if (!keyStr) return { original: '', male: '', female: '' };
+            try {
+              const male = transposeChord(keyStr, -5);
+              const female = transposeChord(keyStr, 0);
+              return { original: keyStr, male, female };
+            } catch {
+              return { original: keyStr, male: '?', female: '?' };
+            }
+          };
+
+          return (
+            <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#f5f3ef]/95 border-t border-[#e3ded5] flex items-center justify-center gap-4 py-2 shadow-2xl backdrop-blur-md select-none">
+              {/* Font Size Controls */}
+              <div className="flex items-center gap-1 bg-white border border-stone-200 rounded-lg p-0.5 shadow-sm">
+                <button 
+                  onClick={() => setFontSize(prev => Math.max(10, prev - 1))}
+                  className="w-8 h-8 flex items-center justify-center rounded hover:bg-stone-100 text-stone-600 active:scale-95 transition font-semibold text-xs"
+                  title="Decrease font size"
+                >
+                  A-
+                </button>
+                <span className="text-xs font-mono font-bold text-stone-500 min-w-[30px] text-center">
+                  {fontSize}px
+                </span>
+                <button 
+                  onClick={() => setFontSize(prev => Math.min(30, prev + 1))}
+                  className="w-8 h-8 flex items-center justify-center rounded hover:bg-stone-100 text-stone-600 active:scale-95 transition font-semibold text-xs"
+                  title="Increase font size"
+                >
+                  A+
+                </button>
+              </div>
+
+              <div className="h-6 w-px bg-stone-200"></div>
+
+              {/* Transpose Key Control Group (bigger buttons!) */}
+              <div className="flex items-center gap-1.5 bg-white border border-stone-200 rounded-lg p-0.5 shadow-sm">
+                <button
+                  onClick={() => setTransposeOffset(prev => prev - 1)}
+                  className="w-10 h-10 flex items-center justify-center text-lg font-black text-stone-600 hover:bg-stone-55 rounded-md active:scale-90 transition"
+                  title="Transpose Down"
+                >
+                  -
+                </button>
+                
+                <div className="relative">
+                  <button
+                    onClick={() => setShowKeySelector(!showKeySelector)}
+                    className="px-4 h-10 flex items-center justify-center bg-stone-50 border border-stone-150 rounded-md hover:bg-stone-100 active:scale-95 transition min-w-[70px]"
+                    title="Select Key"
+                  >
+                    <span className="font-mono text-base font-black text-blue-dark leading-none">
+                      {currentTransposedKey}
+                    </span>
+                  </button>
+
+                  {showKeySelector && (
+                    <>
+                      {/* Backdrop click-away */}
+                      <div className="fixed inset-0 z-40" onClick={() => setShowKeySelector(false)}></div>
+                      
+                      {/* Grid Selector Popover */}
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3.5 w-[325px] bg-white border border-stone-200 rounded-2xl shadow-2xl p-4 z-50 animate-fade-in text-center select-none">
+                        <div className="flex items-center justify-between border-b border-stone-100 pb-2 mb-2">
+                          <span className="text-[10px] uppercase font-extrabold tracking-widest text-stone-400">Quick Key Selection</span>
+                          <button
+                            onClick={() => {
+                              setTransposeOffset(0);
+                              setShowKeySelector(false);
+                            }}
+                            className="text-[10px] font-black uppercase text-blue-dark hover:text-blue-950 transition"
+                          >
+                            Reset ({activeSong.key})
+                          </button>
+                        </div>
+
+                        {/* Reference Tones Banner */}
+                        {(() => {
+                          const ref = getReferenceKeys(activeSong.key);
+                          return (
+                            <div className="grid grid-cols-3 gap-2 mb-1.5 text-xs text-stone-600">
+                              <button
+                                onClick={() => {
+                                  handleSelectKey(ref.original);
+                                  setShowKeySelector(false);
+                                }}
+                                className="flex flex-col items-center justify-center py-2.5 bg-white hover:bg-stone-50 active:scale-95 transition-all rounded-full border border-stone-200 cursor-pointer shadow-xs"
+                              >
+                                <span className="text-[8px] uppercase tracking-widest text-stone-400 font-extrabold mb-0.5">Tone Gốc</span>
+                                <span className="font-mono font-black text-stone-750 text-xs leading-none">{ref.original}</span>
+                              </button>
+                              <button
+                                onClick={() => {
+                                  handleSelectKey(ref.male);
+                                  setShowKeySelector(false);
+                                }}
+                                className="flex flex-col items-center justify-center py-2.5 bg-white hover:bg-stone-50 active:scale-95 transition-all rounded-full border border-stone-200 cursor-pointer shadow-xs"
+                              >
+                                <span className="text-[8px] uppercase tracking-widest text-stone-400 font-extrabold mb-0.5">Tone Nam</span>
+                                <span className="font-mono font-black text-blue-dark text-xs leading-none">{ref.male}</span>
+                              </button>
+                              <button
+                                onClick={() => {
+                                  handleSelectKey(ref.female);
+                                  setShowKeySelector(false);
+                                }}
+                                className="flex flex-col items-center justify-center py-2.5 bg-white hover:bg-stone-50 active:scale-95 transition-all rounded-full border border-stone-200 cursor-pointer shadow-xs"
+                              >
+                                <span className="text-[8px] uppercase tracking-widest text-stone-400 font-extrabold mb-0.5">Tone Nữ</span>
+                                <span className="font-mono font-black text-blue-dark text-xs leading-none">{ref.female}</span>
+                              </button>
+                            </div>
+                          );
+                        })()}
+
+                        {/* Section Divider */}
+                        <div className="h-px bg-stone-100 my-2.5"></div>
+
+                        <div className="grid grid-cols-4 gap-2">
+                          {getAvailableKeys().map(key => {
+                            const currentKeyParsed = parseKeyRootAndType(currentTransposedKey);
+                            const gridKeyParsed = parseKeyRootAndType(key);
+                            const isSelected = currentKeyParsed.root === gridKeyParsed.root && currentKeyParsed.isMinor === gridKeyParsed.isMinor;
+                            return (
+                              <button
+                                key={key}
+                                onClick={() => {
+                                  handleSelectKey(key);
+                                  setShowKeySelector(false);
+                                }}
+                                className={`h-9.5 flex items-center justify-center text-xs font-bold rounded-lg border transition-all cursor-pointer ${
+                                  isSelected 
+                                    ? 'bg-blue-50 border-2 border-blue-400 text-blue-900 shadow-xs font-black' 
+                                    : 'bg-white border-stone-200 text-stone-700 hover:bg-stone-50 hover:border-stone-300'
+                                }`}
+                              >
+                                {key}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => setTransposeOffset(prev => prev + 1)}
+                  className="w-10 h-10 flex items-center justify-center text-lg font-black text-stone-600 hover:bg-stone-55 rounded-md active:scale-90 transition"
+                  title="Transpose Up"
+                >
+                  +
+                </button>
+              </div>
+
+              <div className="h-6 w-px bg-stone-200"></div>
+
+              {/* Compact View Toggle */}
+              <button 
+                onClick={() => setIsCompact(!isCompact)}
+                className={`w-8 h-8 flex items-center justify-center border rounded-lg active:scale-95 transition shadow-sm ${
+                  isCompact 
+                    ? 'bg-amber-50 border-amber-200 text-amber-600' 
+                    : 'bg-white border-stone-200 text-stone-600 hover:bg-stone-100'
+                }`}
+                title={isCompact ? "Standard View" : "Compact View"}
+              >
+                {isCompact ? <Maximize2 className="w-4 h-4" /> : <Minimize2 className="w-4 h-4" />}
+              </button>
+            </nav>
+          );
+        })()
+      )}
 
     </div>
   );
