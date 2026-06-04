@@ -50,19 +50,41 @@ function autoCorrelate(buffer, sampleRate, rms) {
     d++;
   }
 
-  // Find the highest peak in the allowed lag range
+  // 1. Find the absolute maximum peak in the allowed lag range
   let maxval = -1;
-  let maxpos = -1;
   for (let i = Math.max(d, minLag); i < maxLag; i++) {
     if (c[i] > maxval) {
       maxval = c[i];
-      maxpos = i;
     }
   }
 
-  // If no peak found, or correlation is too weak (below 30% of energy at lag 0)
-  if (maxpos === -1 || c[maxpos] < 0.3 * c[0]) {
+  // If no peak found or correlation is too weak (below 30% of energy at lag 0)
+  if (maxval < 0.3 * c[0]) {
     return -1;
+  }
+
+  // 2. Find the first local maximum peak that is at least 80% of the absolute maximum peak
+  // This resolves the octave reduction / pitch halving bug (e.g., detecting 130Hz instead of 260Hz)
+  let maxpos = -1;
+  const threshold = maxval * 0.80;
+  for (let i = Math.max(d, minLag, 1); i < maxLag - 1; i++) {
+    if (c[i] > c[i - 1] && c[i] > c[i + 1]) {
+      if (c[i] > threshold) {
+        maxpos = i;
+        break;
+      }
+    }
+  }
+
+  // If no peak found via local maximum search, fallback to absolute maximum search
+  if (maxpos === -1) {
+    let fallbackMax = -1;
+    for (let i = Math.max(d, minLag); i < maxLag; i++) {
+      if (c[i] > fallbackMax) {
+        fallbackMax = c[i];
+        maxpos = i;
+      }
+    }
   }
 
   let T0 = maxpos;
@@ -90,6 +112,19 @@ export default function InstrumentTuner({ isOpen, onClose }) {
   const [frequency, setFrequency] = useState(null);
   const [cents, setCents] = useState(0);
   const [errorMsg, setErrorMsg] = useState('');
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
+  const [consoleErrors, setConsoleErrors] = useState([]);
+
+  useEffect(() => {
+    const handleError = (event) => {
+      const errorMsg = event.error ? event.error.stack || event.error.message : event.message;
+      setConsoleErrors(prev => [...prev.slice(-4), errorMsg]);
+    };
+    window.addEventListener('error', handleError);
+    return () => {
+      window.removeEventListener('error', handleError);
+    };
+  }, []);
 
   const tunerAudioCtxRef = useRef(null);
   const refAudioCtxRef = useRef(null);
@@ -101,6 +136,27 @@ export default function InstrumentTuner({ isOpen, onClose }) {
   const oscGainRef = useRef(null);
   const volumeBarRef = useRef(null);
   const wakeLockRef = useRef(null);
+
+  const debugStateRef = useRef(null);
+  const debugTrackRef = useRef(null);
+  const debugRmsRef = useRef(null);
+
+  const selectedInstRef = useRef(selectedInst);
+  const tunerModeRef = useRef(tunerMode);
+  const selectedStringRef = useRef(selectedString);
+
+  // Sync state variables to refs to avoid stale closure in requestAnimationFrame loop
+  useEffect(() => {
+    selectedInstRef.current = selectedInst;
+  }, [selectedInst]);
+
+  useEffect(() => {
+    tunerModeRef.current = tunerMode;
+  }, [tunerMode]);
+
+  useEffect(() => {
+    selectedStringRef.current = selectedString;
+  }, [selectedString]);
 
   // Sync selected instrument with default string
   useEffect(() => {
@@ -326,57 +382,86 @@ export default function InstrumentTuner({ isOpen, onClose }) {
       setIsListening(true);
       const bufferLength = analyser.fftSize;
       const dataArray = new Float32Array(bufferLength);
+      const dataArrayByte = new Uint8Array(bufferLength);
 
       const updatePitch = () => {
-        if (!analyserRef.current) return;
-        analyserRef.current.getFloat32TimeDomainData(dataArray);
-
-        // Calculate dynamic RMS volume level
-        let sum = 0;
-        for (let i = 0; i < dataArray.length; i++) {
-          sum += dataArray[i] * dataArray[i];
-        }
-        const rms = Math.sqrt(sum / dataArray.length);
-
-        // Update the signal/volume level VU meter bar directly in DOM to avoid React re-render lag
-        if (volumeBarRef.current) {
-          const volPercent = Math.min(100, Math.round(rms * 800));
-          volumeBarRef.current.style.width = `${volPercent}%`;
-          volumeBarRef.current.style.backgroundColor = rms < 0.003 ? '#d6d3d1' : '#3b82f6';
-        }
-
-        const detectedFreq = autoCorrelate(dataArray, audioCtx.sampleRate, rms);
-        if (detectedFreq !== -1 && detectedFreq > 50 && detectedFreq < 600) {
-          setFrequency(detectedFreq);
-
-          let target = null;
-          if (tunerMode === 'manual') {
-            target = selectedString;
+        try {
+          if (!analyserRef.current) return;
+          
+          if (typeof analyserRef.current.getFloat32TimeDomainData === 'function') {
+            analyserRef.current.getFloat32TimeDomainData(dataArray);
           } else {
-            // Find closest target string frequency
-            const currentStrings = INSTRUMENT_TUNINGS[selectedInst].strings;
-            let closest = currentStrings[0];
-            let minDist = Math.abs(detectedFreq - closest.freq);
-
-            for (let i = 1; i < currentStrings.length; i++) {
-              const dist = Math.abs(detectedFreq - currentStrings[i].freq);
-              if (dist < minDist) {
-                minDist = dist;
-                closest = currentStrings[i];
-              }
+            // Fallback for older mobile Safari / WebKit builds lacking getFloat32TimeDomainData
+            analyserRef.current.getByteTimeDomainData(dataArrayByte);
+            for (let i = 0; i < bufferLength; i++) {
+              dataArray[i] = (dataArrayByte[i] - 128) / 128;
             }
-            target = closest;
-            setDetectedString(closest);
           }
 
-          if (target) {
-            const centsDev = 1200 * Math.log2(detectedFreq / target.freq);
-            setCents(centsDev);
+          // Calculate dynamic RMS volume level
+          let sum = 0;
+          for (let i = 0; i < dataArray.length; i++) {
+            sum += dataArray[i] * dataArray[i];
           }
-        } else {
-          // Clear active detected pitch when there is silence or no pitch, returning dial to center
-          setFrequency(null);
-          setCents(0);
+          const rms = Math.sqrt(sum / dataArray.length);
+
+          // Update the signal/volume level VU meter bar directly in DOM to avoid React re-render lag
+          if (volumeBarRef.current) {
+            const volPercent = Math.min(100, Math.round(rms * 800));
+            volumeBarRef.current.style.width = `${volPercent}%`;
+            volumeBarRef.current.style.backgroundColor = rms < 0.003 ? '#d6d3d1' : '#3b82f6';
+          }
+
+          // Update real-time diagnostics panel elements directly in DOM
+          if (debugStateRef.current && audioCtx) {
+            debugStateRef.current.innerText = audioCtx.state;
+          }
+          if (debugTrackRef.current && audioStreamRef.current) {
+            const track = audioStreamRef.current.getAudioTracks()[0];
+            debugTrackRef.current.innerText = track 
+              ? `${track.readyState} (${track.enabled ? 'Active' : 'Muted'})`
+              : 'No Track';
+          }
+          if (debugRmsRef.current) {
+            debugRmsRef.current.innerText = rms.toFixed(6);
+          }
+
+          const detectedFreq = autoCorrelate(dataArray, audioCtx.sampleRate, rms);
+          if (detectedFreq !== -1 && detectedFreq > 50 && detectedFreq < 600) {
+            setFrequency(detectedFreq);
+
+            let target = null;
+            if (tunerModeRef.current === 'manual') {
+              target = selectedStringRef.current;
+            } else {
+              // Find closest target string frequency
+              const currentStrings = INSTRUMENT_TUNINGS[selectedInstRef.current].strings;
+              let closest = currentStrings[0];
+              let minDist = Math.abs(detectedFreq - closest.freq);
+
+              for (let i = 1; i < currentStrings.length; i++) {
+                const dist = Math.abs(detectedFreq - currentStrings[i].freq);
+                if (dist < minDist) {
+                  minDist = dist;
+                  closest = currentStrings[i];
+                }
+              }
+              target = closest;
+              setDetectedString(closest);
+            }
+
+            if (target) {
+              const centsDev = 1200 * Math.log2(detectedFreq / target.freq);
+              setCents(centsDev);
+            }
+          } else {
+            // Clear active detected pitch when there is silence or no pitch, returning dial to center
+            setFrequency(null);
+            setCents(0);
+          }
+        } catch (err) {
+          console.error("Error inside updatePitch loop:", err);
+          setConsoleErrors(prev => [...prev.slice(-4), `Pitch Loop Error: ${err.message}`]);
         }
         animationFrameRef.current = requestAnimationFrame(updatePitch);
       };
@@ -411,12 +496,28 @@ export default function InstrumentTuner({ isOpen, onClose }) {
     if (volumeBarRef.current) {
       volumeBarRef.current.style.width = '0%';
     }
+    // Reset debug panel labels
+    if (debugStateRef.current) debugStateRef.current.innerText = '-';
+    if (debugTrackRef.current) debugTrackRef.current.innerText = '-';
+    if (debugRmsRef.current) debugRmsRef.current.innerText = '-';
   }
 
   function toggleListening() {
     if (isListening) {
       stopTuner();
     } else {
+      // Synchronously initialize the tunerAudioCtxRef inside user gesture event stack
+      try {
+        if (!tunerAudioCtxRef.current) {
+          tunerAudioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (tunerAudioCtxRef.current.state === 'suspended') {
+          tunerAudioCtxRef.current.resume();
+        }
+      } catch (e) {
+        console.error('Failed to initialize AudioContext synchronously in gesture:', e);
+      }
+      
       startTuner();
     }
   }
@@ -633,7 +734,7 @@ export default function InstrumentTuner({ isOpen, onClose }) {
           )}
 
           {/* Bottom Activation controls */}
-          <div className="pt-2">
+          <div className="pt-2 space-y-2">
             <button
               onClick={toggleListening}
               className={`w-full py-3 rounded-xl text-sm font-black transition active:scale-[0.98] shadow-md flex items-center justify-center gap-2 cursor-pointer ${
@@ -645,6 +746,35 @@ export default function InstrumentTuner({ isOpen, onClose }) {
               <Mic className={`w-4 h-4 ${isListening ? 'animate-pulse' : ''}`} />
               {isListening ? 'Tắt thu âm (Stop Tuner)' : 'Bật thu âm (Start Tuner)'}
             </button>
+
+            <button
+              onClick={() => setShowDiagnostics(!showDiagnostics)}
+              className="w-full text-center text-[10px] text-stone-400 hover:text-stone-600 transition font-bold"
+            >
+              {showDiagnostics ? 'Ẩn chẩn đoán' : 'Hiện chẩn đoán (Diagnostics)'}
+            </button>
+
+            {showDiagnostics && (
+              <div className="bg-stone-900 text-stone-300 p-3 rounded-xl text-[10px] font-mono space-y-1.5 shadow-inner">
+                <div className="font-bold border-b border-stone-800 pb-1 mb-1 text-stone-400 text-center uppercase tracking-wider">Thông số chẩn đoán</div>
+                <div className="flex justify-between"><span>Secure Context:</span> <span className="text-stone-100">{window.isSecureContext ? 'Yes' : 'No'}</span></div>
+                <div className="flex justify-between"><span>Audio Context:</span> <span ref={debugStateRef} className="text-stone-100">-</span></div>
+                <div className="flex justify-between"><span>Mic Track state:</span> <span ref={debugTrackRef} className="text-stone-100">-</span></div>
+                <div className="flex justify-between"><span>Raw RMS:</span> <span ref={debugRmsRef} className="text-stone-100">-</span></div>
+                <div className="flex justify-between"><span>Sample Rate:</span> <span className="text-stone-100">{tunerAudioCtxRef.current?.sampleRate || '0'} Hz</span></div>
+                
+                {consoleErrors.length > 0 && (
+                  <div className="border-t border-stone-800 pt-1.5 mt-1.5">
+                    <div className="text-red-400 font-bold mb-1">ERRORS CONSOLE:</div>
+                    <div className="space-y-1 text-red-300 text-[8px] leading-tight">
+                      {consoleErrors.map((err, idx) => (
+                        <div key={idx} className="whitespace-pre-wrap truncate max-w-full">{err}</div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
