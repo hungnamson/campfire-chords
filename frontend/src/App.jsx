@@ -30,6 +30,7 @@ export default function App() {
   const [activeSongId, setActiveSongId] = useState(null);
   const [activeTab, setActiveTab] = useState('library'); // library, setlists, add
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [transposeOffset, setTransposeOffset] = useState(0);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   
@@ -700,9 +701,20 @@ export default function App() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
             <input
               type="text"
-              placeholder="Search songs, artists, or lyrics..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search songs, artists, or lyrics... (Press Enter)"
+              value={searchInput}
+              onChange={(e) => {
+                const val = e.target.value;
+                setSearchInput(val);
+                if (!val.trim()) {
+                  setSearchQuery('');
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  setSearchQuery(searchInput);
+                }
+              }}
               className="w-full pl-9 pr-4 py-2 bg-white border border-stone-200 rounded-lg text-sm placeholder-stone-400 focus:border-red-600 focus:ring-1 focus:ring-red-600/20 shadow-sm transition-all"
             />
           </div>

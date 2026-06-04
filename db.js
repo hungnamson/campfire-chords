@@ -138,7 +138,45 @@ export function getSongs() {
     const songs = JSON.parse(data);
 
     let modified = false;
-    const fixedSongs = songs.map(song => {
+
+    // Deduplication check
+    const uniqueSongs = [];
+    const idMappings = {}; // maps duplicate song ID to kept song ID
+    const seen = new Set();
+
+    // Sort songs so favorites are preferred first, then longer chordPro sheets (more complete)
+    const sortedSongs = [...songs].sort((a, b) => {
+      if (a.isFavorite && !b.isFavorite) return -1;
+      if (!a.isFavorite && b.isFavorite) return 1;
+      const lenA = (a.chordPro || '').length;
+      const lenB = (b.chordPro || '').length;
+      return lenB - lenA;
+    });
+
+    for (const song of sortedSongs) {
+      const titleKey = slugify(song.title || '');
+      const artistKey = slugify(song.artist || 'khuyet-danh');
+      const key = `${titleKey}|${artistKey}`;
+
+      if (seen.has(key)) {
+        const kept = uniqueSongs.find(s => `${slugify(s.title || '')}|${slugify(s.artist || 'khuyet-danh')}` === key);
+        if (kept) {
+          idMappings[song.id] = kept.id;
+        }
+        modified = true;
+      } else {
+        seen.add(key);
+        uniqueSongs.push(song);
+      }
+    }
+
+    // Filter original list to maintain the index/chronological ordering of the unique subset
+    const finalUniqueSongs = songs.filter(s => uniqueSongs.some(u => u.id === s.id));
+    if (finalUniqueSongs.length !== songs.length) {
+      modified = true;
+    }
+
+    let fixedSongs = finalUniqueSongs.map(song => {
       let updatedSong = { ...song };
       let songModified = false;
       
@@ -167,8 +205,34 @@ export function getSongs() {
     });
 
     if (modified) {
-      console.log('🧹 Automatically fixed spaces and artists in songs database!');
+      const diffCount = songs.length - fixedSongs.length;
+      console.log(`🧹 Database Self-Healing: Cleaned spaces/artists (removed ${diffCount} duplicate songs).`);
       saveSongs(fixedSongs);
+
+      // Clean up playlist entries referencing deleted duplicates
+      if (Object.keys(idMappings).length > 0) {
+        try {
+          const playlists = getPlaylists();
+          let playlistModified = false;
+          const updatedPlaylists = playlists.map(pl => {
+            const mappedIds = pl.songIds.map(id => idMappings[id] || id);
+            // Deduplicate playlist IDs
+            const uniqueIds = [...new Set(mappedIds)];
+            if (JSON.stringify(pl.songIds) !== JSON.stringify(uniqueIds)) {
+              playlistModified = true;
+              return { ...pl, songIds: uniqueIds };
+            }
+            return pl;
+          });
+          if (playlistModified) {
+            console.log('🧹 Database Self-Healing: Playlists mapping references updated.');
+            savePlaylists(updatedPlaylists);
+          }
+        } catch (plErr) {
+          console.error('Error updating playlists mapped references:', plErr);
+        }
+      }
+
       return fixedSongs;
     }
 
@@ -196,6 +260,33 @@ export function getSong(id) {
 
 export function addSong(songData) {
   const songs = getSongs();
+  
+  const titleKey = slugify(songData.title || '');
+  const artistKey = slugify(songData.artist || 'khuyet-danh');
+  
+  // Check for duplicate song (same title and artist)
+  const existingIndex = songs.findIndex(
+    s => slugify(s.title || '') === titleKey && slugify(s.artist || 'khuyet-danh') === artistKey
+  );
+
+  if (existingIndex !== -1) {
+    const existing = songs[existingIndex];
+    // If the imported version has a longer lyrics sheet, update it
+    const newLen = (songData.chordPro || '').trim().length;
+    const oldLen = (existing.chordPro || '').trim().length;
+    
+    if (newLen > oldLen) {
+      existing.chordPro = addSpacesAroundChords(songData.chordPro.trim());
+      existing.key = songData.key ? songData.key.trim() : existing.key;
+      existing.composer = songData.composer ? songData.composer.trim() : existing.composer;
+      existing.rhythm = songData.rhythm ? songData.rhythm.trim() : existing.rhythm;
+      
+      saveSongs(songs);
+      console.log(`🧹 Database Self-Healing: Updated existing song "${existing.title}" with longer content.`);
+    }
+    return existing;
+  }
+
   const id = slugify(songData.title + '-' + (songData.artist || 'unknown'));
   
   // Prevent duplicate ids
