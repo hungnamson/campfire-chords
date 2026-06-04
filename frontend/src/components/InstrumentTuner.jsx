@@ -34,17 +34,7 @@ function autoCorrelate(buffer, sampleRate) {
     rms += val * val;
   }
   rms = Math.sqrt(rms / SIZE);
-  if (rms < 0.008) return -1; // Not enough signal
-
-  let r1 = 0, r2 = SIZE - 1, thres = 0.15;
-  for (let i = 0; i < SIZE / 2; i++) {
-    if (Math.abs(buffer[i]) < thres) { r1 = i; } else { break; }
-  }
-  for (let i = SIZE - 1; i >= SIZE / 2; i--) {
-    if (Math.abs(buffer[i]) < thres) { r2 = i; } else { break; }
-  }
-  buffer = buffer.slice(r1, r2);
-  SIZE = buffer.length;
+  if (rms < 0.005) return -1; // Safe lower threshold for quiet inputs
 
   let c = new Float32Array(SIZE);
   for (let i = 0; i < SIZE; i++) {
@@ -101,15 +91,21 @@ export default function InstrumentTuner({ isOpen, onClose }) {
     }
   }, [selectedInst]);
 
-  // Clean up Web Audio resources on unmount
+  // Start tuner automatically when modal opens, and stop when closed/unmounted
   useEffect(() => {
+    if (isOpen) {
+      startTuner();
+    } else {
+      stopTuner();
+      stopReferenceTone();
+    }
     return () => {
       stopTuner();
       stopReferenceTone();
     };
-  }, []);
+  }, [isOpen]);
 
-  const stopReferenceTone = () => {
+  function stopReferenceTone() {
     if (oscillatorRef.current) {
       try {
         oscillatorRef.current.stop();
@@ -119,12 +115,11 @@ export default function InstrumentTuner({ isOpen, onClose }) {
     if (oscGainRef.current) {
       oscGainRef.current = null;
     }
-  };
+  }
 
-  const playReferenceTone = (freq) => {
+  function playReferenceTone(freq) {
     stopReferenceTone();
     try {
-      // Create audio context if it doesn't exist
       if (!audioCtxRef.current) {
         audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
       }
@@ -155,9 +150,9 @@ export default function InstrumentTuner({ isOpen, onClose }) {
     } catch (err) {
       console.warn('Failed to play reference pitch:', err);
     }
-  };
+  }
 
-  const startTuner = async () => {
+  async function startTuner() {
     stopReferenceTone();
     try {
       setErrorMsg('');
@@ -214,6 +209,10 @@ export default function InstrumentTuner({ isOpen, onClose }) {
             const centsDev = 1200 * Math.log2(detectedFreq / target.freq);
             setCents(centsDev);
           }
+        } else {
+          // Clear active detected pitch when there is silence or no pitch, returning dial to center
+          setFrequency(null);
+          setCents(0);
         }
         animationFrameRef.current = requestAnimationFrame(updatePitch);
       };
@@ -224,9 +223,9 @@ export default function InstrumentTuner({ isOpen, onClose }) {
       setErrorMsg('Không thể truy cập Micro. Vui lòng kiểm tra quyền cài đặt Micro của trình duyệt.');
       setIsListening(false);
     }
-  };
+  }
 
-  const stopTuner = () => {
+  function stopTuner() {
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = null;
@@ -239,21 +238,21 @@ export default function InstrumentTuner({ isOpen, onClose }) {
     setIsListening(false);
     setFrequency(null);
     setCents(0);
-  };
+  }
 
-  const toggleListening = () => {
+  function toggleListening() {
     if (isListening) {
       stopTuner();
     } else {
       startTuner();
     }
-  };
+  }
 
-  const handleClose = () => {
+  function handleClose() {
     stopTuner();
     stopReferenceTone();
     onClose();
-  };
+  }
 
   if (!isOpen) return null;
 
