@@ -21,9 +21,11 @@ import {
   X,
   Menu,
   Maximize2,
-  Minimize2
+  Minimize2,
+  Mic
 } from 'lucide-react';
 import SongViewer from './components/SongViewer';
+import InstrumentTuner from './components/InstrumentTuner';
 import { transposeChord, NOTE_TO_SEMITONE } from './utils/transposer';
 
 const API_BASE = '/api';
@@ -51,6 +53,7 @@ export default function App() {
   });
   const [showKeySelector, setShowKeySelector] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [showTuner, setShowTuner] = useState(false);
 
   // Persist font size, compact state, and instrument changes
   useEffect(() => {
@@ -815,6 +818,17 @@ export default function App() {
                       <span>Add & Scrape Chords</span>
                     </button>
 
+                    <button
+                      onClick={() => {
+                        setShowTuner(true);
+                        setShowSettingsMenu(false);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-stone-55 text-xs rounded transition-colors text-left text-stone-700 hover:bg-stone-100"
+                    >
+                      <Mic className="w-3.5 h-3.5 text-stone-500" />
+                      <span>Bộ lên dây / Instrument Tuner</span>
+                    </button>
+
                     {/* Instrument Selector Segmented Control */}
                     <div className="border-t border-stone-100 mt-1.5 pt-2 px-3 pb-2 flex flex-col gap-1.5 select-none">
                       <p className="text-[9px] uppercase font-bold tracking-wider text-stone-400">Instrument</p>
@@ -1555,6 +1569,10 @@ Ta đi tìm bóng mát"
             </nav>
           );
         })()
+      )}
+
+      {showTuner && (
+        <InstrumentTuner isOpen={showTuner} onClose={() => setShowTuner(false)} />
       )}
 
     </div>
