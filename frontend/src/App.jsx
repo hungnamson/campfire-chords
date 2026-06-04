@@ -1394,59 +1394,60 @@ Ta đi tìm bóng mát"
           };
 
           return (
-            <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#f5f3ef]/95 border-t border-[#e3ded5] flex items-center justify-center gap-4 py-2 shadow-2xl backdrop-blur-md select-none">
+            <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#f5f3ef]/95 border-t border-[#e3ded5] flex items-center justify-center gap-1.5 xs:gap-2 sm:gap-4 py-2 px-1.5 xs:px-3 sm:px-4 shadow-2xl backdrop-blur-md select-none">
               {/* Font Size Controls */}
-              <div className="flex items-center gap-1 bg-white border border-stone-200 rounded-lg p-0.5 shadow-sm">
+              <div className="flex items-center gap-0.5 bg-white border border-stone-200 rounded-lg p-0.5 shadow-sm shrink-0">
                 <button 
                   onClick={() => setFontSize(prev => Math.max(10, prev - 1))}
-                  className="w-8 h-8 flex items-center justify-center rounded hover:bg-stone-100 text-stone-600 active:scale-95 transition font-semibold text-xs"
+                  className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded hover:bg-stone-100 text-stone-600 active:scale-95 transition font-semibold text-xs"
                   title="Decrease font size"
                 >
                   A-
                 </button>
-                <span className="text-xs font-mono font-bold text-stone-500 min-w-[30px] text-center">
+                <span className="text-[10px] sm:text-xs font-mono font-bold text-stone-500 min-w-[26px] sm:min-w-[30px] text-center">
                   {fontSize}px
                 </span>
                 <button 
                   onClick={() => setFontSize(prev => Math.min(30, prev + 1))}
-                  className="w-8 h-8 flex items-center justify-center rounded hover:bg-stone-100 text-stone-600 active:scale-95 transition font-semibold text-xs"
+                  className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded hover:bg-stone-100 text-stone-600 active:scale-95 transition font-semibold text-xs"
                   title="Increase font size"
                 >
                   A+
                 </button>
               </div>
 
-              <div className="h-6 w-px bg-stone-200"></div>
+              <div className="hidden xs:block h-6 w-px bg-stone-200"></div>
 
-              {/* Transpose Key Control Group (bigger buttons!) */}
-              <div className="flex items-center gap-1.5 bg-white border border-stone-200 rounded-lg p-0.5 shadow-sm">
+              {/* Transpose Key Control Group (Dynamic size to prevent clipping) */}
+              <div className="flex items-center gap-1 sm:gap-1.5 bg-white border border-stone-200 rounded-lg p-0.5 shadow-sm shrink-0">
                 <button
                   onClick={() => setTransposeOffset(prev => prev - 1)}
-                  className="w-10 h-10 flex items-center justify-center text-lg font-black text-stone-600 hover:bg-stone-55 rounded-md active:scale-90 transition"
+                  className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center text-base sm:text-lg font-black text-stone-600 hover:bg-stone-55 rounded-md active:scale-90 transition"
                   title="Transpose Down"
                 >
                   -
                 </button>
                 
-                <div className="relative">
+                <div>
                   <button
                     onClick={() => setShowKeySelector(!showKeySelector)}
-                    className="px-4 h-10 flex items-center justify-center bg-stone-50 border border-stone-150 rounded-md hover:bg-stone-100 active:scale-95 transition min-w-[70px]"
+                    className="px-2.5 sm:px-4 h-8 sm:h-10 flex items-center justify-center bg-stone-50 border border-stone-150 rounded-md hover:bg-stone-100 active:scale-95 transition min-w-[54px] sm:min-w-[70px]"
                     title="Select Key"
                   >
-                    <span className="font-mono text-base font-black text-blue-dark leading-none">
+                    <span className="font-mono text-sm sm:text-base font-black text-blue-dark leading-none">
                       {currentTransposedKey}
                     </span>
                   </button>
+                </div>
 
-                  {showKeySelector && (
-                    <>
-                      {/* Backdrop click-away */}
-                      <div className="fixed inset-0 z-40" onClick={() => setShowKeySelector(false)}></div>
+                {showKeySelector && (
+                  <>
+                    {/* Backdrop click-away */}
+                    <div className="fixed inset-0 z-40" onClick={() => setShowKeySelector(false)}></div>
                       
                       {/* Grid Selector Popover */}
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3.5 w-[325px] bg-white border border-stone-200 rounded-2xl shadow-2xl p-4 z-50 animate-fade-in text-center select-none">
-                        <div className="flex items-center justify-between border-b border-stone-100 pb-2 mb-2">
+                      <div className="absolute bottom-full left-4 right-4 sm:left-1/2 sm:-translate-x-1/2 sm:w-[325px] sm:max-w-sm mb-3.5 bg-white border border-stone-200 rounded-2xl shadow-2xl p-4 z-50 animate-fade-in text-center select-none max-h-[82vh] overflow-y-auto no-scrollbar">
+                        <div className="flex items-center justify-between border-b border-stone-100 pb-2 mb-3">
                           <span className="text-[10px] uppercase font-extrabold tracking-widest text-stone-400">Quick Key Selection</span>
                           <button
                             onClick={() => {
@@ -1463,43 +1464,43 @@ Ta đi tìm bóng mát"
                         {(() => {
                           const ref = getReferenceKeys(activeSong.key);
                           return (
-                            <div className="grid grid-cols-3 gap-2 mb-1.5 text-xs text-stone-600">
+                            <div className="grid grid-cols-3 gap-2 sm:gap-2.5 mb-2 text-xs text-stone-600">
                               <button
                                 onClick={() => {
                                   handleSelectKey(ref.original);
                                   setShowKeySelector(false);
                                 }}
-                                className="flex flex-col items-center justify-center py-2.5 bg-white hover:bg-stone-50 active:scale-95 transition-all rounded-full border border-stone-200 cursor-pointer shadow-xs"
+                                className="flex flex-col items-center justify-center py-4.5 sm:py-5.5 bg-[#fdfbf7] hover:bg-[#f8f5ee] active:scale-95 transition-all rounded-2xl border border-amber-250/75 cursor-pointer shadow-xs"
                               >
-                                <span className="text-[8px] uppercase tracking-widest text-stone-400 font-extrabold mb-0.5">Tone Gốc</span>
-                                <span className="font-mono font-black text-stone-750 text-xs leading-none">{ref.original}</span>
+                                <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-amber-800 font-extrabold mb-1.5">Tone Gốc</span>
+                                <span className="font-mono font-black text-amber-900 text-[15px] sm:text-lg leading-none">{ref.original}</span>
                               </button>
                               <button
                                 onClick={() => {
                                   handleSelectKey(ref.male);
                                   setShowKeySelector(false);
                                 }}
-                                className="flex flex-col items-center justify-center py-2.5 bg-white hover:bg-stone-50 active:scale-95 transition-all rounded-full border border-stone-200 cursor-pointer shadow-xs"
+                                className="flex flex-col items-center justify-center py-4.5 sm:py-5.5 bg-blue-50/45 hover:bg-blue-50/90 active:scale-95 transition-all rounded-2xl border border-blue-200/80 cursor-pointer shadow-xs"
                               >
-                                <span className="text-[8px] uppercase tracking-widest text-stone-400 font-extrabold mb-0.5">Tone Nam</span>
-                                <span className="font-mono font-black text-blue-dark text-xs leading-none">{ref.male}</span>
+                                <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-blue-750 font-extrabold mb-1.5">Tone Nam</span>
+                                <span className="font-mono font-black text-blue-900 text-[15px] sm:text-lg leading-none">{ref.male}</span>
                               </button>
                               <button
                                 onClick={() => {
                                   handleSelectKey(ref.female);
                                   setShowKeySelector(false);
                                 }}
-                                className="flex flex-col items-center justify-center py-2.5 bg-white hover:bg-stone-50 active:scale-95 transition-all rounded-full border border-stone-200 cursor-pointer shadow-xs"
+                                className="flex flex-col items-center justify-center py-4.5 sm:py-5.5 bg-rose-50/35 hover:bg-rose-50/80 active:scale-95 transition-all rounded-2xl border border-rose-200/70 cursor-pointer shadow-xs"
                               >
-                                <span className="text-[8px] uppercase tracking-widest text-stone-400 font-extrabold mb-0.5">Tone Nữ</span>
-                                <span className="font-mono font-black text-blue-dark text-xs leading-none">{ref.female}</span>
+                                <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-rose-750 font-extrabold mb-1.5">Tone Nữ</span>
+                                <span className="font-mono font-black text-rose-900 text-[15px] sm:text-lg leading-none">{ref.female}</span>
                               </button>
                             </div>
                           );
                         })()}
 
-                        {/* Section Divider */}
-                        <div className="h-px bg-stone-100 my-2.5"></div>
+                        {/* Section Divider (More space!) */}
+                        <div className="h-px bg-stone-200/80 my-5"></div>
 
                         <div className="grid grid-cols-4 gap-2">
                           {getAvailableKeys().map(key => {
@@ -1527,18 +1528,17 @@ Ta đi tìm bóng mát"
                       </div>
                     </>
                   )}
-                </div>
 
                 <button
                   onClick={() => setTransposeOffset(prev => prev + 1)}
-                  className="w-10 h-10 flex items-center justify-center text-lg font-black text-stone-600 hover:bg-stone-55 rounded-md active:scale-90 transition"
+                  className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center text-base sm:text-lg font-black text-stone-600 hover:bg-stone-55 rounded-md active:scale-90 transition"
                   title="Transpose Up"
                 >
                   +
                 </button>
               </div>
 
-              <div className="h-6 w-px bg-stone-200"></div>
+              <div className="hidden xs:block h-6 w-px bg-stone-200"></div>
 
               {/* Compact View Toggle */}
               <button 

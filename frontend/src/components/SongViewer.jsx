@@ -247,9 +247,9 @@ export default function SongViewer({
       </header>
 
       {/* Main card container */}
-      <main className={`flex-grow transition-all duration-200 ${isCompact ? 'p-1 md:p-3' : 'p-4 md:p-6'}`}>
+      <main className={`flex-grow transition-all duration-200 ${isCompact ? 'px-3.5 py-2 md:p-3' : 'px-4.5 py-4 md:p-6'}`}>
         <div className={`max-w-4xl mx-auto bg-white border border-stone-200/85 rounded-2xl shadow-md select-text transition-all duration-200 ${
-          isCompact ? 'py-3 px-[10px]' : 'py-6 px-[30px] md:py-8'
+          isCompact ? 'py-3 px-[24px] sm:px-6' : 'py-6 px-[32px] sm:px-[34px] md:py-8'
         }`}>
           {/* Inline chords song sheet */}
           <div 
