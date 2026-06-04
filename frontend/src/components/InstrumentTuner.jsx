@@ -91,7 +91,8 @@ export default function InstrumentTuner({ isOpen, onClose }) {
   const [cents, setCents] = useState(0);
   const [errorMsg, setErrorMsg] = useState('');
 
-  const audioCtxRef = useRef(null);
+  const tunerAudioCtxRef = useRef(null);
+  const refAudioCtxRef = useRef(null);
   const analyserRef = useRef(null);
   const audioStreamRef = useRef(null);
   const animationFrameRef = useRef(null);
@@ -114,10 +115,22 @@ export default function InstrumentTuner({ isOpen, onClose }) {
     if (!isOpen) {
       stopTuner();
       stopReferenceTone();
+      if (refAudioCtxRef.current) {
+        try {
+          refAudioCtxRef.current.close();
+        } catch (e) {}
+        refAudioCtxRef.current = null;
+      }
     }
     return () => {
       stopTuner();
       stopReferenceTone();
+      if (refAudioCtxRef.current) {
+        try {
+          refAudioCtxRef.current.close();
+        } catch (e) {}
+        refAudioCtxRef.current = null;
+      }
     };
   }, [isOpen]);
 
@@ -198,11 +211,17 @@ export default function InstrumentTuner({ isOpen, onClose }) {
 
   function playReferenceTone(freq) {
     stopReferenceTone();
+    
+    // Release any active tuner mic capturing locks before playing output sounds on iOS Safari
+    if (tunerAudioCtxRef.current) {
+      stopTuner();
+    }
+
     try {
-      if (!audioCtxRef.current) {
-        audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+      if (!refAudioCtxRef.current) {
+        refAudioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
       }
-      const audioCtx = audioCtxRef.current;
+      const audioCtx = refAudioCtxRef.current;
       if (audioCtx.state === 'suspended') {
         audioCtx.resume();
       }
@@ -235,13 +254,27 @@ export default function InstrumentTuner({ isOpen, onClose }) {
     stopReferenceTone();
     setErrorMsg('');
 
+    // Release any active reference output-only context before starting capture to avoid iOS session locking
+    if (refAudioCtxRef.current) {
+      try {
+        refAudioCtxRef.current.close();
+      } catch (e) {}
+      refAudioCtxRef.current = null;
+    }
+
+    // Always create a fresh tuner context to avoid upgrading session category failure on mobile viewports
+    if (tunerAudioCtxRef.current) {
+      try {
+        tunerAudioCtxRef.current.close();
+      } catch (e) {}
+      tunerAudioCtxRef.current = null;
+    }
+
     // Synchronously initialize and resume AudioContext in the user gesture call stack
     try {
-      if (!audioCtxRef.current) {
-        audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      if (audioCtxRef.current.state === 'suspended') {
-        audioCtxRef.current.resume();
+      tunerAudioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+      if (tunerAudioCtxRef.current.state === 'suspended') {
+        tunerAudioCtxRef.current.resume();
       }
     } catch (e) {
       console.error('Failed to initialize AudioContext:', e);
@@ -277,7 +310,9 @@ export default function InstrumentTuner({ isOpen, onClose }) {
       }
       audioStreamRef.current = stream;
 
-      const audioCtx = audioCtxRef.current;
+      const audioCtx = tunerAudioCtxRef.current;
+      if (!audioCtx) return;
+      
       if (audioCtx.state === 'suspended') {
         await audioCtx.resume();
       }
@@ -363,6 +398,12 @@ export default function InstrumentTuner({ isOpen, onClose }) {
       audioStreamRef.current.getTracks().forEach(track => track.stop());
       audioStreamRef.current = null;
     }
+    if (tunerAudioCtxRef.current) {
+      try {
+        tunerAudioCtxRef.current.close();
+      } catch (e) {}
+      tunerAudioCtxRef.current = null;
+    }
     analyserRef.current = null;
     setIsListening(false);
     setFrequency(null);
@@ -383,6 +424,12 @@ export default function InstrumentTuner({ isOpen, onClose }) {
   function handleClose() {
     stopTuner();
     stopReferenceTone();
+    if (refAudioCtxRef.current) {
+      try {
+        refAudioCtxRef.current.close();
+      } catch (e) {}
+      refAudioCtxRef.current = null;
+    }
     onClose();
   }
 
