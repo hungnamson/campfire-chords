@@ -24,42 +24,58 @@ const INSTRUMENT_TUNINGS = {
   }
 };
 
-// Autocorrelation algorithm for pitch detection with parabolic interpolation refinement
-function autoCorrelate(buffer, sampleRate) {
-  let SIZE = buffer.length;
-  let rms = 0;
+// Optimized autocorrelation algorithm for pitch detection with parabolic interpolation refinement
+function autoCorrelate(buffer, sampleRate, rms) {
+  if (rms < 0.003) return -1; // Safe lower threshold for quiet inputs
 
-  for (let i = 0; i < SIZE; i++) {
-    let val = buffer[i];
-    rms += val * val;
-  }
-  rms = Math.sqrt(rms / SIZE);
-  if (rms < 0.005) return -1; // Safe lower threshold for quiet inputs
+  const SIZE = buffer.length;
+  // We only search for frequencies between 70Hz and 600Hz.
+  // Period for 70Hz: sampleRate / 70 (e.g., 685 samples at 48kHz)
+  // Period for 600Hz: sampleRate / 600 (e.g., 80 samples at 48kHz)
+  const maxLag = Math.min(SIZE, Math.ceil(sampleRate / 70));
+  const minLag = Math.floor(sampleRate / 600);
 
-  let c = new Float32Array(SIZE);
-  for (let i = 0; i < SIZE; i++) {
+  const c = new Float32Array(maxLag);
+  for (let i = 0; i < maxLag; i++) {
+    let sum = 0;
     for (let j = 0; j < SIZE - i; j++) {
-      c[i] = c[i] + buffer[j] * buffer[j + i];
+      sum += buffer[j] * buffer[j + i];
     }
+    c[i] = sum;
   }
 
+  // Find the first zero-crossing or local minimum to skip the central peak
   let d = 0;
-  while (c[d] > c[d + 1]) d++;
-  let maxval = -1, maxpos = -1;
-  for (let i = d; i < SIZE; i++) {
+  while (d < maxLag - 1 && c[d] > c[d + 1]) {
+    d++;
+  }
+
+  // Find the highest peak in the allowed lag range
+  let maxval = -1;
+  let maxpos = -1;
+  for (let i = Math.max(d, minLag); i < maxLag; i++) {
     if (c[i] > maxval) {
       maxval = c[i];
       maxpos = i;
     }
   }
-  let T0 = maxpos;
 
+  // If no peak found, or correlation is too weak (below 30% of energy at lag 0)
+  if (maxpos === -1 || c[maxpos] < 0.3 * c[0]) {
+    return -1;
+  }
+
+  let T0 = maxpos;
   // Parabolic interpolation for sub-sample refinement
-  if (T0 > 0 && T0 < SIZE - 1) {
-    let x1 = c[T0 - 1], x2 = c[T0], x3 = c[T0 + 1];
-    let a = (x1 + x3 - 2 * x2) / 2;
-    let b = (x3 - x1) / 2;
-    if (a) T0 = T0 - b / (2 * a);
+  if (T0 > 0 && T0 < maxLag - 1) {
+    const x1 = c[T0 - 1];
+    const x2 = c[T0];
+    const x3 = c[T0 + 1];
+    const a = (x1 + x3 - 2 * x2) / 2;
+    const b = (x3 - x1) / 2;
+    if (a) {
+      T0 = T0 - b / (2 * a);
+    }
   }
 
   return sampleRate / T0;
@@ -82,6 +98,8 @@ export default function InstrumentTuner({ isOpen, onClose }) {
 
   const oscillatorRef = useRef(null);
   const oscGainRef = useRef(null);
+  const volumeBarRef = useRef(null);
+  const wakeLockRef = useRef(null);
 
   // Sync selected instrument with default string
   useEffect(() => {
@@ -91,17 +109,78 @@ export default function InstrumentTuner({ isOpen, onClose }) {
     }
   }, [selectedInst]);
 
-  // Start tuner automatically when modal opens, and stop when closed/unmounted
+  // Handle cleanup when modal closes or unmounts
   useEffect(() => {
-    if (isOpen) {
-      startTuner();
-    } else {
+    if (!isOpen) {
       stopTuner();
       stopReferenceTone();
     }
     return () => {
       stopTuner();
       stopReferenceTone();
+    };
+  }, [isOpen]);
+
+  // Prevent screen dimming while tuner modal is open
+  useEffect(() => {
+    let active = true;
+    let clickListenerActive = false;
+
+    const requestWakeLock = async () => {
+      if (!('wakeLock' in navigator)) return;
+      try {
+        if (wakeLockRef.current) {
+          await wakeLockRef.current.release();
+          wakeLockRef.current = null;
+        }
+        wakeLockRef.current = await navigator.wakeLock.request('screen');
+        console.log('Tuner Screen Wake Lock acquired.');
+        if (clickListenerActive) {
+          document.removeEventListener('click', handleUserInteraction);
+          document.removeEventListener('touchstart', handleUserInteraction);
+          clickListenerActive = false;
+        }
+      } catch (err) {
+        console.warn('Tuner failed to acquire Wake Lock:', err);
+      }
+    };
+
+    const handleUserInteraction = () => {
+      requestWakeLock();
+    };
+
+    const releaseWakeLock = async () => {
+      if (wakeLockRef.current) {
+        try {
+          await wakeLockRef.current.release();
+          wakeLockRef.current = null;
+          console.log('Tuner Screen Wake Lock released.');
+        } catch (err) {}
+      }
+    };
+
+    if (isOpen) {
+      requestWakeLock();
+      document.addEventListener('click', handleUserInteraction);
+      document.addEventListener('touchstart', handleUserInteraction);
+      clickListenerActive = true;
+    }
+
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible' && isOpen && active) {
+        await requestWakeLock();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      active = false;
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (clickListenerActive) {
+        document.removeEventListener('click', handleUserInteraction);
+        document.removeEventListener('touchstart', handleUserInteraction);
+      }
+      releaseWakeLock();
     };
   }, [isOpen]);
 
@@ -154,17 +233,53 @@ export default function InstrumentTuner({ isOpen, onClose }) {
 
   async function startTuner() {
     stopReferenceTone();
-    try {
-      setErrorMsg('');
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      audioStreamRef.current = stream;
+    setErrorMsg('');
 
+    // Synchronously initialize and resume AudioContext in the user gesture call stack
+    try {
       if (!audioCtxRef.current) {
         audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
       }
+      if (audioCtxRef.current.state === 'suspended') {
+        audioCtxRef.current.resume();
+      }
+    } catch (e) {
+      console.error('Failed to initialize AudioContext:', e);
+    }
+
+    // Check if secure context (HTTPS / localhost)
+    if (window.isSecureContext === false) {
+      setErrorMsg('Tuner yêu cầu kết nối bảo mật (HTTPS hoặc localhost) để truy cập Micro. Vui lòng chạy ứng dụng qua HTTPS.');
+      setIsListening(false);
+      return;
+    }
+
+    if (!navigator || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setErrorMsg('Trình duyệt của bạn không hỗ trợ hoặc chặn quyền truy cập Micro.');
+      setIsListening(false);
+      return;
+    }
+
+    try {
+      // Disable mobile echo cancellation, noise suppression, and auto gain control to capture raw instrument tones
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false
+          }
+        });
+      } catch (err) {
+        console.warn('Failed to getUserMedia with ideal constraints, retrying with simple audio:true', err);
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      }
+      audioStreamRef.current = stream;
+
       const audioCtx = audioCtxRef.current;
       if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
+        await audioCtx.resume();
       }
 
       const source = audioCtx.createMediaStreamSource(stream);
@@ -181,7 +296,21 @@ export default function InstrumentTuner({ isOpen, onClose }) {
         if (!analyserRef.current) return;
         analyserRef.current.getFloat32TimeDomainData(dataArray);
 
-        const detectedFreq = autoCorrelate(dataArray, audioCtx.sampleRate);
+        // Calculate dynamic RMS volume level
+        let sum = 0;
+        for (let i = 0; i < dataArray.length; i++) {
+          sum += dataArray[i] * dataArray[i];
+        }
+        const rms = Math.sqrt(sum / dataArray.length);
+
+        // Update the signal/volume level VU meter bar directly in DOM to avoid React re-render lag
+        if (volumeBarRef.current) {
+          const volPercent = Math.min(100, Math.round(rms * 800));
+          volumeBarRef.current.style.width = `${volPercent}%`;
+          volumeBarRef.current.style.backgroundColor = rms < 0.003 ? '#d6d3d1' : '#3b82f6';
+        }
+
+        const detectedFreq = autoCorrelate(dataArray, audioCtx.sampleRate, rms);
         if (detectedFreq !== -1 && detectedFreq > 50 && detectedFreq < 600) {
           setFrequency(detectedFreq);
 
@@ -238,6 +367,9 @@ export default function InstrumentTuner({ isOpen, onClose }) {
     setIsListening(false);
     setFrequency(null);
     setCents(0);
+    if (volumeBarRef.current) {
+      volumeBarRef.current.style.width = '0%';
+    }
   }
 
   function toggleListening() {
@@ -327,6 +459,15 @@ export default function InstrumentTuner({ isOpen, onClose }) {
 
           {/* Tuner Dial Needle Visualizer */}
           <div className="bg-white border border-stone-150 rounded-xl p-4 shadow-sm flex flex-col items-center justify-center relative overflow-hidden h-44">
+            {isListening && (
+              <div className="absolute top-2 left-3 right-3 flex items-center gap-1.5 z-10 select-none">
+                <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider">Tín hiệu:</span>
+                <div className="flex-grow h-1 bg-stone-100 rounded-full overflow-hidden border border-stone-200/50">
+                  <div ref={volumeBarRef} className="h-full bg-stone-300 transition-all duration-75" style={{ width: '0%' }}></div>
+                </div>
+              </div>
+            )}
+
             {isListening && frequency ? (
               <>
                 {/* SVG Analog Needle Gauge */}
@@ -391,6 +532,7 @@ export default function InstrumentTuner({ isOpen, onClose }) {
               </div>
             )}
           </div>
+
 
           {/* Reference Tones Board */}
           <div className="space-y-2">
