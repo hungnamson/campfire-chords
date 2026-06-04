@@ -21,6 +21,8 @@ export default function SongViewer({
   const [showPlaylistMenu, setShowPlaylistMenu] = useState(false);
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
   const [showSongInfo, setShowSongInfo] = useState(false);
+  const [keepScreenAwake, setKeepScreenAwake] = useState(true);
+  const wakeLockRef = useRef(null);
 
   const scrollIntervalRef = useRef(null);
   const songContainerRef = useRef(null);
@@ -30,6 +32,7 @@ export default function SongViewer({
     setIsScrolling(false);
     setActiveChord(null);
     setShowSongInfo(false);
+    setKeepScreenAwake(true);
   }, [song]);
 
   // Dynamically calculate recommended singer tones based on the original key
@@ -83,6 +86,54 @@ export default function SongViewer({
       }
     };
   }, [isScrolling, scrollSpeed]);
+
+  // Prevent screen from dimming/sleeping while viewing song
+  useEffect(() => {
+    let active = true;
+
+    const requestWakeLock = async () => {
+      if (!keepScreenAwake || !('wakeLock' in navigator)) return;
+      try {
+        if (wakeLockRef.current) {
+          await wakeLockRef.current.release();
+          wakeLockRef.current = null;
+        }
+        wakeLockRef.current = await navigator.wakeLock.request('screen');
+        console.log('Screen Wake Lock acquired successfully.');
+      } catch (err) {
+        console.warn('Failed to acquire Screen Wake Lock:', err);
+      }
+    };
+
+    const releaseWakeLock = async () => {
+      if (wakeLockRef.current) {
+        try {
+          await wakeLockRef.current.release();
+          wakeLockRef.current = null;
+          console.log('Screen Wake Lock released.');
+        } catch (err) {
+          console.warn('Failed to release Screen Wake Lock:', err);
+        }
+      }
+    };
+
+    requestWakeLock();
+
+    // Re-request wake lock when screen becomes visible again
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible' && keepScreenAwake && active) {
+        await requestWakeLock();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      active = false;
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      releaseWakeLock();
+    };
+  }, [keepScreenAwake, song]);
 
   // Parse ChordPro line into text chunks and chords for inline rendering
   function parseLine(line) {
@@ -381,6 +432,33 @@ export default function SongViewer({
               <div className="flex justify-between items-center py-1.5 border-b border-stone-100 pt-2">
                 <span className="font-semibold text-stone-500">Thể loại / Genre</span>
                 <span className="font-bold text-stone-950">Nhạc trẻ / Trữ tình / Pop</span>
+              </div>
+
+              {/* Screen Wake Lock Toggle */}
+              <div className="flex justify-between items-center py-2.5 border-b border-stone-100">
+                <div className="flex flex-col text-left">
+                  <span className="font-semibold text-stone-600 flex items-center gap-1.5 text-xs">
+                    <span className={`w-1.5 h-1.5 rounded-full ${keepScreenAwake ? 'bg-green-500 animate-pulse' : 'bg-stone-300'}`}></span>
+                    Giữ màn hình sáng / Prevent Sleep
+                  </span>
+                  <span className="text-[10px] text-stone-400 mt-0.5">
+                    {keepScreenAwake ? 'Màn hình sẽ luôn bật khi xem sheet' : 'Tự động tắt theo cài đặt điện thoại'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setKeepScreenAwake(!keepScreenAwake)}
+                  className={`w-10 h-6 flex items-center rounded-full p-0.5 cursor-pointer transition-colors duration-200 focus:outline-none shrink-0 ${
+                    keepScreenAwake ? 'bg-amber-600' : 'bg-stone-300'
+                  }`}
+                  aria-label="Toggle screen wake lock"
+                >
+                  <div
+                    className={`bg-white w-5 h-5 rounded-full shadow-sm transform duration-200 ${
+                      keepScreenAwake ? 'translate-x-4' : 'translate-x-0'
+                    }`}
+                  ></div>
+                </button>
               </div>
             </div>
 
