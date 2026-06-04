@@ -1394,7 +1394,7 @@ Ta đi tìm bóng mát"
           };
 
           return (
-            <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#f5f3ef]/95 border-t border-[#e3ded5] flex items-center justify-center gap-1.5 xs:gap-2 sm:gap-4 py-2 px-1.5 xs:px-3 sm:px-4 shadow-2xl backdrop-blur-md select-none">
+            <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#f5f3ef]/95 border-t border-[#e3ded5] flex items-center justify-center gap-1.5 xs:gap-2 sm:gap-4 pt-3.5 pb-[calc(14px+env(safe-area-inset-bottom))] sm:py-3.5 px-1.5 xs:px-3 sm:px-4 shadow-2xl backdrop-blur-md select-none">
               {/* Font Size Controls */}
               <div className="flex items-center gap-0.5 bg-white border border-stone-200 rounded-lg p-0.5 shadow-sm shrink-0">
                 <button 

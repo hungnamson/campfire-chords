@@ -90,6 +90,7 @@ export default function SongViewer({
   // Prevent screen from dimming/sleeping while viewing song
   useEffect(() => {
     let active = true;
+    let clickListenerActive = false;
 
     const requestWakeLock = async () => {
       if (!keepScreenAwake || !('wakeLock' in navigator)) return;
@@ -100,9 +101,20 @@ export default function SongViewer({
         }
         wakeLockRef.current = await navigator.wakeLock.request('screen');
         console.log('Screen Wake Lock acquired successfully.');
+        
+        // Remove gesture listeners once successfully acquired
+        if (clickListenerActive) {
+          document.removeEventListener('click', handleUserInteraction);
+          document.removeEventListener('touchstart', handleUserInteraction);
+          clickListenerActive = false;
+        }
       } catch (err) {
         console.warn('Failed to acquire Screen Wake Lock:', err);
       }
+    };
+
+    const handleUserInteraction = () => {
+      requestWakeLock();
     };
 
     const releaseWakeLock = async () => {
@@ -117,12 +129,25 @@ export default function SongViewer({
       }
     };
 
+    // Try to acquire immediately (for browsers that support it without gesture)
     requestWakeLock();
+
+    // Set up gesture listeners for browsers (like iOS Safari) that require interaction
+    if (keepScreenAwake && !wakeLockRef.current) {
+      document.addEventListener('click', handleUserInteraction);
+      document.addEventListener('touchstart', handleUserInteraction);
+      clickListenerActive = true;
+    }
 
     // Re-request wake lock when screen becomes visible again
     const handleVisibilityChange = async () => {
       if (document.visibilityState === 'visible' && keepScreenAwake && active) {
         await requestWakeLock();
+        if (!wakeLockRef.current && !clickListenerActive) {
+          document.addEventListener('click', handleUserInteraction);
+          document.addEventListener('touchstart', handleUserInteraction);
+          clickListenerActive = true;
+        }
       }
     };
 
@@ -131,6 +156,10 @@ export default function SongViewer({
     return () => {
       active = false;
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (clickListenerActive) {
+        document.removeEventListener('click', handleUserInteraction);
+        document.removeEventListener('touchstart', handleUserInteraction);
+      }
       releaseWakeLock();
     };
   }, [keepScreenAwake, song]);
