@@ -145,6 +145,13 @@ export default function InstrumentTuner({ isOpen, onClose }) {
   const tunerModeRef = useRef(tunerMode);
   const selectedStringRef = useRef(selectedString);
 
+  // Stability & smoothing refs for tuner needle and note display
+  const framesWithoutPitchRef = useRef(0);
+  const smoothedCentsRef = useRef(0);
+  const lastTargetStringRef = useRef(null);
+  const stringChangeCandidateRef = useRef(null);
+  const stringChangeConfirmCountRef = useRef(0);
+
   // Sync state variables to refs to avoid stale closure in requestAnimationFrame loop
   useEffect(() => {
     selectedInstRef.current = selectedInst;
@@ -164,7 +171,22 @@ export default function InstrumentTuner({ isOpen, onClose }) {
     if (tunerMode === 'auto') {
       setDetectedString(INSTRUMENT_TUNINGS[selectedInst].strings[0]);
     }
+    // Reset smoothing/stability refs
+    lastTargetStringRef.current = null;
+    stringChangeCandidateRef.current = null;
+    stringChangeConfirmCountRef.current = 0;
+    framesWithoutPitchRef.current = 0;
+    smoothedCentsRef.current = 0;
   }, [selectedInst]);
+
+  // Reset smoothing/stability refs on mode changes
+  useEffect(() => {
+    lastTargetStringRef.current = null;
+    stringChangeCandidateRef.current = null;
+    stringChangeConfirmCountRef.current = 0;
+    framesWithoutPitchRef.current = 0;
+    smoothedCentsRef.current = 0;
+  }, [tunerMode]);
 
   // Handle cleanup when modal closes or unmounts
   useEffect(() => {
@@ -428,6 +450,8 @@ export default function InstrumentTuner({ isOpen, onClose }) {
 
           const detectedFreq = autoCorrelate(dataArray, audioCtx.sampleRate, rms);
           if (detectedFreq !== -1 && detectedFreq > 50 && detectedFreq < 600) {
+            // Reset no-pitch frames count
+            framesWithoutPitchRef.current = 0;
             setFrequency(detectedFreq);
 
             let target = null;
@@ -446,18 +470,62 @@ export default function InstrumentTuner({ isOpen, onClose }) {
                   closest = currentStrings[i];
                 }
               }
-              target = closest;
-              setDetectedString(closest);
+
+              // Apply string switching debouncing
+              if (!lastTargetStringRef.current) {
+                lastTargetStringRef.current = closest;
+                setDetectedString(closest);
+                target = closest;
+              } else if (closest.index === lastTargetStringRef.current.index) {
+                // Same string as before, reset candidate tracker
+                stringChangeCandidateRef.current = null;
+                stringChangeConfirmCountRef.current = 0;
+                target = lastTargetStringRef.current;
+              } else {
+                // Different string detected! Check if it's the same candidate
+                if (stringChangeCandidateRef.current && stringChangeCandidateRef.current.index === closest.index) {
+                  stringChangeConfirmCountRef.current += 1;
+                } else {
+                  stringChangeCandidateRef.current = closest;
+                  stringChangeConfirmCountRef.current = 1;
+                }
+
+                if (stringChangeConfirmCountRef.current >= 5) {
+                  // Stable new string switch!
+                  lastTargetStringRef.current = closest;
+                  setDetectedString(closest);
+                  target = closest;
+                  stringChangeCandidateRef.current = null;
+                  stringChangeConfirmCountRef.current = 0;
+                } else {
+                  // Keep last target string until confirmed
+                  target = lastTargetStringRef.current;
+                }
+              }
             }
 
             if (target) {
               const centsDev = 1200 * Math.log2(detectedFreq / target.freq);
-              setCents(centsDev);
+              // Apply exponential smoothing for cents needle
+              if (smoothedCentsRef.current === 0) {
+                smoothedCentsRef.current = centsDev;
+              } else {
+                smoothedCentsRef.current = smoothedCentsRef.current * 0.8 + centsDev * 0.2;
+              }
+              setCents(smoothedCentsRef.current);
             }
           } else {
-            // Clear active detected pitch when there is silence or no pitch, returning dial to center
-            setFrequency(null);
-            setCents(0);
+            // Increment no-pitch frame count
+            framesWithoutPitchRef.current += 1;
+
+            if (framesWithoutPitchRef.current >= 25) {
+              // Clear active detected pitch when there is silence or no pitch (after 400ms grace period)
+              setFrequency(null);
+              setCents(0);
+              lastTargetStringRef.current = null;
+              stringChangeCandidateRef.current = null;
+              stringChangeConfirmCountRef.current = 0;
+            }
           }
         } catch (err) {
           console.error("Error inside updatePitch loop:", err);
@@ -496,6 +564,12 @@ export default function InstrumentTuner({ isOpen, onClose }) {
     if (volumeBarRef.current) {
       volumeBarRef.current.style.width = '0%';
     }
+    // Reset smoothing/stability refs
+    framesWithoutPitchRef.current = 0;
+    smoothedCentsRef.current = 0;
+    lastTargetStringRef.current = null;
+    stringChangeCandidateRef.current = null;
+    stringChangeConfirmCountRef.current = 0;
     // Reset debug panel labels
     if (debugStateRef.current) debugStateRef.current.innerText = '-';
     if (debugTrackRef.current) debugTrackRef.current.innerText = '-';
@@ -642,8 +716,7 @@ export default function InstrumentTuner({ isOpen, onClose }) {
                     strokeLinecap="round"
                     style={{
                       transform: `rotate(${needleRotation}deg)`,
-                      transformOrigin: '150px 135px',
-                      transition: 'transform 0.1s ease-out'
+                      transformOrigin: '150px 135px'
                     }}
                   />
                   <circle cx="150" cy="135" r="8" fill={inTune ? "#10b981" : "#44403c"} />
