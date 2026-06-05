@@ -26,7 +26,7 @@ const INSTRUMENT_TUNINGS = {
 
 // Optimized autocorrelation algorithm for pitch detection with parabolic interpolation refinement
 function autoCorrelate(buffer, sampleRate, rms) {
-  if (rms < 0.003) return -1; // Safe lower threshold for quiet inputs
+  if (rms < 0.012) return -1; // Raised threshold from 0.003 to 0.012 to reject background/ambient noise
 
   const SIZE = buffer.length;
   // We only search for frequencies between 70Hz and 600Hz.
@@ -58,8 +58,8 @@ function autoCorrelate(buffer, sampleRate, rms) {
     }
   }
 
-  // If no peak found or correlation is too weak (below 30% of energy at lag 0)
-  if (maxval < 0.3 * c[0]) {
+  // If no peak found or correlation is too weak (below 45% of energy at lag 0)
+  if (maxval < 0.45 * c[0]) {
     return -1;
   }
 
@@ -111,6 +111,8 @@ export default function InstrumentTuner({ isOpen, onClose }) {
   const [isListening, setIsListening] = useState(false);
   const [frequency, setFrequency] = useState(null);
   const [cents, setCents] = useState(0);
+  const [displayFrequency, setDisplayFrequency] = useState(null);
+  const [displayCents, setDisplayCents] = useState(0);
   const [errorMsg, setErrorMsg] = useState('');
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [consoleErrors, setConsoleErrors] = useState([]);
@@ -147,10 +149,12 @@ export default function InstrumentTuner({ isOpen, onClose }) {
 
   // Stability & smoothing refs for tuner needle and note display
   const framesWithoutPitchRef = useRef(0);
+  const smoothedFreqRef = useRef(0);
   const smoothedCentsRef = useRef(0);
   const lastTargetStringRef = useRef(null);
   const stringChangeCandidateRef = useRef(null);
   const stringChangeConfirmCountRef = useRef(0);
+  const lastTextUpdateTimeRef = useRef(0);
 
   // Sync state variables to refs to avoid stale closure in requestAnimationFrame loop
   useEffect(() => {
@@ -176,7 +180,9 @@ export default function InstrumentTuner({ isOpen, onClose }) {
     stringChangeCandidateRef.current = null;
     stringChangeConfirmCountRef.current = 0;
     framesWithoutPitchRef.current = 0;
+    smoothedFreqRef.current = 0;
     smoothedCentsRef.current = 0;
+    lastTextUpdateTimeRef.current = 0;
   }, [selectedInst]);
 
   // Reset smoothing/stability refs on mode changes
@@ -185,7 +191,9 @@ export default function InstrumentTuner({ isOpen, onClose }) {
     stringChangeCandidateRef.current = null;
     stringChangeConfirmCountRef.current = 0;
     framesWithoutPitchRef.current = 0;
+    smoothedFreqRef.current = 0;
     smoothedCentsRef.current = 0;
+    lastTextUpdateTimeRef.current = 0;
   }, [tunerMode]);
 
   // Handle cleanup when modal closes or unmounts
@@ -449,10 +457,23 @@ export default function InstrumentTuner({ isOpen, onClose }) {
           }
 
           const detectedFreq = autoCorrelate(dataArray, audioCtx.sampleRate, rms);
-          if (detectedFreq !== -1 && detectedFreq > 50 && detectedFreq < 600) {
+
+          // Apply instrument-specific frequency range filtering to reject out-of-range noise
+          const isGuitar = selectedInstRef.current === 'guitar';
+          const minAllowedFreq = isGuitar ? 70 : 200;
+          const maxAllowedFreq = isGuitar ? 380 : 500;
+
+          if (detectedFreq !== -1 && detectedFreq > minAllowedFreq && detectedFreq < maxAllowedFreq) {
             // Reset no-pitch frames count
             framesWithoutPitchRef.current = 0;
-            setFrequency(detectedFreq);
+
+            // Apply exponential moving average to frequency (alpha = 0.85 for stable Hz readings)
+            if (smoothedFreqRef.current === 0) {
+              smoothedFreqRef.current = detectedFreq;
+            } else {
+              smoothedFreqRef.current = smoothedFreqRef.current * 0.85 + detectedFreq * 0.15;
+            }
+            setFrequency(smoothedFreqRef.current);
 
             let target = null;
             if (tunerModeRef.current === 'manual') {
@@ -461,10 +482,10 @@ export default function InstrumentTuner({ isOpen, onClose }) {
               // Find closest target string frequency
               const currentStrings = INSTRUMENT_TUNINGS[selectedInstRef.current].strings;
               let closest = currentStrings[0];
-              let minDist = Math.abs(detectedFreq - closest.freq);
+              let minDist = Math.abs(smoothedFreqRef.current - closest.freq);
 
               for (let i = 1; i < currentStrings.length; i++) {
-                const dist = Math.abs(detectedFreq - currentStrings[i].freq);
+                const dist = Math.abs(smoothedFreqRef.current - currentStrings[i].freq);
                 if (dist < minDist) {
                   minDist = dist;
                   closest = currentStrings[i];
@@ -505,14 +526,28 @@ export default function InstrumentTuner({ isOpen, onClose }) {
             }
 
             if (target) {
-              const centsDev = 1200 * Math.log2(detectedFreq / target.freq);
-              // Apply exponential smoothing for cents needle
+              let centsDev = 1200 * Math.log2(smoothedFreqRef.current / target.freq);
+              
+              // Apply a dead-zone lock-in: if extremely close (within 1.5 cents), snap to 0
+              if (Math.abs(centsDev) < 1.5) {
+                centsDev = 0;
+              }
+
+              // Apply stronger exponential smoothing for cents needle (alpha = 0.85)
               if (smoothedCentsRef.current === 0) {
                 smoothedCentsRef.current = centsDev;
               } else {
-                smoothedCentsRef.current = smoothedCentsRef.current * 0.8 + centsDev * 0.2;
+                smoothedCentsRef.current = smoothedCentsRef.current * 0.85 + centsDev * 0.15;
               }
               setCents(smoothedCentsRef.current);
+            }
+
+            // Throttle numeric text updates to ~150ms intervals for visual legibility
+            const now = performance.now();
+            if (now - lastTextUpdateTimeRef.current > 150) {
+              setDisplayFrequency(smoothedFreqRef.current);
+              setDisplayCents(smoothedCentsRef.current);
+              lastTextUpdateTimeRef.current = now;
             }
           } else {
             // Increment no-pitch frame count
@@ -522,9 +557,14 @@ export default function InstrumentTuner({ isOpen, onClose }) {
               // Clear active detected pitch when there is silence or no pitch (after 400ms grace period)
               setFrequency(null);
               setCents(0);
+              setDisplayFrequency(null);
+              setDisplayCents(0);
               lastTargetStringRef.current = null;
               stringChangeCandidateRef.current = null;
               stringChangeConfirmCountRef.current = 0;
+              smoothedFreqRef.current = 0;
+              smoothedCentsRef.current = 0;
+              lastTextUpdateTimeRef.current = 0;
             }
           }
         } catch (err) {
@@ -561,15 +601,19 @@ export default function InstrumentTuner({ isOpen, onClose }) {
     setIsListening(false);
     setFrequency(null);
     setCents(0);
+    setDisplayFrequency(null);
+    setDisplayCents(0);
     if (volumeBarRef.current) {
       volumeBarRef.current.style.width = '0%';
     }
     // Reset smoothing/stability refs
     framesWithoutPitchRef.current = 0;
+    smoothedFreqRef.current = 0;
     smoothedCentsRef.current = 0;
     lastTargetStringRef.current = null;
     stringChangeCandidateRef.current = null;
     stringChangeConfirmCountRef.current = 0;
+    lastTextUpdateTimeRef.current = 0;
     // Reset debug panel labels
     if (debugStateRef.current) debugStateRef.current.innerText = '-';
     if (debugTrackRef.current) debugTrackRef.current.innerText = '-';
@@ -613,6 +657,7 @@ export default function InstrumentTuner({ isOpen, onClose }) {
   const currentStrings = INSTRUMENT_TUNINGS[selectedInst].strings;
   const activeTarget = tunerMode === 'manual' ? selectedString : detectedString;
   const inTune = activeTarget && frequency && Math.abs(cents) <= 3;
+  const displayInTune = activeTarget && displayFrequency && Math.abs(displayCents) <= 3;
   const clampedCents = Math.max(-50, Math.min(50, cents));
   const needleRotation = frequency ? clampedCents * 1.2 : 0; // -60 to +60 deg
 
@@ -698,10 +743,10 @@ export default function InstrumentTuner({ isOpen, onClose }) {
                   <path d="M 40 135 A 110 110 0 0 1 260 135" fill="none" stroke="#e3ded5" strokeWidth="5" strokeLinecap="round" />
                   
                   {/* Center Green Target Zone */}
-                  <path d="M 138 28 A 110 110 0 0 1 162 28" fill="none" stroke={inTune ? "#10b981" : "#e3ded5"} strokeWidth="6" />
+                  <path d="M 138 28 A 110 110 0 0 1 162 28" fill="none" stroke={displayInTune ? "#10b981" : "#e3ded5"} strokeWidth="6" />
 
                   {/* Tick Marks */}
-                  <line x1="150" y1="20" x2="150" y2="30" stroke={inTune ? "#10b981" : "#78716c"} strokeWidth="2.5" />
+                  <line x1="150" y1="20" x2="150" y2="30" stroke={displayInTune ? "#10b981" : "#78716c"} strokeWidth="2.5" />
                   <line x1="90" y1="44" x2="98" y2="51" stroke="#d6cfc1" strokeWidth="2" />
                   <line x1="210" y1="44" x2="202" y2="51" stroke="#d6cfc1" strokeWidth="2" />
 
@@ -711,7 +756,7 @@ export default function InstrumentTuner({ isOpen, onClose }) {
                     y1="135"
                     x2="150"
                     y2="28"
-                    stroke={inTune ? "#10b981" : cents < 0 ? "#f97316" : "#ef4444"}
+                    stroke={displayInTune ? "#10b981" : displayCents < 0 ? "#f97316" : "#ef4444"}
                     strokeWidth="3"
                     strokeLinecap="round"
                     style={{
@@ -719,7 +764,7 @@ export default function InstrumentTuner({ isOpen, onClose }) {
                       transformOrigin: '150px 135px'
                     }}
                   />
-                  <circle cx="150" cy="135" r="8" fill={inTune ? "#10b981" : "#44403c"} />
+                  <circle cx="150" cy="135" r="8" fill={displayInTune ? "#10b981" : "#44403c"} />
                 </svg>
 
                 {/* Numeric cents status overlay */}
@@ -728,15 +773,19 @@ export default function InstrumentTuner({ isOpen, onClose }) {
                     {activeTarget?.note}
                   </span>
                   <div className="flex items-center gap-1.5">
-                    <span className="font-mono text-xs text-stone-500 font-bold">{frequency.toFixed(1)} Hz</span>
+                    <span className="font-mono text-xs text-stone-500 font-bold">
+                      {displayFrequency ? `${displayFrequency.toFixed(1)} Hz` : '-- Hz'}
+                    </span>
                     <span className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded leading-none ${
-                      inTune 
+                      displayInTune 
                         ? 'bg-green-150 text-green-800' 
-                        : cents < 0 ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700'
+                        : displayCents < 0 ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700'
                     }`}>
-                      {inTune 
+                      {displayInTune 
                         ? 'Chuẩn' 
-                        : cents < 0 ? `${Math.round(cents)} cents (Thấp)` : `+${Math.round(cents)} cents (Cao)`}
+                        : displayCents < 0 
+                          ? `${Math.round(displayCents)} cents (Thấp)` 
+                          : `+${Math.round(displayCents)} cents (Cao)`}
                     </span>
                   </div>
                 </div>
@@ -777,7 +826,7 @@ export default function InstrumentTuner({ isOpen, onClose }) {
                     }}
                     className={`flex flex-col items-center justify-center py-2.5 rounded-xl border-2 transition active:scale-95 cursor-pointer relative ${
                       isSelected
-                        ? inTune && isListening
+                        ? displayInTune && isListening
                           ? 'bg-green-50 border-green-500 text-green-900 shadow-md font-black animate-pulse'
                           : 'bg-amber-50 border-amber-500 text-amber-900 shadow-md font-black'
                         : 'bg-white border-stone-200 text-stone-600 hover:bg-stone-50 hover:border-stone-300'
