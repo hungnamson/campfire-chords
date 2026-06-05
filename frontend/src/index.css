@@ -198,3 +198,66 @@ input:focus, textarea:focus, select:focus {
   padding-bottom: 2px;
   letter-spacing: 0.02em;
 }
+
+/* Column Layout for Song Viewer */
+.song-lyrics-sheet-cols-2 {
+  column-count: 2;
+  column-gap: 1.5rem;
+  column-rule: 1px dashed var(--border-stone);
+  height: auto;
+}
+
+.song-lyrics-sheet-cols-3 {
+  column-count: 3;
+  column-gap: 1.5rem;
+  column-rule: 1px dashed var(--border-stone);
+  height: auto;
+}
+
+.song-lyrics-sheet-cols-2 > div,
+.song-lyrics-sheet-cols-3 > div {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* Custom responsive padding-x class for unified margins on song sheet and header contents */
+.song-viewer-padding-x {
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+@media (min-width: 640px) {
+  .song-viewer-padding-x {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+}
+
+@media (min-width: 768px) {
+  .song-viewer-padding-x {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .song-viewer-padding-x {
+    padding-left: 30px;
+    padding-right: 30px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .song-viewer-padding-x {
+    padding-left: 40px;
+    padding-right: 40px;
+  }
+}
+
+@media (min-width: 1536px) {
+  .song-viewer-padding-x {
+    padding-left: 55px;
+    padding-right: 55px;
+  }
+}
+

@@ -45,7 +45,8 @@ export default function App() {
   });
   const [isCompact, setIsCompact] = useState(() => {
     const saved = localStorage.getItem('campfire_is_compact');
-    return saved === 'true';
+    if (saved !== null) return saved === 'true';
+    return window.innerWidth < 768;
   });
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [instrument, setInstrument] = useState(() => {
@@ -717,7 +718,7 @@ export default function App() {
           </div>
 
           {/* Search Box (Center, expands) */}
-          <div className="relative flex-grow max-w-lg">
+          <div className="relative flex-grow max-w-2xl">
             {!isSearchFocused && (
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none transition-all duration-200" />
             )}
@@ -739,7 +740,7 @@ export default function App() {
                   setSearchQuery(searchInput);
                 }
               }}
-              className={`w-full pr-10 py-2 bg-white border border-stone-200 rounded-lg text-sm placeholder-stone-400 focus:border-red-600 focus:ring-1 focus:ring-red-600/20 shadow-sm transition-all duration-200 ${
+              className={`w-full pr-10 py-3 bg-white border border-stone-200 rounded-lg text-sm placeholder-stone-400 focus:border-red-600 focus:ring-1 focus:ring-red-600/20 shadow-sm transition-all duration-200 ${
                 isSearchFocused ? 'pl-3' : 'pl-9'
               }`}
             />
@@ -871,10 +872,14 @@ export default function App() {
         </header>
 
         {/* Content Body */}
-        <main className="flex-grow p-4 md:p-8 overflow-y-auto max-w-6xl w-full mx-auto">
+        <main className={`flex-grow overflow-y-auto ${
+          activeSong 
+            ? 'w-full flex flex-col p-0' 
+            : 'p-4 md:p-8 max-w-6xl w-full mx-auto'
+        }`}>
           
           {activeSong ? (
-            <div className="relative">
+            <div className="relative flex-grow flex flex-col">
               <SongViewer 
                 song={activeSong} 
                 transposeOffset={transposeOffset}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { Heart, ArrowLeft, Plus, Check, Minimize2, Maximize2, Info } from 'lucide-react';
 import { transposeChord } from '../utils/transposer';
 import ChordDiagram from './ChordDiagram';
@@ -26,6 +26,36 @@ export default function SongViewer({
 
   const scrollIntervalRef = useRef(null);
   const songContainerRef = useRef(null);
+  const sheetRef = useRef(null);
+
+  // Responsive dynamic layout states
+  const [localFontSize, setLocalFontSize] = useState(fontSize);
+  const [localIsCompact, setLocalIsCompact] = useState(isCompact);
+  const [localColumns, setLocalColumns] = useState(1);
+  const [windowSize, setWindowSize] = useState({
+    width: window.innerWidth,
+    height: window.innerHeight
+  });
+
+  // Track window resizing for automatic fit recalculation
+  useEffect(() => {
+    let timeoutId;
+    const handleResize = () => {
+      // Debounce window size updates slightly to improve render performance during dragging
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        setWindowSize({
+          width: window.innerWidth,
+          height: window.innerHeight
+        });
+      }, 50);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      clearTimeout(timeoutId);
+    };
+  }, []);
 
   // Reset states when song changes
   useEffect(() => {
@@ -33,6 +63,174 @@ export default function SongViewer({
     setActiveChord(null);
     setShowSongInfo(false);
     setKeepScreenAwake(true);
+  }, [song]);
+
+  // Recalculate best fit layout
+  const adjustLayout = () => {
+    const sheet = sheetRef.current;
+    if (!sheet) return;
+
+    // Check sheet visibility and layout height
+    const initialRect = sheet.getBoundingClientRect();
+    if (initialRect.height === 0) return; // Skip measurement if content is not rendered yet
+
+    // Detect if mobile layout (< 768px width)
+    const isMobile = windowSize.width < 768;
+
+    // Retrieve dynamically rendered bottom navigation height
+    const bottomNav = document.querySelector('nav');
+    const navHeight = bottomNav ? bottomNav.getBoundingClientRect().height : 80;
+
+    // Get current top position of lyrics content card
+    const rect = sheet.getBoundingClientRect();
+    const topOffset = rect.top > 0 ? rect.top : (isMobile ? 60 : 75);
+
+    // Calculate vertical space remaining inside viewport
+    const bottomMargin = isMobile ? 24 : 48;
+    const availableHeight = windowSize.height - topOffset - navHeight - bottomMargin;
+
+    if (availableHeight <= 100) return;
+
+    // Store original styles to restore after testing sizes
+    const originalFontSize = sheet.style.fontSize;
+    const originalColumnCount = sheet.style.columnCount;
+    const originalTransition = sheet.style.transition;
+    const originalClassName = sheet.className;
+
+    // Turn off transitions during measurement loop to avoid flickering
+    sheet.style.transition = 'none';
+
+    let optimalFontSize = fontSize;
+    let optimalColumns = 1;
+    let optimalIsCompact = isCompact;
+
+    // Helper to test layouts synchronously and return the actual layout height of the sheet
+    const testLayout = (cols, size) => {
+      if (cols === 1) {
+        sheet.className = 'song-lyrics-sheet select-text';
+      } else if (cols === 2) {
+        sheet.className = 'song-lyrics-sheet select-text song-lyrics-sheet-cols-2';
+      } else if (cols === 3) {
+        sheet.className = 'song-lyrics-sheet select-text song-lyrics-sheet-cols-3';
+      }
+      sheet.style.columnCount = cols.toString();
+      sheet.style.fontSize = `${size}px`;
+      
+      // Force a reflow and get the actual layout height (balanced) of the columns container
+      return sheet.getBoundingClientRect().height;
+    };
+
+    // Helper to binary search for the largest font size (in steps of 0.25px) that fits within availableHeight
+    const findOptimalSize = (cols, minSize, maxSize) => {
+      let low = Math.round(minSize * 4);
+      let high = Math.round(maxSize * 4);
+      let optimal = minSize;
+
+      while (low <= high) {
+        const mid = Math.floor((low + high) / 2);
+        const size = mid / 4;
+        const height = testLayout(cols, size);
+
+        if (height <= availableHeight) {
+          optimal = size;
+          low = mid + 1; // Try to make it larger
+        } else {
+          high = mid - 1; // Need to make it smaller
+        }
+      }
+      return optimal;
+    };
+
+    if (isMobile) {
+      // Mobile Mode: default to compact view, 1 column, fit to screen size
+      optimalIsCompact = true;
+      
+      const minFontSize = 14.66; // 11 pt in pixels (1pt = 1.333px)
+      let height = testLayout(1, fontSize);
+
+      if (height > availableHeight) {
+        // If standard size doesn't fit, search between minFontSize and fontSize
+        optimalFontSize = findOptimalSize(1, minFontSize, fontSize);
+      } else {
+        optimalFontSize = fontSize;
+      }
+    } else {
+      // Tablet & Desktop: try to fit screen. If too long, use 2 columns or 3 columns. If short, scale up font size
+      optimalIsCompact = false; // Always use regular text mode for desktop/tablet
+
+      // First test 1 column at current base fontSize
+      let height1 = testLayout(1, fontSize);
+
+      if (height1 <= availableHeight) {
+        // Fits in 1 column: scale up to fill screen (up to 26px)
+        optimalFontSize = findOptimalSize(1, fontSize, 26);
+        optimalColumns = 1;
+      } else {
+        // Doesn't fit in 1 column: try 2 columns at base fontSize
+        let height2 = testLayout(2, fontSize);
+
+        if (height2 <= availableHeight) {
+          // Fits in 2 columns: scale up to fill screen (up to 22px)
+          optimalFontSize = findOptimalSize(2, fontSize, 22);
+          optimalColumns = 2;
+        } else {
+          // Doesn't fit in 2 columns at base size.
+          // Let's try 2 columns at the minimum reasonable size (14px)
+          let heightAt14 = testLayout(2, 14);
+          if (heightAt14 <= availableHeight) {
+            // Fits in 2 columns at a size >= 14px! Find the best size between 14px and base fontSize
+            optimalFontSize = findOptimalSize(2, 14, fontSize);
+            optimalColumns = 2;
+          } else {
+            // Doesn't fit in 2 columns even at 14px: try 3 columns at base fontSize
+            let height3 = testLayout(3, fontSize);
+
+            if (height3 <= availableHeight) {
+              // Fits in 3 columns: scale up to fill screen (up to 20px)
+              optimalFontSize = findOptimalSize(3, fontSize, 20);
+              optimalColumns = 3;
+            } else {
+              // Doesn't fit in 3 columns at base size.
+              // Try to scale down in 3 columns from base size down to 12px
+              let heightAt12 = testLayout(3, 12);
+              if (heightAt12 <= availableHeight) {
+                optimalFontSize = findOptimalSize(3, 12, fontSize);
+                optimalColumns = 3;
+              } else {
+                optimalFontSize = 12;
+                optimalColumns = 3;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Restore original manual styles so React controls layout
+    sheet.className = originalClassName;
+    sheet.style.fontSize = originalFontSize;
+    sheet.style.columnCount = originalColumnCount;
+    sheet.style.transition = originalTransition;
+
+    setLocalFontSize(optimalFontSize);
+    setLocalColumns(optimalColumns);
+    setLocalIsCompact(optimalIsCompact);
+  };
+
+  // Trigger fitting in layout phase (runs synchronously on resize, font size changes, etc.)
+  useLayoutEffect(() => {
+    adjustLayout();
+  }, [song, fontSize, isCompact, windowSize, instrument, transposeOffset]);
+
+  // Trigger fitting after mount/paint to guarantee stable measurements (runs only on new song load)
+  useEffect(() => {
+    adjustLayout();
+    const handle = requestAnimationFrame(adjustLayout);
+    const timeoutId = setTimeout(adjustLayout, 150);
+    return () => {
+      cancelAnimationFrame(handle);
+      clearTimeout(timeoutId);
+    };
   }, [song]);
 
   // Dynamically calculate recommended singer tones based on the original key
@@ -231,12 +429,11 @@ export default function SongViewer({
     };
   }, []);
 
-
   return (
-    <div className="song-viewer-container flex flex-col min-h-screen text-stone-900 bg-stone-100 pb-28 animate-fade-in" ref={songContainerRef}>
+    <div className="song-viewer-container flex flex-col min-h-screen text-stone-900 bg-stone-100 md:bg-white pb-28 animate-fade-in" ref={songContainerRef}>
       {/* Sub Header / Action bar */}
       <header className={`sticky top-0 z-30 bg-[#f5f3ef]/90 backdrop-blur border-b border-stone-200 flex items-center justify-between shadow-sm transition-all duration-200 ${
-        isCompact ? 'px-3 py-1.5' : 'px-4 py-3'
+        localIsCompact ? 'px-3 py-1.5' : 'py-3 song-viewer-padding-x'
       }`}>
         <div className="flex items-center gap-2">
           <button 
@@ -247,10 +444,10 @@ export default function SongViewer({
           </button>
           <div className="min-w-0">
             <h1 className={`font-bold text-stone-900 truncate max-w-[100px] xs:max-w-[150px] sm:max-w-xs transition-all duration-200 ${
-              isCompact ? 'text-sm' : 'text-base'
+              localIsCompact ? 'text-sm' : 'text-base'
             }`}>{song.title}</h1>
             <p className={`text-stone-500 truncate max-w-[100px] xs:max-w-[150px] sm:max-w-xs transition-all duration-205 ${
-              isCompact ? 'text-[10px]' : 'text-xs'
+              localIsCompact ? 'text-[10px]' : 'text-xs'
             }`}>
               {song.artist}{song.composer ? ` • Sáng tác: ${song.composer}` : ''}
             </p>
@@ -279,7 +476,7 @@ export default function SongViewer({
           <button
             onClick={() => onToggleFavorite(song.id)}
             className={`p-1.5 rounded-full hover:bg-stone-200 transition-colors ${
-              song.isFavorite ? 'text-red-600' : 'text-stone-400 hover:text-stone-700'
+              song.isFavorite ? 'text-red-600' : 'text-stone-400 hover:text-stone-750'
             }`}
           >
             <Heart className="w-4.5 h-4.5" fill={song.isFavorite ? "currentColor" : "none"} />
@@ -326,41 +523,43 @@ export default function SongViewer({
         </div>
       </header>
 
-      {/* Main card container */}
-      <main className={`flex-grow transition-all duration-200 ${isCompact ? 'px-3.5 py-2 md:p-3' : 'px-4.5 py-4 md:p-6'}`}>
-        <div className={`max-w-4xl mx-auto bg-white border border-stone-200/85 rounded-2xl shadow-md select-text transition-all duration-200 ${
-          isCompact ? 'py-3 px-[24px] sm:px-6' : 'py-6 px-[32px] sm:px-[34px] md:py-8'
+      <main className={`flex-grow flex flex-col transition-all duration-200 ${localIsCompact ? 'px-3.5 py-2 md:p-3' : 'px-4.5 py-4 md:p-0 bg-white'}`}>
+        <div className={`flex-grow bg-white select-text transition-all duration-200 w-full ${
+          localIsCompact 
+            ? 'py-3 px-[24px] sm:px-6 max-w-4xl mx-auto border border-stone-200/85 rounded-2xl shadow-md' 
+            : 'py-6 md:py-8 mx-auto border-none shadow-none rounded-none song-viewer-padding-x'
         }`}>
           {/* Inline chords song sheet */}
           <div 
-            className="song-lyrics-sheet select-text" 
-            style={{ fontSize: `${fontSize}px` }}
+            ref={sheetRef}
+            className={`song-lyrics-sheet select-text ${localColumns === 2 ? 'song-lyrics-sheet-cols-2' : localColumns === 3 ? 'song-lyrics-sheet-cols-3' : ''}`}
+            style={{ fontSize: `${localFontSize}px` }}
           >
             {lines.map((line, index) => {
               const parsed = parseLine(line);
 
               if (parsed.isEmpty) {
-                return <div key={index} className={isCompact ? "h-2" : "h-5"}></div>;
+                return <div key={index} className={localIsCompact ? "h-2" : "h-5"}></div>;
               }
 
               if (parsed.isComment) {
                 return (
-                  <div key={index} className={`comment-line ${isCompact ? 'compact' : ''}`}>
+                  <div key={index} className={`comment-line ${localIsCompact ? 'compact' : ''}`}>
                     {parsed.text}
                   </div>
                 );
               }
 
               return (
-                <div key={index} className={`lyric-line-inline ${isCompact ? 'compact' : ''}`}>
+                <div key={index} className={`lyric-line-inline ${localIsCompact ? 'compact' : ''}`}>
                   {parsed.chunks.map((chunk, chunkIdx) => (
                     <React.Fragment key={chunkIdx}>
                       {chunk.chord && (
                         <span
                           onClick={(e) => handleChordClick(chunk.chord, e)}
-                          className={`chord-inline ${isCompact ? 'compact' : ''}`}
+                          className={`chord-inline ${localIsCompact ? 'compact' : ''}`}
                         >
-                          {isCompact ? chunk.chord : `[${chunk.chord}]`}
+                          {localIsCompact ? chunk.chord : `[${chunk.chord}]`}
                         </span>
                       )}
                       {chunk.text}
