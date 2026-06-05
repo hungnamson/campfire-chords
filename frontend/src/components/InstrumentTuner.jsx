@@ -116,6 +116,7 @@ export default function InstrumentTuner({ isOpen, onClose }) {
   const [errorMsg, setErrorMsg] = useState('');
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [consoleErrors, setConsoleErrors] = useState([]);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   useEffect(() => {
     const handleError = (event) => {
@@ -463,7 +464,33 @@ export default function InstrumentTuner({ isOpen, onClose }) {
           const minAllowedFreq = isGuitar ? 70 : 200;
           const maxAllowedFreq = isGuitar ? 380 : 500;
 
+          // Target-Anchored Noise Filtering: Discard pitch detection if it lies too far from expected string frequencies
+          let passesNoiseGate = false;
           if (detectedFreq !== -1 && detectedFreq > minAllowedFreq && detectedFreq < maxAllowedFreq) {
+            if (tunerModeRef.current === 'manual') {
+              const targetStr = selectedStringRef.current;
+              if (targetStr) {
+                const centsDiff = Math.abs(1200 * Math.log2(detectedFreq / targetStr.freq));
+                if (centsDiff <= 220) {
+                  passesNoiseGate = true;
+                }
+              }
+            } else {
+              const currentStrings = INSTRUMENT_TUNINGS[selectedInstRef.current].strings;
+              let minDiff = 99999;
+              for (let i = 0; i < currentStrings.length; i++) {
+                const centsDiff = Math.abs(1200 * Math.log2(detectedFreq / currentStrings[i].freq));
+                if (centsDiff < minDiff) {
+                  minDiff = centsDiff;
+                }
+              }
+              if (minDiff <= 180) {
+                passesNoiseGate = true;
+              }
+            }
+          }
+
+          if (passesNoiseGate) {
             // Reset no-pitch frames count
             framesWithoutPitchRef.current = 0;
 
@@ -662,157 +689,149 @@ export default function InstrumentTuner({ isOpen, onClose }) {
   const needleRotation = frequency ? clampedCents * 1.2 : 0; // -60 to +60 deg
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-sm animate-fade-in" onClick={handleClose}>
-      <div className="bg-[#fcfbfa] border border-stone-200/80 rounded-2xl max-w-sm w-full p-5 shadow-2xl relative select-none flex flex-col" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/60 backdrop-blur-sm animate-fade-in" onClick={handleClose}>
+      <div className="bg-[#18181a] border border-stone-850 rounded-[28px] max-w-sm w-full p-6 shadow-2xl relative select-none flex flex-col" onClick={(e) => e.stopPropagation()}>
         {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-stone-150 pb-3 mb-4">
-          <div className="flex items-center gap-2">
-            <Mic className="w-5 h-5 text-amber-700" />
-            <h3 className="font-bold text-stone-900 text-base">Bộ Lên Dây / Instrument Tuner</h3>
+        <div className="flex items-center justify-between border-b border-stone-850 pb-3.5 mb-4 select-none">
+          <div className="relative">
+            <button 
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              className="flex items-center gap-1.5 font-black text-stone-100 hover:text-white transition text-[15px] cursor-pointer"
+            >
+              <Mic className="w-4.5 h-4.5 text-amber-500" />
+              <span>{selectedInst === 'guitar' ? 'Guitar (6-string)' : 'Ukulele (4-string)'}</span>
+              <span className="text-[10px] text-stone-500">▼</span>
+            </button>
+            <div className="text-[9px] text-stone-500 font-extrabold uppercase tracking-wider pl-6.5">
+              Standard Tuning
+            </div>
+            
+            {/* Dropdown Options */}
+            {isDropdownOpen && (
+              <div className="absolute top-full left-6 mt-1.5 w-48 bg-stone-900 border border-stone-800 rounded-xl shadow-2xl z-30 py-1 overflow-hidden animate-fade-in">
+                <button
+                  onClick={() => {
+                    setSelectedInst('guitar');
+                    setIsDropdownOpen(false);
+                  }}
+                  className={`w-full text-left px-4 py-2.5 text-xs font-bold transition flex items-center justify-between cursor-pointer ${
+                    selectedInst === 'guitar' ? 'bg-stone-850 text-amber-500' : 'text-stone-300 hover:bg-stone-850'
+                  }`}
+                >
+                  <span>Guitar (Standard)</span>
+                  {selectedInst === 'guitar' && <span className="text-amber-500 text-[10px]">●</span>}
+                </button>
+                <button
+                  onClick={() => {
+                    setSelectedInst('ukulele');
+                    setIsDropdownOpen(false);
+                  }}
+                  className={`w-full text-left px-4 py-2.5 text-xs font-bold transition flex items-center justify-between cursor-pointer ${
+                    selectedInst === 'ukulele' ? 'bg-stone-850 text-amber-500' : 'text-stone-300 hover:bg-stone-850'
+                  }`}
+                >
+                  <span>Ukulele (Standard)</span>
+                  {selectedInst === 'ukulele' && <span className="text-amber-500 text-[10px]">●</span>}
+                </button>
+              </div>
+            )}
           </div>
-          <button onClick={handleClose} className="p-1.5 rounded-full hover:bg-stone-150 text-stone-400 hover:text-stone-700 transition">
+          
+          <button onClick={handleClose} className="p-1.5 rounded-full hover:bg-stone-850 text-stone-400 hover:text-stone-200 transition">
             <X className="w-4.5 h-4.5" />
           </button>
         </div>
 
         {/* Modal Body */}
         <div className="flex-grow flex flex-col space-y-4">
-          {/* Instrument Selector Tab */}
-          <div className="grid grid-cols-2 gap-1 bg-stone-100 p-0.5 rounded-lg border border-stone-200 text-xs">
-            <button
-              onClick={() => setSelectedInst('guitar')}
-              className={`py-1.5 font-extrabold rounded-md transition-all ${
-                selectedInst === 'guitar' ? 'bg-white text-stone-900 shadow-xs' : 'text-stone-500 hover:text-stone-800'
-              }`}
-            >
-              Guitar (Standard)
-            </button>
-            <button
-              onClick={() => setSelectedInst('ukulele')}
-              className={`py-1.5 font-extrabold rounded-md transition-all ${
-                selectedInst === 'ukulele' ? 'bg-white text-stone-900 shadow-xs' : 'text-stone-500 hover:text-stone-800'
-              }`}
-            >
-              Ukulele (Standard)
-            </button>
-          </div>
+          
+          {/* 1. Horizontal sliding dial gauge */}
+          <div className="flex flex-col items-center justify-center relative w-full h-24 bg-stone-900/40 rounded-2xl border border-stone-850/80 overflow-hidden tuner-grid-bg">
+            {/* Center Vertical Marker Line */}
+            <div className={`absolute top-0 bottom-0 left-1/2 w-0.5 z-0 ${displayInTune ? 'bg-green-500/60 shadow-lg shadow-green-500/50' : 'bg-stone-800'}`}></div>
+            
+            {/* Flat / Sharp labels */}
+            <span className="absolute left-5 text-xl font-serif text-stone-600 font-bold select-none">b</span>
+            <span className="absolute right-5 text-xl font-serif text-stone-600 font-bold select-none">#</span>
 
-          {/* Mode Selector (Auto vs Manual) */}
-          <div className="grid grid-cols-2 gap-2 text-[10px] uppercase font-bold tracking-wider text-center">
-            <button
-              onClick={() => {
-                setTunerMode('auto');
-                if (currentStrings.length > 0) setDetectedString(currentStrings[0]);
-              }}
-              className={`py-1 rounded border transition ${
-                tunerMode === 'auto'
-                  ? 'bg-blue-50 border-blue-200 text-blue-900 font-extrabold'
-                  : 'bg-white border-stone-200 text-stone-500 hover:bg-stone-50'
-              }`}
-            >
-              Tự động (Auto)
-            </button>
-            <button
-              onClick={() => setTunerMode('manual')}
-              className={`py-1 rounded border transition ${
-                tunerMode === 'manual'
-                  ? 'bg-amber-50/70 border-amber-200 text-amber-900 font-extrabold'
-                  : 'bg-white border-stone-200 text-stone-500 hover:bg-stone-50'
-              }`}
-            >
-              Thủ công (Manual)
-            </button>
-          </div>
-
-          {/* Tuner Dial Needle Visualizer */}
-          <div className="bg-white border border-stone-150 rounded-xl p-4 shadow-sm flex flex-col items-center justify-center relative overflow-hidden h-44">
-            {isListening && (
-              <div className="absolute top-2 left-3 right-3 flex items-center gap-1.5 z-10 select-none">
-                <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider">Tín hiệu:</span>
-                <div className="flex-grow h-1 bg-stone-100 rounded-full overflow-hidden border border-stone-200/50">
-                  <div ref={volumeBarRef} className="h-full bg-stone-300 transition-all duration-75" style={{ width: '0%' }}></div>
-                </div>
-              </div>
-            )}
-
+            {/* Slider pointer cursor */}
             {isListening && frequency ? (
-              <>
-                {/* SVG Analog Needle Gauge */}
-                <svg viewBox="0 0 300 160" className="w-full max-w-[240px] mx-auto absolute top-2">
-                  {/* Outer scale arc */}
-                  <path d="M 40 135 A 110 110 0 0 1 260 135" fill="none" stroke="#e3ded5" strokeWidth="5" strokeLinecap="round" />
-                  
-                  {/* Center Green Target Zone */}
-                  <path d="M 138 28 A 110 110 0 0 1 162 28" fill="none" stroke={displayInTune ? "#10b981" : "#e3ded5"} strokeWidth="6" />
-
-                  {/* Tick Marks */}
-                  <line x1="150" y1="20" x2="150" y2="30" stroke={displayInTune ? "#10b981" : "#78716c"} strokeWidth="2.5" />
-                  <line x1="90" y1="44" x2="98" y2="51" stroke="#d6cfc1" strokeWidth="2" />
-                  <line x1="210" y1="44" x2="202" y2="51" stroke="#d6cfc1" strokeWidth="2" />
-
-                  {/* Rotating Dial Needle */}
-                  <line
-                    x1="150"
-                    y1="135"
-                    x2="150"
-                    y2="28"
-                    stroke={displayInTune ? "#10b981" : displayCents < 0 ? "#f97316" : "#ef4444"}
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    style={{
-                      transform: `rotate(${needleRotation}deg)`,
-                      transformOrigin: '150px 135px'
-                    }}
-                  />
-                  <circle cx="150" cy="135" r="8" fill={displayInTune ? "#10b981" : "#44403c"} />
-                </svg>
-
-                {/* Numeric cents status overlay */}
-                <div className="absolute bottom-2 text-center flex flex-col items-center">
-                  <span className="font-mono text-[22px] font-black text-stone-900 leading-none mb-1">
-                    {activeTarget?.note}
-                  </span>
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-mono text-xs text-stone-500 font-bold">
-                      {displayFrequency ? `${displayFrequency.toFixed(1)} Hz` : '-- Hz'}
-                    </span>
-                    <span className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded leading-none ${
-                      displayInTune 
-                        ? 'bg-green-150 text-green-800' 
-                        : displayCents < 0 ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700'
-                    }`}>
-                      {displayInTune 
-                        ? 'Chuẩn' 
-                        : displayCents < 0 
-                          ? `${Math.round(displayCents)} cents (Thấp)` 
-                          : `+${Math.round(displayCents)} cents (Cao)`}
-                    </span>
-                  </div>
+              <div 
+                className="absolute transition-transform duration-100 ease-out z-10 flex flex-col items-center"
+                style={{ 
+                  transform: `translateX(${clampedCents * 2.8}px)`, 
+                  left: 'calc(50% - 14px)'
+                }}
+              >
+                {/* Dial circle outer ring */}
+                <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center shadow-lg transition-colors ${
+                  displayInTune 
+                    ? 'border-green-500 bg-green-950/80 text-green-400 shadow-green-500/20' 
+                    : displayCents < 0 
+                      ? 'border-orange-500 bg-orange-950/80 text-orange-400 shadow-orange-500/20' 
+                      : 'border-red-500 bg-red-950/80 text-red-400 shadow-red-500/20'
+                }`}>
+                  <div className={`w-2.5 h-2.5 rounded-full transition-colors ${
+                    displayInTune ? 'bg-green-400 animate-pulse' : displayCents < 0 ? 'bg-orange-400' : 'bg-red-400'
+                  }`}></div>
                 </div>
-              </>
+                {/* Pointer triangle pointing down */}
+                <div className={`w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] mt-0.5 ${
+                  displayInTune ? 'border-t-green-500' : displayCents < 0 ? 'border-t-orange-500' : 'border-t-red-500'
+                }`}></div>
+              </div>
             ) : (
-              <div className="flex flex-col items-center justify-center text-center space-y-2 p-2">
-                <Activity className={`w-8 h-8 ${isListening ? 'text-blue-500 animate-pulse' : 'text-stone-300'}`} />
-                <p className="text-xs font-bold text-stone-500">
-                  {isListening ? 'Gảy dây đàn để lên tông...' : 'Tuner chưa bắt đầu thu âm'}
-                </p>
-                <p className="text-[10px] text-stone-400 max-w-[250px]">
-                  {isListening ? 'Auto Mode sẽ tự phát hiện dây bạn đang gảy.' : 'Bấm nút bên dưới để cấp quyền và khởi động tuner.'}
-                </p>
+              /* Idle Center state cursor */
+              <div className="absolute left-1/2 -translate-x-1/2 z-10 flex flex-col items-center opacity-30">
+                <div className="w-7 h-7 rounded-full border-2 border-stone-600 bg-stone-900/60"></div>
+                <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-stone-600 mt-0.5"></div>
+              </div>
+            )}
+
+            {/* Signal strength / VU meter in background at top */}
+            {isListening && (
+              <div className="absolute top-0 left-0 right-0 h-1 bg-stone-950/30 overflow-hidden">
+                <div ref={volumeBarRef} className="h-full bg-stone-850 transition-all duration-75" style={{ width: '0%' }}></div>
               </div>
             )}
           </div>
 
+          {/* 2. Floating guidance bubble */}
+          <div className="h-10 flex items-center justify-center relative">
+            {isListening && !frequency ? (
+              <div className="bg-stone-900 border border-stone-800 px-4 py-1.5 rounded-full text-[10px] font-bold tracking-wide text-stone-300 shadow-md animate-bounce select-none">
+                Start tuning by playing any string
+              </div>
+            ) : isListening && frequency && activeTarget ? (
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-xl font-black text-stone-100 leading-none">
+                  {activeTarget.note}
+                </span>
+                <span className="font-mono text-xs text-stone-500 font-bold">
+                  {displayFrequency ? `${displayFrequency.toFixed(1)} Hz` : '-- Hz'}
+                </span>
+                <span className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded leading-none ${
+                  displayInTune 
+                    ? 'bg-green-950/80 text-green-400 border border-green-900' 
+                    : displayCents < 0 ? 'bg-orange-950/80 text-orange-400 border border-orange-900' : 'bg-red-950/80 text-red-400 border border-red-900'
+                }`}>
+                  {displayInTune 
+                    ? 'In Tune' 
+                    : displayCents < 0 
+                      ? `${Math.round(displayCents)} cents (Flat)` 
+                      : `+${Math.round(displayCents)} cents (Sharp)`}
+                </span>
+              </div>
+            ) : (
+              <div className="text-[10px] font-bold text-stone-500">Tuner is stopped</div>
+            )}
+          </div>
 
-          {/* Reference Tones Board */}
-          <div className="space-y-2">
-            <div className="flex justify-between items-center text-[10px] uppercase font-bold tracking-wider text-stone-400 px-1 select-none">
-              <span>{tunerMode === 'manual' ? 'Gõ dây để chọn & nghe thử' : 'Nghe âm thanh dây gốc (EADGBE/GCEA)'}</span>
-              <Volume2 className="w-3.5 h-3.5" />
-            </div>
-
-            {/* String pegs rows */}
-            <div className={`grid gap-2 ${selectedInst === 'guitar' ? 'grid-cols-6' : 'grid-cols-4'}`}>
+          {/* 3. Interactive SVG Headstock Visualizer */}
+          <div className="relative flex items-center justify-between h-[280px] w-full bg-stone-900/10 rounded-3xl border border-stone-850 p-4 overflow-hidden select-none">
+            
+            {/* Peg Buttons Column on the Left */}
+            <div className="flex flex-col justify-between h-full w-[45px] z-10">
               {currentStrings.map((stringObj) => {
                 const isSelected = activeTarget?.index === stringObj.index;
                 return (
@@ -824,71 +843,276 @@ export default function InstrumentTuner({ isOpen, onClose }) {
                       }
                       playReferenceTone(stringObj.freq);
                     }}
-                    className={`flex flex-col items-center justify-center py-2.5 rounded-xl border-2 transition active:scale-95 cursor-pointer relative ${
+                    className={`w-9 h-9 rounded-full flex flex-col items-center justify-center border transition-all active:scale-90 cursor-pointer ${
                       isSelected
                         ? displayInTune && isListening
-                          ? 'bg-green-50 border-green-500 text-green-900 shadow-md font-black animate-pulse'
-                          : 'bg-amber-50 border-amber-500 text-amber-900 shadow-md font-black'
-                        : 'bg-white border-stone-200 text-stone-600 hover:bg-stone-50 hover:border-stone-300'
+                          ? 'bg-green-900 border-green-500 text-green-300 shadow-md shadow-green-500/20 font-black animate-pulse'
+                          : 'bg-blue-900 border-blue-500 text-blue-300 shadow-md shadow-blue-500/20 font-black'
+                        : 'bg-stone-900/80 border-stone-800 text-stone-400 hover:bg-stone-800 hover:text-stone-200'
                     }`}
                   >
-                    <span className="text-[10px] text-stone-400 font-extrabold uppercase leading-none mb-1">
-                      {stringObj.index}
-                    </span>
                     <span className="font-mono text-sm font-black leading-none uppercase">
                       {stringObj.name}
-                    </span>
-                    <span className="text-[8px] font-mono font-bold text-stone-450 mt-1">
-                      {stringObj.note}
                     </span>
                   </button>
                 );
               })}
             </div>
+            
+            {/* Headstock SVG on the Right */}
+            <div className="absolute right-0 top-0 bottom-0 w-[260px] flex items-center justify-center">
+              {selectedInst === 'guitar' ? (
+                /* Fender-style 6-in-line Guitar Headstock SVG */
+                <svg viewBox="0 0 160 300" className="h-[270px] w-[145px] drop-shadow-[0_12px_20px_rgba(0,0,0,0.6)]">
+                  <defs>
+                    <linearGradient id="guitarWood" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor="#b45309" />
+                      <stop offset="40%" stopColor="#78350f" />
+                      <stop offset="100%" stopColor="#451a03" />
+                    </linearGradient>
+                    <linearGradient id="chrome" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#f3f4f6" />
+                      <stop offset="50%" stopColor="#9ca3af" />
+                      <stop offset="100%" stopColor="#4b5563" />
+                    </linearGradient>
+                  </defs>
+
+                  {/* Fretboard Mahogany Neck */}
+                  <rect x="58" y="245" width="44" height="55" fill="#291a15" />
+                  
+                  {/* Fret silver lines */}
+                  <line x1="58" y1="275" x2="102" y2="275" stroke="#9ca3af" strokeWidth="1" />
+                  
+                  {/* Fret Bone Nut */}
+                  <rect x="58" y="242" width="44" height="4" fill="#eceff1" rx="1" />
+
+                  {/* Guitar Wood Headstock */}
+                  <path 
+                    d="M 58 242 C 45 235, 33 215, 33 205 L 33 45 C 33 25, 78 12, 95 22 C 112 32, 112 95, 102 150 C 96 185, 102 230, 102 242 Z" 
+                    fill="url(#guitarWood)" 
+                    stroke="#27130a" 
+                    strokeWidth="1.5" 
+                  />
+
+                  {/* 6 Tuning Pegs keys & posts */}
+                  {[
+                    { y: 215, idx: 6, strThick: '2.4' }, // E2
+                    { y: 181, idx: 5, strThick: '2.0' }, // A2
+                    { y: 147, idx: 4, strThick: '1.7' }, // D3
+                    { y: 113, idx: 3, strThick: '1.4' }, // G3
+                    { y: 79,  idx: 2, strThick: '1.1' }, // B3
+                    { y: 45,  idx: 1, strThick: '0.8' }  // E4
+                  ].map((peg) => {
+                    const isPegActive = activeTarget?.index === peg.idx;
+                    return (
+                      <g key={peg.idx}>
+                        {/* Chrome Tuning Key handle extending left */}
+                        <path 
+                          d={`M 15 ${peg.y} C 12 ${peg.y - 4}, 12 ${peg.y + 4}, 15 ${peg.y} C 18 ${peg.y - 4}, 28 ${peg.y - 2}, 30 ${peg.y} C 28 ${peg.y + 2}, 18 ${peg.y + 4}, 15 ${peg.y}`} 
+                          fill="url(#chrome)" 
+                          stroke="#1f2937" 
+                          strokeWidth="0.8" 
+                        />
+                        <line x1="30" y1={peg.y} x2="43" y2={peg.y} stroke="url(#chrome)" strokeWidth="3" />
+                        
+                        {/* Chrome Post center cap */}
+                        <circle cx="43" cy={peg.y} r="3.5" fill="url(#chrome)" stroke="#1f2937" strokeWidth="0.8" />
+                        
+                        {isPegActive && (
+                          <circle cx="43" cy={peg.y} r="6.5" fill="none" stroke={displayInTune ? "#10b981" : "#3b82f6"} strokeWidth="1" className="animate-ping" />
+                        )}
+                      </g>
+                    );
+                  })}
+
+                  {/* Steel Strings */}
+                  {[
+                    { xNut: 62, pegY: 215, idx: 6, t: 2.3 }, // String 6 (E2)
+                    { xNut: 69, pegY: 181, idx: 5, t: 1.9 }, // String 5 (A2)
+                    { xNut: 76, pegY: 147, idx: 4, t: 1.6 }, // String 4 (D3)
+                    { xNut: 83, pegY: 113, idx: 3, t: 1.3 }, // String 3 (G3)
+                    { xNut: 90, pegY: 79,  idx: 2, t: 1.0 }, // String 2 (B3)
+                    { xNut: 97, pegY: 45,  idx: 1, t: 0.7 }  // String 1 (E4)
+                  ].map((str) => {
+                    const isStrActive = activeTarget?.index === str.idx;
+                    const vibrateClass = isStrActive && isListening && frequency ? 'animate-string-vibrate' : '';
+                    return (
+                      <path
+                        key={str.idx}
+                        d={`M ${str.xNut} 300 L ${str.xNut} 242 L 43 ${str.pegY}`}
+                        fill="none"
+                        stroke={isStrActive && isListening && frequency ? '#60a5fa' : '#9ca3af'}
+                        strokeWidth={str.t}
+                        opacity={isStrActive && isListening && frequency ? 1.0 : 0.45}
+                        className={vibrateClass}
+                      />
+                    );
+                  })}
+                </svg>
+              ) : (
+                /* Ukulele Symmetrical 2+2 Headstock SVG */
+                <svg viewBox="0 0 160 300" className="h-[270px] w-[145px] drop-shadow-[0_12px_20px_rgba(0,0,0,0.6)]">
+                  <defs>
+                    <linearGradient id="ukeleleWood" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor="#b45309" />
+                      <stop offset="35%" stopColor="#854d0e" />
+                      <stop offset="100%" stopColor="#451a03" />
+                    </linearGradient>
+                    <linearGradient id="chrome" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#f3f4f6" />
+                      <stop offset="50%" stopColor="#9ca3af" />
+                      <stop offset="100%" stopColor="#4b5563" />
+                    </linearGradient>
+                  </defs>
+
+                  {/* Fretboard dark mahogany neck */}
+                  <rect x="58" y="245" width="44" height="55" fill="#291a15" />
+                  
+                  {/* Fret lines */}
+                  <line x1="58" y1="275" x2="102" y2="275" stroke="#9ca3af" strokeWidth="1" />
+                  
+                  {/* Bone Nut */}
+                  <rect x="58" y="242" width="44" height="4" fill="#eceff1" rx="1" />
+
+                  {/* Symmetrical Ukelele Wood Headstock */}
+                  <path 
+                    d="M 58 242 C 48 235, 38 215, 38 180 C 38 120, 48 60, 80 60 C 112 60, 122 120, 122 180 C 122 215, 112 235, 102 242 Z" 
+                    fill="url(#ukeleleWood)" 
+                    stroke="#27130a" 
+                    strokeWidth="1.5" 
+                  />
+
+                  {/* 4 Tuning Pegs (2 Left, 2 Right) */}
+                  {[
+                    // Left pegs
+                    { y: 190, x: 46, keyX: 18, isLeft: true, idx: 4 },  // string 4 (g4)
+                    { y: 120, x: 46, keyX: 18, isLeft: true, idx: 3 },  // string 3 (C4)
+                    // Right pegs
+                    { y: 120, x: 114, keyX: 142, isLeft: false, idx: 2 }, // string 2 (E4)
+                    { y: 190, x: 114, keyX: 142, isLeft: false, idx: 1 }  // string 1 (A4)
+                  ].map((peg) => {
+                    const isPegActive = activeTarget?.index === peg.idx;
+                    return (
+                      <g key={peg.idx}>
+                        {/* Key handle extending left or right */}
+                        {peg.isLeft ? (
+                          <path 
+                            d={`M ${peg.keyX} ${peg.y} C ${peg.keyX - 3} ${peg.y - 4}, ${peg.keyX - 3} ${peg.y + 4}, ${peg.keyX} ${peg.y} C ${peg.keyX + 3} ${peg.y - 4}, ${peg.keyX + 13} ${peg.y - 2}, ${peg.x} ${peg.y} C ${peg.keyX + 13} ${peg.y + 2}, ${peg.keyX + 3} ${peg.y + 4}, ${peg.keyX}`}
+                            fill="url(#chrome)" 
+                            stroke="#1f2937" 
+                            strokeWidth="0.8" 
+                          />
+                        ) : (
+                          <path 
+                            d={`M ${peg.keyX} ${peg.y} C ${peg.keyX + 3} ${peg.y - 4}, ${peg.keyX + 3} ${peg.y + 4}, ${peg.keyX} ${peg.y} C ${peg.keyX - 3} ${peg.y - 4}, ${peg.keyX - 13} ${peg.y - 2}, ${peg.x} ${peg.y} C ${peg.keyX - 13} ${peg.y + 2}, ${peg.keyX - 3} ${peg.y + 4}, ${peg.keyX}`}
+                            fill="url(#chrome)" 
+                            stroke="#1f2937" 
+                            strokeWidth="0.8" 
+                          />
+                        )}
+                        <line x1={peg.isLeft ? peg.keyX : peg.x} x2={peg.isLeft ? peg.x : peg.keyX} y1={peg.y} y2={peg.y} stroke="url(#chrome)" strokeWidth="3" />
+                        
+                        {/* Chrome Post center cap */}
+                        <circle cx={peg.x} cy={peg.y} r="3.5" fill="url(#chrome)" stroke="#1f2937" strokeWidth="0.8" />
+                        
+                        {isPegActive && (
+                          <circle cx={peg.x} cy={peg.y} r="6.5" fill="none" stroke={displayInTune ? "#10b981" : "#3b82f6"} strokeWidth="1" className="animate-ping" />
+                        )}
+                      </g>
+                    );
+                  })}
+
+                  {/* Strings */}
+                  {[
+                    { xNut: 64, pegX: 46, pegY: 190, idx: 4, t: 1.5 }, // string 4 (g4)
+                    { xNut: 74, pegX: 46, pegY: 120, idx: 3, t: 1.9 }, // string 3 (C4)
+                    { xNut: 84, pegX: 114, pegY: 120, idx: 2, t: 1.7 }, // string 2 (E4)
+                    { xNut: 94, pegX: 114, pegY: 190, idx: 1, t: 1.3 }  // string 1 (A4)
+                  ].map((str) => {
+                    const isStrActive = activeTarget?.index === str.idx;
+                    const vibrateClass = isStrActive && isListening && frequency ? 'animate-string-vibrate' : '';
+                    return (
+                      <path
+                        key={str.idx}
+                        d={`M ${str.xNut} 300 L ${str.xNut} 242 L ${str.pegX} ${str.pegY}`}
+                        fill="none"
+                        stroke={isStrActive && isListening && frequency ? '#60a5fa' : '#d6d3d1'}
+                        strokeWidth={str.t}
+                        opacity={isStrActive && isListening && frequency ? 1.0 : 0.55}
+                        className={vibrateClass}
+                      />
+                    );
+                  })}
+                </svg>
+              )}
+            </div>
           </div>
 
-          {/* Error Message */}
-          {errorMsg && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-2.5 flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
-              <p className="text-[10px] font-semibold text-red-700 leading-tight">{errorMsg}</p>
+          {/* 4. Bottom controls panel */}
+          <div className="space-y-3 pt-2">
+            
+            {/* Auto/Manual Mode selection buttons */}
+            <div className="flex justify-center gap-3.5 text-[10px] uppercase font-black tracking-widest text-center select-none">
+              <button
+                onClick={() => {
+                  setTunerMode('auto');
+                  if (currentStrings.length > 0) setDetectedString(currentStrings[0]);
+                }}
+                className={`px-4 py-1.5 rounded-full border transition-all cursor-pointer ${
+                  tunerMode === 'auto'
+                    ? 'bg-blue-950/60 border-blue-800 text-blue-400 font-extrabold shadow-sm shadow-blue-500/10'
+                    : 'bg-stone-900/40 border-stone-850 text-stone-500 hover:text-stone-400'
+                }`}
+              >
+                Auto
+              </button>
+              <button
+                onClick={() => setTunerMode('manual')}
+                className={`px-4 py-1.5 rounded-full border transition-all cursor-pointer ${
+                  tunerMode === 'manual'
+                    ? 'bg-amber-950/60 border-amber-800 text-amber-400 font-extrabold shadow-sm shadow-amber-500/10'
+                    : 'bg-stone-900/40 border-stone-850 text-stone-500 hover:text-stone-400'
+                }`}
+              >
+                Manual
+              </button>
             </div>
-          )}
 
-          {/* Bottom Activation controls */}
-          <div className="pt-2 space-y-2">
+            {/* Mic Activation Trigger */}
             <button
               onClick={toggleListening}
-              className={`w-full py-3 rounded-xl text-sm font-black transition active:scale-[0.98] shadow-md flex items-center justify-center gap-2 cursor-pointer ${
+              className={`w-full py-3.5 rounded-2xl text-xs font-black transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer shadow-md ${
                 isListening
-                  ? 'bg-red-600 hover:bg-red-700 text-white'
-                  : 'bg-stone-900 hover:bg-stone-850 text-white'
+                  ? 'bg-red-950/80 border border-red-800 text-red-200 hover:bg-red-900'
+                  : 'bg-stone-100 hover:bg-white text-stone-900'
               }`}
             >
               <Mic className={`w-4 h-4 ${isListening ? 'animate-pulse' : ''}`} />
-              {isListening ? 'Tắt thu âm (Stop Tuner)' : 'Bật thu âm (Start Tuner)'}
+              {isListening ? 'STOP TUNER (DỪNG)' : 'START TUNER (BẮT ĐẦU)'}
             </button>
 
+            {/* Diagnostics triggers */}
             <button
               onClick={() => setShowDiagnostics(!showDiagnostics)}
-              className="w-full text-center text-[10px] text-stone-400 hover:text-stone-600 transition font-bold"
+              className="w-full text-center text-[9px] uppercase tracking-wider text-stone-500 hover:text-stone-400 transition font-black py-0.5"
             >
-              {showDiagnostics ? 'Ẩn chẩn đoán' : 'Hiện chẩn đoán (Diagnostics)'}
+              {showDiagnostics ? 'Hide Diagnostics' : 'Show Diagnostics'}
             </button>
 
+            {/* Diagnostics panel */}
             {showDiagnostics && (
-              <div className="bg-stone-900 text-stone-300 p-3 rounded-xl text-[10px] font-mono space-y-1.5 shadow-inner">
-                <div className="font-bold border-b border-stone-800 pb-1 mb-1 text-stone-400 text-center uppercase tracking-wider">Thông số chẩn đoán</div>
-                <div className="flex justify-between"><span>Secure Context:</span> <span className="text-stone-100">{window.isSecureContext ? 'Yes' : 'No'}</span></div>
-                <div className="flex justify-between"><span>Audio Context:</span> <span ref={debugStateRef} className="text-stone-100">-</span></div>
-                <div className="flex justify-between"><span>Mic Track state:</span> <span ref={debugTrackRef} className="text-stone-100">-</span></div>
-                <div className="flex justify-between"><span>Raw RMS:</span> <span ref={debugRmsRef} className="text-stone-100">-</span></div>
-                <div className="flex justify-between"><span>Sample Rate:</span> <span className="text-stone-100">{tunerAudioCtxRef.current?.sampleRate || '0'} Hz</span></div>
+              <div className="bg-stone-950/80 border border-stone-850 text-stone-400 p-3 rounded-2xl text-[9px] font-mono space-y-1.5 shadow-inner">
+                <div className="font-extrabold border-b border-stone-850 pb-1 mb-1 text-stone-500 text-center uppercase tracking-wider">Thông số chẩn đoán</div>
+                <div className="flex justify-between"><span>Secure Context:</span> <span className="text-stone-200">{window.isSecureContext ? 'Yes' : 'No'}</span></div>
+                <div className="flex justify-between"><span>Audio Context:</span> <span ref={debugStateRef} className="text-stone-200">-</span></div>
+                <div className="flex justify-between"><span>Mic Track state:</span> <span ref={debugTrackRef} className="text-stone-200">-</span></div>
+                <div className="flex justify-between"><span>Raw RMS:</span> <span ref={debugRmsRef} className="text-stone-200">-</span></div>
+                <div className="flex justify-between"><span>Sample Rate:</span> <span className="text-stone-200">{tunerAudioCtxRef.current?.sampleRate || '0'} Hz</span></div>
                 
                 {consoleErrors.length > 0 && (
-                  <div className="border-t border-stone-800 pt-1.5 mt-1.5">
-                    <div className="text-red-400 font-bold mb-1">ERRORS CONSOLE:</div>
-                    <div className="space-y-1 text-red-300 text-[8px] leading-tight">
+                  <div className="border-t border-stone-850 pt-1.5 mt-1.5">
+                    <div className="text-red-500 font-bold mb-1 uppercase">ERRORS CONSOLE:</div>
+                    <div className="space-y-1 text-red-400 text-[8px] leading-tight">
                       {consoleErrors.map((err, idx) => (
                         <div key={idx} className="whitespace-pre-wrap truncate max-w-full">{err}</div>
                       ))}

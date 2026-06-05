@@ -261,3 +261,31 @@ input:focus, textarea:focus, select:focus {
   }
 }
 
+/* Tuner Redesign styles */
+.tuner-grid-bg {
+  background-color: #121214;
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 14px 14px;
+  background-position: center;
+}
+
+@keyframes string-vibrate {
+  0% { transform: translate(0, 0); }
+  15% { transform: translate(-0.7px, 0.4px); }
+  30% { transform: translate(0.7px, -0.4px); }
+  45% { transform: translate(-0.5px, -0.5px); }
+  60% { transform: translate(0.5px, 0.5px); }
+  75% { transform: translate(-0.3px, 0.3px); }
+  90% { transform: translate(0.3px, -0.3px); }
+  100% { transform: translate(0, 0); }
+}
+
+.animate-string-vibrate {
+  animation: string-vibrate 0.1s linear infinite;
+  stroke: #60a5fa !important; /* Glow light blue when active */
+  filter: drop-shadow(0 0 2.5px rgba(96, 165, 250, 0.8));
+}
+
+
