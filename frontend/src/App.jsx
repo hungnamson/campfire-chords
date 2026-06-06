@@ -957,9 +957,15 @@ export default function App() {
       <div className="flex-grow flex flex-col min-w-0">
         
         {/* Unified Sticky Search and Transpose Header */}
-        <header className="bg-[#f5f3ef]/90 backdrop-blur sticky top-0 z-30 border-b border-[#e3ded5] px-4 py-3 md:px-8 flex items-center justify-between gap-4 shadow-sm select-none">
+        <header className={`bg-[#f5f3ef]/90 backdrop-blur sticky top-0 z-30 border-b border-[#e3ded5] px-4 py-3 md:px-8 flex items-center justify-between shadow-sm select-none transition-all duration-300 ${
+          isSearchFocused ? 'gap-0 md:gap-4' : 'gap-4'
+        }`}>
           {/* Logo / Brand (Left) */}
-          <div className="flex items-center gap-2 select-none shrink-0">
+          <div className={`flex items-center gap-2 select-none shrink-0 transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap ${
+            isSearchFocused 
+              ? 'max-w-0 opacity-0 pointer-events-none md:max-w-[320px] md:opacity-100 md:pointer-events-auto' 
+              : 'max-w-[320px] opacity-100'
+          }`}>
             <Flame className="w-5 h-5 text-red-600 fill-red-600" />
             <span className="font-bold text-sm tracking-wide font-display text-stone-900 hidden sm:inline">
               Campfire Chords {songs.length > 0 && `(${songs.length} bài hát)`}
@@ -970,10 +976,10 @@ export default function App() {
           </div>
 
           {/* Search Box (Center, expands) */}
-          <div className="relative flex-grow max-w-2xl">
-            {!isSearchFocused && (
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none transition-all duration-200" />
-            )}
+          <div className={`relative flex-grow transition-all duration-300 ease-in-out ${
+            isSearchFocused ? 'max-w-full md:max-w-2xl' : 'max-w-2xl'
+          }`}>
+            <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400 pointer-events-none transition-all duration-200" />
             <input
               type="text"
               placeholder={isSearchFocused ? "" : "Search songs, artists, or lyrics... (Press Enter)"}
@@ -992,9 +998,7 @@ export default function App() {
                   setSearchQuery(searchInput);
                 }
               }}
-              className={`w-full pr-10 py-3 bg-white border border-stone-200 rounded-lg text-sm placeholder-stone-400 focus:border-red-600 focus:ring-1 focus:ring-red-600/20 shadow-sm transition-all duration-200 ${
-                isSearchFocused ? 'pl-3' : 'pl-9'
-              }`}
+              className="w-full pl-4 pr-24 h-[50px] bg-white border border-stone-200 rounded-lg text-base placeholder-stone-400 focus:border-red-600 focus:ring-1 focus:ring-red-600/20 shadow-sm transition-all duration-200"
             />
             {searchInput && (
               <button
@@ -1002,16 +1006,24 @@ export default function App() {
                   setSearchInput('');
                   setSearchQuery('');
                 }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-stone-100 text-stone-400 hover:text-stone-700 transition-colors"
+                onMouseDown={(e) => {
+                  // Prevent input blur when clicking the erase button
+                  e.preventDefault();
+                }}
+                className="absolute right-11 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center rounded-full hover:bg-stone-100 active:bg-stone-200 text-stone-400 hover:text-stone-700 transition-colors cursor-pointer"
                 title="Clear search"
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="w-5 h-5" />
               </button>
             )}
           </div>
 
           {/* Right Section: Settings Dropdown */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className={`flex items-center gap-2 shrink-0 transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap ${
+            isSearchFocused 
+              ? 'max-w-0 opacity-0 pointer-events-none md:max-w-[320px] md:opacity-100 md:pointer-events-auto' 
+              : 'max-w-[320px] opacity-100'
+          }`}>
             {/* Settings Dropdown */}
             <div className="relative">
               <button
