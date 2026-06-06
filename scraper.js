@@ -1,4 +1,4 @@
-import axios from 'axios';
+import { gotScraping } from 'got-scraping';
 import * as cheerio from 'cheerio';
 
 /**
@@ -9,19 +9,9 @@ import * as cheerio from 'cheerio';
  */
 export async function scrapeHopAmChuan(url) {
   try {
-    // Add standard headers to be polite and prevent potential blocking
-    const response = await axios.get(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9,vi;q=0.8',
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache'
-      },
-      timeout: 10000
-    });
+    const response = await gotScraping(url);
 
-    const $ = cheerio.load(response.data);
+    const $ = cheerio.load(response.body);
 
     // 1. Title
     const title = $('#song-title span').first().text().trim() || $('#song-title').contents().first().text().trim();
@@ -102,6 +92,175 @@ export async function scrapeHopAmChuan(url) {
 }
 
 /**
+ * Scrapes song details from a Hop Am Viet URL.
+ * Supports URL format: https://hopamviet.vn/chord/song/80/nho-oi.html
+ * @param {string} url - The hopamviet.vn song URL
+ * @returns {Promise<object>} The parsed song details
+ */
+export async function scrapeHopAmViet(url) {
+  try {
+    const response = await gotScraping(url);
+    const $ = cheerio.load(response.body);
+
+    // 1. Title
+    let title = $('h1').first().text().trim();
+    if (title.startsWith("Hợp âm ")) {
+      title = title.replace("Hợp âm ", "");
+    }
+    if (!title) {
+      throw new Error('Could not parse song title from page structure.');
+    }
+
+    // 2. Lyrics & Chords (ChordPro)
+    const lyricBlock = $('#lyricBox .lyric-block').first();
+    let chordPro = '';
+    if (lyricBlock.length > 0) {
+      // In hopamviet.vn html, chords are already inside bracket format in the lyric-block text!
+      chordPro = lyricBlock.text().trim();
+    } else {
+      const alternateBlock = $('.lyric-block').first();
+      if (alternateBlock.length > 0) {
+        chordPro = alternateBlock.text().trim();
+      } else {
+        chordPro = $('pre').first().text().trim();
+      }
+    }
+
+    if (!chordPro) {
+      throw new Error('Could not parse lyrics/chords content.');
+    }
+
+    // 3. Artist (Ca sĩ)
+    const singers = [];
+    $('.song-singer-text').each((_, el) => {
+      const text = $(el).text().trim();
+      if (text && !singers.includes(text)) {
+        singers.push(text);
+      }
+    });
+    const artist = singers.join(', ') || 'Khuyết Danh';
+
+    // 4. Composer (Sáng tác)
+    let composer = '';
+    $('.print-meta').each((_, el) => {
+      const text = $(el).text().trim();
+      if (text.startsWith("Sáng tác:")) {
+        composer = text.replace("Sáng tác:", "").trim();
+      }
+    });
+    if (!composer) {
+      $('span, div, p').each((_, el) => {
+        const text = $(el).text().trim();
+        if (text.startsWith("Sáng tác:")) {
+          composer = text.replace("Sáng tác:", "").trim();
+        }
+      });
+    }
+
+    // 5. Rhythm
+    let rhythm = $('#currentRhythmLabel').text().trim() || 
+                 $('#currentRhythmLabelMobile').text().trim() || 
+                 "Chưa xác định";
+
+    // 6. Key / Tone
+    let key = 'C';
+    const songToneText = $('.song-tone').first().text().trim();
+    if (songToneText) {
+      key = songToneText.replace(/[\[\]]/g, '').trim();
+    } else {
+      const toneBadge = $('.tone-badge').first().text().trim();
+      if (toneBadge) {
+        key = toneBadge;
+      }
+    }
+
+    return {
+      title,
+      artist,
+      composer,
+      rhythm,
+      key,
+      chordPro
+    };
+
+  } catch (error) {
+    console.error(`Error scraping HopAmViet: ${url}`, error.message);
+    throw new Error(`Failed to scrape song from HopAmViet. ${error.message}`);
+  }
+}
+
+/**
+ * Scrapes song details generically from a standard webpage
+ * @param {string} url - The song page URL
+ * @returns {Promise<object>} The parsed song details
+ */
+export async function scrapeGeneric(url) {
+  try {
+    const response = await gotScraping(url);
+
+    const $ = cheerio.load(response.body);
+
+    let title = $('h1').first().text().trim() || $('title').text().trim();
+    if (title.includes(" - ")) {
+      title = title.split(" - ")[0].trim();
+    }
+    if (title.startsWith("Hợp âm ")) {
+      title = title.replace("Hợp âm ", "");
+    }
+    
+    // Look for pre tags first for lyrics/chords
+    let chordPro = '';
+    const preText = $('pre').first().text().trim();
+    if (preText) {
+      chordPro = preText;
+    } else {
+      // fallback to elements with class containing lyric or chord
+      const selectors = ['.lyric', '.lyrics', '.chord', '.chords', '.lyric-block', '.song-content'];
+      for (const sel of selectors) {
+        const text = $(sel).first().text().trim();
+        if (text) {
+          chordPro = text;
+          break;
+        }
+      }
+    }
+
+    if (!chordPro) {
+      throw new Error('This website layout is not supported by our generic parser. Please use Copy-Paste Importer.');
+    }
+
+    return {
+      title: title || 'Bài hát mới',
+      artist: 'Khuyết Danh',
+      composer: '',
+      rhythm: 'Chưa xác định',
+      key: 'C',
+      chordPro
+    };
+  } catch (error) {
+    throw new Error(`Failed to scrape URL generically: ${error.message}`);
+  }
+}
+
+/**
+ * Universal scraper that determines domain type and parses accordingly
+ * @param {string} urlStr - The song URL
+ * @returns {Promise<object>} The parsed song details
+ */
+export async function scrapeUniversal(urlStr) {
+  const url = new URL(urlStr);
+  const hostname = url.hostname.toLowerCase();
+  
+  if (hostname.includes('hopamchuan.com')) {
+    return scrapeHopAmChuan(urlStr);
+  } else if (hostname.includes('hopamviet.vn') || hostname.includes('hopamviet.com')) {
+    return scrapeHopAmViet(urlStr);
+  } else {
+    return scrapeGeneric(urlStr);
+  }
+}
+
+/**
  * Validates whether a URL is a hopamchuan song URL.
  * @param {string} urlStr 
  * @returns {boolean}
@@ -117,3 +276,4 @@ export function isHopAmChuanUrl(urlStr) {
     return false;
   }
 }
+

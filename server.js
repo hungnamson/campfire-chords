@@ -22,7 +22,7 @@ import {
   getPlayHistory,
   incrementPlayCount
 } from './db.js';
-import { scrapeHopAmChuan, isHopAmChuanUrl } from './scraper.js';
+import { scrapeUniversal } from './scraper.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -253,21 +253,21 @@ app.post('/api/songs/:id/favorite', (req, res) => {
   res.json(song);
 });
 
-// 7. Scrape Hop Am Chuan URL
+// 7. Universal Song Link Scraper
 app.post('/api/songs/scrape', async (req, res) => {
   const { url } = req.body;
   if (!url) {
     return res.status(400).json({ error: 'URL is required' });
   }
 
-  if (!isHopAmChuanUrl(url)) {
-    return res.status(400).json({ 
-      error: 'Invalid URL. Only hopamchuan.com song details pages are supported directly. For hopamviet.vn, please use the copy-paste importer.' 
-    });
+  try {
+    new URL(url);
+  } catch {
+    return res.status(400).json({ error: 'Invalid URL format. Please enter a valid HTTP or HTTPS song URL.' });
   }
 
   try {
-    const scrapedData = await scrapeHopAmChuan(url);
+    const scrapedData = await scrapeUniversal(url);
     const newSong = addSong({
       title: scrapedData.title,
       artist: scrapedData.artist,

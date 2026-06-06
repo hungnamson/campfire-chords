@@ -188,7 +188,7 @@ export default function App() {
   const [importFileStatus, setImportFileStatus] = useState(null); // { type: 'success'|'error'|'info', message: string }
 
   // Category scraper inputs
-  const [categoryUrl, setCategoryUrl] = useState('https://hopamviet.vn/chord/category/1/nhac-vang');
+  const [categoryUrl, setCategoryUrl] = useState('https://example.com/chord/category/1/nhac-vang');
   const [startPage, setStartPage] = useState(2);
   const [endPage, setEndPage] = useState(2);
   const [directImport, setDirectImport] = useState(true);
@@ -609,7 +609,7 @@ export default function App() {
   const directImport = ${directImport};
   const backendUrl = "${backendUrl}";
 
-  console.log("🔥 HopAmViet Category Scraper Started!");
+  console.log("🔥 Category Browser Scraper Started!");
   console.log("📂 Target Category: " + baseUrl);
   console.log("📖 Pages to crawl: " + startPage + " to " + endPage);
 
@@ -669,7 +669,7 @@ export default function App() {
                 if (links.length > 0) {
                   artist = links.join(", ");
                 } else if (!siblingDiv.innerText.includes("Tất cả 0-9")) {
-                  artist = siblingDiv.innerText.replace(/\\s+/g, " ").trim();
+                  artist = siblingDiv.innerText.replace(/\s+/g, " ").trim();
                 }
               }
             }
@@ -686,7 +686,7 @@ export default function App() {
                 if (links.length > 0) {
                   composer = links.join(", ");
                 } else if (!siblingDiv.innerText.includes("Tất cả 0-9")) {
-                  composer = siblingDiv.innerText.replace(/\\s+/g, " ").trim();
+                  composer = siblingDiv.innerText.replace(/\s+/g, " ").trim();
                 }
               }
             }
@@ -740,7 +740,7 @@ export default function App() {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(songs, null, 2));
     const downloadAnchor = document.createElement("a");
     downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute("download", "hopamviet_scraped.json");
+    downloadAnchor.setAttribute("download", "scraped_songs.json");
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
@@ -998,7 +998,7 @@ export default function App() {
                   setSearchQuery(searchInput);
                 }
               }}
-              className="w-full pl-4 pr-24 h-[50px] bg-white border border-stone-200 rounded-lg text-base placeholder-stone-400 focus:border-red-600 focus:ring-1 focus:ring-red-600/20 shadow-sm transition-all duration-200"
+              className="w-full pl-4 pr-24 h-[46px] bg-white border border-stone-200 rounded-lg text-base placeholder-stone-400 focus:border-red-600 focus:ring-1 focus:ring-red-600/20 shadow-sm transition-all duration-200"
             />
             {searchInput && (
               <button
@@ -1010,7 +1010,7 @@ export default function App() {
                   // Prevent input blur when clicking the erase button
                   e.preventDefault();
                 }}
-                className="absolute right-11 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center rounded-full hover:bg-stone-100 active:bg-stone-200 text-stone-400 hover:text-stone-700 transition-colors cursor-pointer"
+                className="absolute right-11 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full hover:bg-stone-100 active:bg-stone-200 text-stone-400 hover:text-stone-700 transition-colors cursor-pointer"
                 title="Clear search"
               >
                 <X className="w-5 h-5" />
@@ -1019,199 +1019,199 @@ export default function App() {
           </div>
 
           {/* Right Section: Settings Dropdown */}
-          <div className={`flex items-center gap-2 shrink-0 transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap ${
-            isSearchFocused 
-              ? 'max-w-0 opacity-0 pointer-events-none md:max-w-[320px] md:opacity-100 md:pointer-events-auto' 
-              : 'max-w-[320px] opacity-100'
-          }`}>
-            {/* Settings Dropdown */}
-            <div className="relative">
+          <div className="relative flex items-center gap-2 shrink-0">
+            {/* Transitioning button wrapper */}
+            <div className={`transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap ${
+              isSearchFocused 
+                ? 'max-w-0 opacity-0 pointer-events-none md:max-w-[320px] md:opacity-100 md:pointer-events-auto' 
+                : 'max-w-[320px] opacity-100'
+            }`}>
               <button
                 onClick={() => setShowSettingsMenu(!showSettingsMenu)}
-                className="p-2.5 bg-white border border-stone-200 hover:bg-stone-50 rounded-full text-stone-600 hover:text-stone-900 active:scale-95 transition-all shadow-sm flex items-center justify-center cursor-pointer"
+                className="p-3 bg-white border border-stone-200 hover:bg-stone-50 rounded-full text-stone-600 hover:text-stone-900 active:scale-95 transition-all shadow-sm flex items-center justify-center cursor-pointer"
                 title="Menu"
               >
-                <Menu className="w-5 h-5" />
+                <Menu className="w-6 h-6" />
               </button>
-              
-              {showSettingsMenu && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setShowSettingsMenu(false)}></div>
-                  <div className="absolute right-0 mt-2.5 w-64 bg-white border border-stone-200/80 rounded-2xl shadow-xl z-50 p-2 text-left animate-fade-in select-none">
-                    {/* User profile / Auth panel */}
-                    {currentUser ? (
-                      <div className="px-4 py-3 border-b border-stone-100 mb-1.5 flex flex-col gap-1.5">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs text-stone-700 font-bold truncate max-w-[140px]">{currentUser.email}</span>
-                          <span className={`text-[9px] uppercase font-black tracking-wider px-1.5 py-0.5 rounded border shrink-0 ${
-                            currentUser.role === 'admin' 
-                              ? 'bg-red-50 text-red-650 border-red-200' 
-                              : 'bg-stone-50 text-stone-600 border-stone-200'
-                          }`}>
-                            {currentUser.role}
-                          </span>
-                        </div>
-                        <button
-                          onClick={() => {
-                            localStorage.removeItem('campfire_user');
-                            setCurrentUser(null);
-                            setShowSettingsMenu(false);
-                          }}
-                          className="text-left text-[11px] font-bold text-red-655 hover:text-red-750 transition cursor-pointer"
-                        >
-                          Đăng xuất / Sign Out
-                        </button>
+            </div>
+            
+            {showSettingsMenu && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowSettingsMenu(false)}></div>
+                <div className="absolute right-0 top-full mt-2.5 w-64 max-h-[calc(100vh-140px)] md:max-h-[calc(100vh-90px)] overflow-y-auto no-scrollbar bg-white border border-stone-200/80 rounded-2xl shadow-xl z-50 p-2 text-left animate-fade-in select-none flex flex-col gap-1.5">
+                  {/* User profile / Auth panel */}
+                  {currentUser ? (
+                    <div className="px-4 py-3 border-b border-stone-100 mb-1.5 flex flex-col gap-1.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs text-stone-700 font-bold truncate max-w-[140px]">{currentUser.email}</span>
+                        <span className={`text-[9px] uppercase font-black tracking-wider px-1.5 py-0.5 rounded border shrink-0 ${
+                          currentUser.role === 'admin' 
+                            ? 'bg-red-50 text-red-650 border-red-200' 
+                            : 'bg-stone-50 text-stone-600 border-stone-200'
+                        }`}>
+                          {currentUser.role}
+                        </span>
                       </div>
-                    ) : (
-                      <div className="px-4 py-2.5 border-b border-stone-100 mb-1.5">
-                        <button
-                          onClick={() => {
-                            setAuthMode('login');
-                            setAuthError(null);
-                            setAuthSuccess(null);
-                            setShowAuthModal(true);
-                            setShowSettingsMenu(false);
-                          }}
-                          className="w-full text-center py-2 bg-stone-900 hover:bg-stone-850 text-white font-bold text-xs rounded-xl transition shadow-sm cursor-pointer"
-                        >
-                          Đăng nhập / Sign In
-                        </button>
-                      </div>
-                    )}
-                    
-                    <p className="text-[10px] uppercase font-black tracking-widest text-stone-400 px-4 py-2 border-b border-stone-100 mb-1.5">Features</p>
-                    
+                      <button
+                        onClick={() => {
+                          localStorage.removeItem('campfire_user');
+                          setCurrentUser(null);
+                          setShowSettingsMenu(false);
+                        }}
+                        className="text-left text-[11px] font-bold text-red-655 hover:text-red-750 transition cursor-pointer"
+                      >
+                        Đăng xuất / Sign Out
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="px-4 py-2.5 border-b border-stone-100 mb-1.5">
+                      <button
+                        onClick={() => {
+                          setAuthMode('login');
+                          setAuthError(null);
+                          setAuthSuccess(null);
+                          setShowAuthModal(true);
+                          setShowSettingsMenu(false);
+                        }}
+                        className="w-full text-center py-2 bg-stone-900 hover:bg-stone-850 text-white font-bold text-xs rounded-xl transition shadow-sm cursor-pointer"
+                      >
+                        Đăng nhập / Sign In
+                      </button>
+                    </div>
+                  )}
+                  
+                  <p className="text-[10px] uppercase font-black tracking-widest text-stone-400 px-4 py-2 border-b border-stone-100 mb-1.5">Features</p>
+                  
+                  <button
+                    onClick={() => {
+                      setActiveTab('library');
+                      setSelectedPlaylistId(null);
+                      setActiveSongId(null);
+                      setShowSettingsMenu(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-4 py-3.5 text-sm font-bold rounded-xl transition-all text-left cursor-pointer ${
+                      activeTab === 'library' && !selectedPlaylistId && !activeSongId 
+                        ? 'text-red-600 font-extrabold bg-red-50' 
+                        : 'text-stone-700 hover:bg-stone-50 hover:text-stone-900'
+                    }`}
+                  >
+                    <Music className="w-4.5 h-4.5 shrink-0" />
+                    <span>Song Library</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setActiveTab('setlists');
+                      setActiveSongId(null);
+                      setShowSettingsMenu(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-4 py-3.5 text-sm font-bold rounded-xl transition-all text-left cursor-pointer ${
+                      activeTab === 'setlists' && !activeSongId 
+                        ? 'text-red-600 font-extrabold bg-red-50' 
+                        : 'text-stone-700 hover:bg-stone-50 hover:text-stone-900'
+                    }`}
+                  >
+                    <ListMusic className="w-4.5 h-4.5 shrink-0" />
+                    <span>Campfire Setlists</span>
+                  </button>
+
+                  {currentUser && (
                     <button
                       onClick={() => {
-                        setActiveTab('library');
+                        setActiveTab('history');
                         setSelectedPlaylistId(null);
                         setActiveSongId(null);
                         setShowSettingsMenu(false);
                       }}
                       className={`w-full flex items-center gap-3 px-4 py-3.5 text-sm font-bold rounded-xl transition-all text-left cursor-pointer ${
-                        activeTab === 'library' && !selectedPlaylistId && !activeSongId 
-                          ? 'text-red-600 font-extrabold bg-red-50' 
+                        activeTab === 'history' && !activeSongId 
+                          ? 'text-red-655 font-extrabold bg-red-55' 
                           : 'text-stone-700 hover:bg-stone-50 hover:text-stone-900'
                       }`}
                     >
-                      <Music className="w-4.5 h-4.5 shrink-0" />
-                      <span>Song Library</span>
+                      <ListMusic className="w-4.5 h-4.5 shrink-0 text-red-650" />
+                      <span>Lịch sử chơi nhạc / History</span>
                     </button>
- 
-                    <button
-                      onClick={() => {
-                        setActiveTab('setlists');
-                        setActiveSongId(null);
-                        setShowSettingsMenu(false);
-                      }}
-                      className={`w-full flex items-center gap-3 px-4 py-3.5 text-sm font-bold rounded-xl transition-all text-left cursor-pointer ${
-                        activeTab === 'setlists' && !activeSongId 
-                          ? 'text-red-600 font-extrabold bg-red-50' 
-                          : 'text-stone-700 hover:bg-stone-50 hover:text-stone-900'
-                      }`}
-                    >
-                      <ListMusic className="w-4.5 h-4.5 shrink-0" />
-                      <span>Campfire Setlists</span>
-                    </button>
+                  )}
 
-                    {currentUser && (
-                      <button
-                        onClick={() => {
-                          setActiveTab('history');
-                          setSelectedPlaylistId(null);
-                          setActiveSongId(null);
-                          setShowSettingsMenu(false);
-                        }}
-                        className={`w-full flex items-center gap-3 px-4 py-3.5 text-sm font-bold rounded-xl transition-all text-left cursor-pointer ${
-                          activeTab === 'history' && !activeSongId 
-                            ? 'text-red-655 font-extrabold bg-red-55' 
-                            : 'text-stone-700 hover:bg-stone-50 hover:text-stone-900'
-                        }`}
-                      >
-                        <ListMusic className="w-4.5 h-4.5 shrink-0 text-red-650" />
-                        <span>Lịch sử chơi nhạc / History</span>
-                      </button>
-                    )}
- 
+                  <button
+                    onClick={() => {
+                      setActiveTab('add');
+                      setActiveSongId(null);
+                      setShowSettingsMenu(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-4 py-3.5 text-sm font-bold rounded-xl transition-all text-left cursor-pointer ${
+                      activeTab === 'add' && !activeSongId 
+                        ? 'text-red-600 font-extrabold bg-red-50' 
+                        : 'text-stone-700 hover:bg-stone-50 hover:text-stone-900'
+                    }`}
+                  >
+                    <PlusCircle className="w-4.5 h-4.5 shrink-0" />
+                    <span>Add & Scrape Chords</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowTuner(true);
+                      setShowSettingsMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3.5 text-sm font-bold rounded-xl transition-all text-left text-stone-700 hover:bg-stone-50 hover:text-stone-900 cursor-pointer"
+                  >
+                    <Mic className="w-4.5 h-4.5 text-stone-550 shrink-0" />
+                    <span>Bộ lên dây / Instrument Tuner</span>
+                  </button>
+
+                  {currentUser?.role === 'admin' && (
                     <button
                       onClick={() => {
-                        setActiveTab('add');
-                        setActiveSongId(null);
+                        handleTriggerCleanup();
                         setShowSettingsMenu(false);
                       }}
-                      className={`w-full flex items-center gap-3 px-4 py-3.5 text-sm font-bold rounded-xl transition-all text-left cursor-pointer ${
-                        activeTab === 'add' && !activeSongId 
-                          ? 'text-red-600 font-extrabold bg-red-50' 
-                          : 'text-stone-700 hover:bg-stone-50 hover:text-stone-900'
-                      }`}
+                      disabled={isCleaningDb}
+                      className="w-full flex items-center gap-3 px-4 py-3.5 text-sm font-bold rounded-xl transition-all text-left text-stone-700 hover:bg-stone-50 hover:text-stone-900 disabled:opacity-50 cursor-pointer animate-fade-in"
                     >
-                      <PlusCircle className="w-4.5 h-4.5 shrink-0" />
-                      <span>Add & Scrape Chords</span>
+                      <Sparkles className="w-4.5 h-4.5 text-yellow-600 shrink-0 animate-pulse" />
+                      <span>{isCleaningDb ? 'Đang dọn dẹp...' : 'Dọn dẹp Database / Cleanup'}</span>
                     </button>
- 
-                    <button
-                      onClick={() => {
-                        setShowTuner(true);
-                        setShowSettingsMenu(false);
-                      }}
-                      className="w-full flex items-center gap-3 px-4 py-3.5 text-sm font-bold rounded-xl transition-all text-left text-stone-700 hover:bg-stone-50 hover:text-stone-900 cursor-pointer"
-                    >
-                      <Mic className="w-4.5 h-4.5 text-stone-500 shrink-0" />
-                      <span>Bộ lên dây / Instrument Tuner</span>
-                    </button>
- 
-                    {currentUser?.role === 'admin' && (
-                      <button
-                        onClick={() => {
-                          handleTriggerCleanup();
-                          setShowSettingsMenu(false);
-                        }}
-                        disabled={isCleaningDb}
-                        className="w-full flex items-center gap-3 px-4 py-3.5 text-sm font-bold rounded-xl transition-all text-left text-stone-700 hover:bg-stone-50 hover:text-stone-900 disabled:opacity-50 cursor-pointer animate-fade-in"
-                      >
-                        <Sparkles className="w-4.5 h-4.5 text-yellow-600 shrink-0 animate-pulse" />
-                        <span>{isCleaningDb ? 'Đang dọn dẹp...' : 'Dọn dẹp Database / Cleanup'}</span>
-                      </button>
-                    )}
- 
-                    {/* Instrument Selector Segmented Control */}
-                    <div className="border-t border-stone-100 mt-2 pt-2.5 px-4 pb-2 flex flex-col gap-2 select-none">
-                      <p className="text-[10px] uppercase font-black tracking-widest text-stone-400">Instrument</p>
-                      <div className="grid grid-cols-3 gap-1 bg-stone-100 p-1 rounded-xl border border-stone-200/80">
-                        {['guitar', 'ukulele', 'piano'].map(inst => (
-                          <button
-                            key={inst}
-                            onClick={() => setInstrument(inst)}
-                            className={`py-2 text-xs font-black capitalize rounded-lg transition-all cursor-pointer ${
-                              instrument === inst 
-                                ? 'bg-white text-stone-900 shadow-sm' 
-                                : 'text-stone-500 hover:text-stone-850'
-                            }`}
-                          >
-                            {inst === 'ukulele' ? 'Uke' : inst}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
- 
-                    {/* Network Status */}
-                    <div className="border-t border-stone-100 mt-2 pt-3 px-4 pb-1 flex items-center gap-2 text-[10px] text-stone-400 font-black uppercase tracking-widest select-none">
-                      {isOnline ? (
-                        <>
-                          <span className="w-2 h-2 rounded-full bg-green-500 shrink-0"></span>
-                          <span>Online Mode</span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="w-2 h-2 rounded-full bg-orange-500 shrink-0"></span>
-                          <span>Offline Mode</span>
-                        </>
-                      )}
+                  )}
+
+                  {/* Instrument Selector Segmented Control */}
+                  <div className="border-t border-stone-100 mt-2 pt-2.5 px-4 pb-2 flex flex-col gap-2 select-none">
+                    <p className="text-[10px] uppercase font-black tracking-widest text-stone-400">Instrument</p>
+                    <div className="grid grid-cols-3 gap-1 bg-stone-100 p-1 rounded-xl border border-stone-200/80">
+                      {['guitar', 'ukulele', 'piano'].map(inst => (
+                        <button
+                          key={inst}
+                          onClick={() => setInstrument(inst)}
+                          className={`py-2 text-xs font-black capitalize rounded-lg transition-all cursor-pointer ${
+                            instrument === inst 
+                              ? 'bg-white text-stone-900 shadow-sm' 
+                              : 'text-stone-500 hover:text-stone-850'
+                          }`}
+                        >
+                          {inst === 'ukulele' ? 'Uke' : inst}
+                        </button>
+                      ))}
                     </div>
                   </div>
-                </>
-              )}
-            </div>
+
+                  {/* Network Status */}
+                  <div className="border-t border-stone-100 mt-2 pt-3 px-4 pb-1 flex items-center gap-2 text-[10px] text-stone-400 font-black uppercase tracking-widest select-none">
+                    {isOnline ? (
+                      <>
+                        <span className="w-2 h-2 rounded-full bg-green-500 shrink-0"></span>
+                        <span>Online Mode</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="w-2 h-2 rounded-full bg-orange-500 shrink-0"></span>
+                        <span>Offline Mode</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </header>
 
@@ -1525,7 +1525,6 @@ export default function App() {
                             <h3 className="font-bold text-base text-stone-900 group-hover:text-red-600 transition-colors">{pl.name}</h3>
                             <p className="text-xs text-stone-500 mt-1">{pl.songIds.length} songs</p>
                           </div>
-                          
                           <div className="flex items-center justify-between text-xs text-stone-500 font-semibold">
                             <span>Open Setlist</span>
                             <ArrowRight className="w-4 h-4 text-red-600 transition-transform group-hover:translate-x-1" />
@@ -1543,19 +1542,19 @@ export default function App() {
           {activeTab === 'add' && (
             <div className="animate-fade-in flex flex-col gap-8">
               
-              {/* Scraper Section */}
+              {/* Universal Scraper Section */}
               <div className="bg-white border border-stone-200 rounded-xl p-6 shadow-sm">
                 <h2 className="text-base font-bold text-stone-900 mb-2 font-display flex items-center gap-2">
-                  <Globe className="w-5 h-5 text-red-600" /> Scrape from HopAmChuan.com
+                  <Globe className="w-5 h-5 text-red-600" /> Import Song from URL
                 </h2>
                 <p className="text-xs text-stone-500 mb-4 leading-relaxed">
-                  Enter a song details page URL from hopamchuan.com. The server will fetch and compile it into ChordPro, adding it to your offline database.
+                  Enter a song details page URL. The server will fetch and compile it into ChordPro, adding it to your offline database.
                 </p>
 
                 <form onSubmit={handleScrapeSong} className="flex flex-col sm:flex-row gap-2">
                   <input
                     type="url"
-                    placeholder="https://hopamchuan.com/song/500/nho-oi"
+                    placeholder="Enter song page URL (e.g. https://example.com/song/nho-oi)"
                     value={newSongUrl}
                     onChange={(e) => setNewSongUrl(e.target.value)}
                     disabled={!isOnline}
@@ -1571,7 +1570,7 @@ export default function App() {
                 </form>
 
                 {scrapeError && (
-                  <p className="text-xs text-red-600 mt-2 font-semibold">Error: {scrapeError}</p>
+                  <p className="text-xs text-red-655 mt-2 font-semibold">{scrapeError}</p>
                 )}
                 {scrapeSuccess && (
                   <p className="text-xs text-green-600 mt-2 font-semibold">Song imported successfully!</p>
@@ -1583,49 +1582,50 @@ export default function App() {
                 )}
               </div>
 
-              {/* HopAmViet Category Scraper Tool & Batch JSON Importer (Admin Only) */}
-              {currentUser?.role === 'admin' ? (
+              {/* Category Scraper Tool & Batch JSON Importer (Admin Only) */}
+              {currentUser?.role === 'admin' && (
                 <>
-                  {/* HopAmViet Category Scraper Tool */}
+                  {/* Category Browser Scraper Tool */}
                   <div className="bg-white border border-stone-200 rounded-xl p-6 shadow-sm animate-fade-in">
                     <h2 className="text-base font-bold text-stone-900 mb-2 font-display flex items-center gap-2">
-                      <Globe className="w-5 h-5 text-red-600" /> HopAmViet Category Scraper Tool
+                      <Globe className="w-5 h-5 text-red-600" /> Category Browser Scraper Tool
                     </h2>
                     <p className="text-xs text-stone-500 mb-4 leading-relaxed">
-                      Generate a custom script to crawl entire categories of songs from <b>hopamviet.vn</b> (e.g. Nhạc Vàng, Nhạc Trẻ) directly via your browser, bypassing Cloudflare. 
+                      Generate a custom script to crawl entire categories of songs directly via your browser, bypassing scraping obstacles. 
                       {directImport ? " Songs will be saved directly into your local database in real-time!" : " It will compile all songs into a single JSON file for manual upload."}
                     </p>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-[10px] uppercase font-bold text-stone-400">Category / List URL</label>
+                        <label className="text-[10px] uppercase font-bold text-stone-400">Category / List URL *</label>
                         <input
                           type="url"
+                          required
                           value={categoryUrl}
                           onChange={(e) => setCategoryUrl(e.target.value)}
-                          placeholder="https://hopamviet.vn/chord/category/1/nhac-vang"
-                          className="px-3 py-2.5 bg-white border border-stone-200 rounded text-sm placeholder-stone-400 shadow-sm"
+                          placeholder="https://example.com/chord/category/1/nhac-vang"
+                          className="px-3 py-2 bg-white border border-stone-200 rounded text-sm placeholder-stone-400 shadow-sm"
                         />
                       </div>
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-2 gap-2">
                         <div className="flex flex-col gap-1.5">
                           <label className="text-[10px] uppercase font-bold text-stone-400">Start Page</label>
                           <input
                             type="number"
                             min="1"
                             value={startPage}
-                            onChange={(e) => setStartPage(Math.max(1, parseInt(e.target.value) || 1))}
-                            className="px-3 py-2.5 bg-white border border-stone-200 rounded text-sm shadow-sm"
+                            onChange={(e) => setStartPage(parseInt(e.target.value) || 1)}
+                            className="px-3 py-2 bg-white border border-stone-200 rounded text-sm shadow-sm"
                           />
                         </div>
                         <div className="flex flex-col gap-1.5">
                           <label className="text-[10px] uppercase font-bold text-stone-400">End Page</label>
                           <input
                             type="number"
-                            min={startPage}
+                            min="1"
                             value={endPage}
-                            onChange={(e) => setEndPage(Math.max(startPage, parseInt(e.target.value) || startPage))}
-                            className="px-3 py-2.5 bg-white border border-stone-200 rounded text-sm shadow-sm"
+                            onChange={(e) => setEndPage(parseInt(e.target.value) || 1)}
+                            className="px-3 py-2 bg-white border border-stone-200 rounded text-sm shadow-sm"
                           />
                         </div>
                       </div>
@@ -1674,7 +1674,7 @@ export default function App() {
                       <Upload className="w-5 h-5 text-red-600" /> Batch JSON Song Importer
                     </h2>
                     <p className="text-xs text-stone-500 mb-4 leading-relaxed">
-                      Have a scraped song list (like <b>hopamviet_nhac_vang.json</b>)? Upload it here. The application will import all songs, convert text chords to bracket layouts, and cache them locally.
+                      Have a scraped song list (like <b>songs_backup.json</b>)? Upload it here. The application will import all songs, convert text chords to bracket layouts, and cache them locally.
                     </p>
 
                     <div className="relative group border-2 border-dashed border-stone-200 hover:border-red-600/40 bg-[#f5f3ef]/30 hover:bg-[#f5f3ef]/60 rounded-xl p-8 transition flex flex-col items-center justify-center cursor-pointer">
@@ -1689,7 +1689,7 @@ export default function App() {
                       <div className="p-3 bg-white rounded-full shadow-sm border border-stone-200/60 mb-3 group-hover:scale-105 transition-transform">
                         <Upload className="w-6 h-6 text-stone-500 group-hover:text-red-650 transition-colors" />
                       </div>
-                      <span className="text-sm font-semibold text-stone-850 group-hover:text-red-605 transition-colors">
+                      <span className="text-sm font-semibold text-stone-850 group-hover:text-red-655 transition-colors">
                         {isImportingFile ? 'Uploading & Parsing...' : 'Select JSON File'}
                       </span>
                       <span className="text-[11px] text-stone-400 mt-1 select-none">
@@ -1711,19 +1711,6 @@ export default function App() {
                     )}
                   </div>
                 </>
-              ) : (
-                <div className="bg-[#f5f3ef]/35 border border-stone-200 rounded-xl p-6 shadow-xs select-none animate-fade-in">
-                  <div className="flex items-center gap-3">
-                    <Info className="w-5 h-5 text-stone-550 shrink-0" />
-                    <div>
-                      <h4 className="text-sm font-bold text-stone-900">Tính năng dành cho Quản trị viên (Admin Only)</h4>
-                      <p className="text-xs text-stone-500 mt-0.5 leading-relaxed">
-                        HopAmViet Category Scraper Tool và Batch JSON Song Importer chỉ khả dụng khi bạn đăng nhập với tư cách Quản trị viên. 
-                        Vui lòng đăng nhập bằng tài khoản admin (Ví dụ: <b>hungtm@gmail.com</b>) để sử dụng các công cụ này.
-                      </p>
-                    </div>
-                  </div>
-                </div>
               )}
 
               {/* Paste Importer Section */}
@@ -1981,7 +1968,7 @@ Ta đi tìm bóng mát"
                                   handleSelectKey(ref.original);
                                   setShowKeySelector(false);
                                 }}
-                                className="flex flex-col items-center justify-center py-4.5 sm:py-5.5 bg-[#fdfbf7] hover:bg-[#f8f5ee] active:scale-95 transition-all rounded-2xl border border-amber-250/75 cursor-pointer shadow-xs"
+                                className="flex flex-col items-center justify-center py-3.5 sm:py-5 bg-[#fdfbf7] hover:bg-[#f8f5ee] active:scale-95 transition-all rounded-2xl border border-amber-250/75 cursor-pointer shadow-xs"
                               >
                                 <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-amber-800 font-extrabold mb-1.5">Tone Gốc</span>
                                 <span className="font-mono font-black text-amber-900 text-[15px] sm:text-lg leading-none">{ref.original}</span>
@@ -1991,7 +1978,7 @@ Ta đi tìm bóng mát"
                                   handleSelectKey(ref.male);
                                   setShowKeySelector(false);
                                 }}
-                                className="flex flex-col items-center justify-center py-4.5 sm:py-5.5 bg-blue-50/45 hover:bg-blue-50/90 active:scale-95 transition-all rounded-2xl border border-blue-200/80 cursor-pointer shadow-xs"
+                                className="flex flex-col items-center justify-center py-3.5 sm:py-5 bg-blue-50/45 hover:bg-blue-50/90 active:scale-95 transition-all rounded-2xl border border-blue-200/80 cursor-pointer shadow-xs"
                               >
                                 <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-blue-750 font-extrabold mb-1.5">Tone Nam</span>
                                 <span className="font-mono font-black text-blue-900 text-[15px] sm:text-lg leading-none">{ref.male}</span>
@@ -2001,7 +1988,7 @@ Ta đi tìm bóng mát"
                                   handleSelectKey(ref.female);
                                   setShowKeySelector(false);
                                 }}
-                                className="flex flex-col items-center justify-center py-4.5 sm:py-5.5 bg-rose-50/35 hover:bg-rose-50/80 active:scale-95 transition-all rounded-2xl border border-rose-200/70 cursor-pointer shadow-xs"
+                                className="flex flex-col items-center justify-center py-3.5 sm:py-5 bg-rose-50/35 hover:bg-rose-50/80 active:scale-95 transition-all rounded-2xl border border-rose-200/70 cursor-pointer shadow-xs"
                               >
                                 <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-rose-750 font-extrabold mb-1.5">Tone Nữ</span>
                                 <span className="font-mono font-black text-rose-900 text-[15px] sm:text-lg leading-none">{ref.female}</span>
