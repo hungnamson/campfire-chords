@@ -433,7 +433,7 @@ export default function SongViewer({
     <div className="song-viewer-container flex flex-col min-h-screen text-stone-900 bg-stone-100 md:bg-white pb-28 animate-fade-in w-full md:w-[90vw] md:max-w-[90vw] mx-auto md:shadow-lg md:border-x md:border-stone-200/80" ref={songContainerRef}>
       {/* Sub Header / Action bar */}
       <header className={`sticky top-0 z-30 bg-[#f5f3ef]/90 backdrop-blur border-b border-stone-200 flex items-center justify-between shadow-sm transition-all duration-200 ${
-        localIsCompact ? 'px-3 py-1.5' : 'py-3 song-viewer-padding-x'
+        localIsCompact ? 'px-3 py-1' : 'py-2 song-viewer-padding-x'
       }`}>
         <div className="flex items-center gap-2">
           <button 
