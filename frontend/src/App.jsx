@@ -33,6 +33,8 @@ const API_BASE = '/api';
 export default function App() {
   const [songs, setSongs] = useState([]);
   const [playlists, setPlaylists] = useState([]);
+  const [isLoadingSongs, setIsLoadingSongs] = useState(true);
+  const [fetchSongsError, setFetchSongsError] = useState(false);
   const [activeSongId, setActiveSongId] = useState(null);
   const [activeTab, setActiveTab] = useState('library'); // library, setlists, add
   const [searchQuery, setSearchQuery] = useState('');
@@ -145,12 +147,20 @@ export default function App() {
   }, [searchQuery]);
 
   const fetchSongs = async () => {
+    setIsLoadingSongs(true);
+    setFetchSongsError(false);
     try {
       const res = await fetch(`${API_BASE}/songs`);
+      if (!res.ok) {
+        throw new Error('Failed to fetch songs');
+      }
       const data = await res.json();
       setSongs(data);
     } catch (e) {
       console.error('Error fetching songs:', e);
+      setFetchSongsError(true);
+    } finally {
+      setIsLoadingSongs(false);
     }
   };
 
@@ -714,7 +724,12 @@ export default function App() {
           {/* Logo / Brand (Left) */}
           <div className="flex items-center gap-2 select-none shrink-0">
             <Flame className="w-5 h-5 text-red-600 fill-red-600" />
-            <span className="font-bold text-sm tracking-wide font-display text-stone-900 hidden sm:inline">Campfire Chords</span>
+            <span className="font-bold text-sm tracking-wide font-display text-stone-900 hidden sm:inline">
+              Campfire Chords {songs.length > 0 && `(${songs.length} bài hát)`}
+            </span>
+            <span className="font-bold text-sm tracking-wide font-display text-stone-900 sm:hidden">
+              Campfire Chords {songs.length > 0 && `(${songs.length})`}
+            </span>
           </div>
 
           {/* Search Box (Center, expands) */}
@@ -764,17 +779,17 @@ export default function App() {
             <div className="relative">
               <button
                 onClick={() => setShowSettingsMenu(!showSettingsMenu)}
-                className="p-2 bg-white border border-stone-200 hover:bg-stone-50 rounded-full text-stone-600 hover:text-stone-900 active:scale-95 transition-all shadow-sm flex items-center justify-center"
+                className="p-2.5 bg-white border border-stone-200 hover:bg-stone-50 rounded-full text-stone-600 hover:text-stone-900 active:scale-95 transition-all shadow-sm flex items-center justify-center cursor-pointer"
                 title="Menu"
               >
-                <Menu className="w-4 h-4" />
+                <Menu className="w-5 h-5" />
               </button>
               
               {showSettingsMenu && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setShowSettingsMenu(false)}></div>
-                  <div className="absolute right-0 mt-2 w-48 bg-white border border-stone-200 rounded-lg shadow-xl z-50 p-1.5 text-left animate-fade-in select-none">
-                    <p className="text-[9px] uppercase font-bold tracking-wider text-stone-400 px-3 py-1.5 border-b border-stone-100">Features</p>
+                  <div className="absolute right-0 mt-2.5 w-64 bg-white border border-stone-200/80 rounded-2xl shadow-xl z-50 p-2 text-left animate-fade-in select-none">
+                    <p className="text-[10px] uppercase font-black tracking-widest text-stone-400 px-4 py-2 border-b border-stone-100 mb-1.5">Features</p>
                     
                     <button
                       onClick={() => {
@@ -783,62 +798,68 @@ export default function App() {
                         setActiveSongId(null);
                         setShowSettingsMenu(false);
                       }}
-                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-stone-50 text-xs rounded transition-colors text-left ${
-                        activeTab === 'library' && !selectedPlaylistId && !activeSongId ? 'text-red-600 font-bold bg-red-50' : 'text-stone-700 hover:bg-stone-100'
+                      className={`w-full flex items-center gap-3 px-4 py-3.5 text-sm font-bold rounded-xl transition-all text-left cursor-pointer ${
+                        activeTab === 'library' && !selectedPlaylistId && !activeSongId 
+                          ? 'text-red-600 font-extrabold bg-red-50' 
+                          : 'text-stone-700 hover:bg-stone-50 hover:text-stone-900'
                       }`}
                     >
-                      <Music className="w-3.5 h-3.5" />
+                      <Music className="w-4.5 h-4.5 shrink-0" />
                       <span>Song Library</span>
                     </button>
-
+ 
                     <button
                       onClick={() => {
                         setActiveTab('setlists');
                         setActiveSongId(null);
                         setShowSettingsMenu(false);
                       }}
-                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-stone-55 text-xs rounded transition-colors text-left ${
-                        activeTab === 'setlists' && !activeSongId ? 'text-red-600 font-bold bg-red-50' : 'text-stone-700 hover:bg-stone-100'
+                      className={`w-full flex items-center gap-3 px-4 py-3.5 text-sm font-bold rounded-xl transition-all text-left cursor-pointer ${
+                        activeTab === 'setlists' && !activeSongId 
+                          ? 'text-red-600 font-extrabold bg-red-50' 
+                          : 'text-stone-700 hover:bg-stone-50 hover:text-stone-900'
                       }`}
                     >
-                      <ListMusic className="w-3.5 h-3.5" />
+                      <ListMusic className="w-4.5 h-4.5 shrink-0" />
                       <span>Campfire Setlists</span>
                     </button>
-
+ 
                     <button
                       onClick={() => {
                         setActiveTab('add');
                         setActiveSongId(null);
                         setShowSettingsMenu(false);
                       }}
-                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-stone-55 text-xs rounded transition-colors text-left ${
-                        activeTab === 'add' && !activeSongId ? 'text-red-600 font-bold bg-red-50' : 'text-stone-700 hover:bg-stone-100'
+                      className={`w-full flex items-center gap-3 px-4 py-3.5 text-sm font-bold rounded-xl transition-all text-left cursor-pointer ${
+                        activeTab === 'add' && !activeSongId 
+                          ? 'text-red-600 font-extrabold bg-red-50' 
+                          : 'text-stone-700 hover:bg-stone-50 hover:text-stone-900'
                       }`}
                     >
-                      <PlusCircle className="w-3.5 h-3.5" />
+                      <PlusCircle className="w-4.5 h-4.5 shrink-0" />
                       <span>Add & Scrape Chords</span>
                     </button>
-
+ 
                     <button
                       onClick={() => {
                         setShowTuner(true);
                         setShowSettingsMenu(false);
                       }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-stone-55 text-xs rounded transition-colors text-left text-stone-700 hover:bg-stone-100"
+                      className="w-full flex items-center gap-3 px-4 py-3.5 text-sm font-bold rounded-xl transition-all text-left text-stone-700 hover:bg-stone-50 hover:text-stone-900 cursor-pointer"
                     >
-                      <Mic className="w-3.5 h-3.5 text-stone-500" />
+                      <Mic className="w-4.5 h-4.5 text-stone-500 shrink-0" />
                       <span>Bộ lên dây / Instrument Tuner</span>
                     </button>
-
+ 
                     {/* Instrument Selector Segmented Control */}
-                    <div className="border-t border-stone-100 mt-1.5 pt-2 px-3 pb-2 flex flex-col gap-1.5 select-none">
-                      <p className="text-[9px] uppercase font-bold tracking-wider text-stone-400">Instrument</p>
-                      <div className="grid grid-cols-3 gap-0.5 bg-stone-100 p-0.5 rounded-lg border border-stone-200">
+                    <div className="border-t border-stone-100 mt-2 pt-2.5 px-4 pb-2 flex flex-col gap-2 select-none">
+                      <p className="text-[10px] uppercase font-black tracking-widest text-stone-400">Instrument</p>
+                      <div className="grid grid-cols-3 gap-1 bg-stone-100 p-1 rounded-xl border border-stone-200/80">
                         {['guitar', 'ukulele', 'piano'].map(inst => (
                           <button
                             key={inst}
                             onClick={() => setInstrument(inst)}
-                            className={`py-1 text-[10px] font-extrabold capitalize rounded-md transition-all ${
+                            className={`py-2 text-xs font-black capitalize rounded-lg transition-all cursor-pointer ${
                               instrument === inst 
                                 ? 'bg-white text-stone-900 shadow-sm' 
                                 : 'text-stone-500 hover:text-stone-850'
@@ -849,17 +870,17 @@ export default function App() {
                         ))}
                       </div>
                     </div>
-
+ 
                     {/* Network Status */}
-                    <div className="border-t border-stone-100 mt-1.5 pt-2 px-3 pb-1 flex items-center gap-1.5 text-[9px] text-stone-400 font-bold uppercase tracking-wider">
+                    <div className="border-t border-stone-100 mt-2 pt-3 px-4 pb-1 flex items-center gap-2 text-[10px] text-stone-400 font-black uppercase tracking-widest select-none">
                       {isOnline ? (
                         <>
-                          <span className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0"></span>
+                          <span className="w-2 h-2 rounded-full bg-green-500 shrink-0"></span>
                           <span>Online Mode</span>
                         </>
                       ) : (
                         <>
-                          <span className="w-1.5 h-1.5 rounded-full bg-orange-500 shrink-0"></span>
+                          <span className="w-2 h-2 rounded-full bg-orange-500 shrink-0"></span>
                           <span>Offline Mode</span>
                         </>
                       )}
@@ -932,15 +953,53 @@ export default function App() {
               {/* TAB 1: SONG LIBRARY */}
               {activeTab === 'library' && !selectedPlaylistId && (
                 <div className="animate-fade-in flex flex-col gap-6">
-                  {filteredSongs.length === 0 && !searchQuery.trim() ? (
-                    <div className="text-center py-20 bg-white border border-stone-200/80 rounded-xl shadow-sm max-w-xl mx-auto mt-8 select-none">
+                  {isLoadingSongs ? (
+                    <div className="text-center py-20 bg-white border border-stone-200/80 rounded-xl shadow-sm max-w-xl mx-auto mt-8 select-none animate-fade-in">
+                      <div className="w-10 h-10 border-4 border-red-655/20 border-t-red-600 rounded-full animate-spin mx-auto mb-4"></div>
+                      <h3 className="text-xs font-bold text-stone-600">Đang tải thư viện bài hát...</h3>
+                    </div>
+                  ) : fetchSongsError ? (
+                    <div className="text-center py-16 bg-red-50/50 border border-red-200 rounded-xl shadow-sm max-w-xl mx-auto mt-8 p-6 select-none animate-fade-in">
+                      <WifiOff className="w-10 h-10 text-red-500 mx-auto mb-3" />
+                      <h3 className="text-sm font-bold text-stone-900">Không thể kết nối cơ sở dữ liệu</h3>
+                      <p className="text-xs text-stone-600 mt-2 max-w-xs mx-auto leading-relaxed">
+                        Có lỗi xảy ra khi kết nối tới máy chủ. Vui lòng kiểm tra lại kết nối hoặc khởi động lại máy chủ backend.
+                      </p>
+                      <button
+                        onClick={fetchSongs}
+                        className="mt-4 px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-lg transition shadow-md cursor-pointer"
+                      >
+                        Thử lại / Retry
+                      </button>
+                    </div>
+                  ) : filteredSongs.length === 0 && !searchQuery.trim() ? (
+                    <div className="text-center py-20 bg-white border border-stone-200/80 rounded-xl shadow-sm max-w-xl mx-auto mt-8 select-none animate-fade-in">
                       <div className="w-16 h-16 bg-red-600/5 border border-red-600/10 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
                         <Flame className="w-8 h-8 text-red-600 fill-red-600" />
                       </div>
                       <h3 className="text-lg font-bold text-stone-900 font-display">Campfire Chords</h3>
-                      <p className="text-xs text-stone-500 mt-1.5 max-w-xs mx-auto leading-relaxed">
-                        Type in the search bar above to instantly find guitar chords and transpose keys.
-                      </p>
+                      {songs.length > 0 ? (
+                        <>
+                          <p className="text-sm font-bold text-stone-750 mt-2">
+                            Thư viện hiện có <span className="text-red-600 font-black">{songs.length}</span> bài hát
+                          </p>
+                          <p className="text-xs text-stone-550 mt-1.5 max-w-xs mx-auto leading-relaxed">
+                            Nhập tên bài hát, ca sĩ, tác giả hoặc lời nhạc vào thanh tìm kiếm ở trên để tìm hợp âm.
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-xs text-stone-500 mt-2 max-w-xs mx-auto leading-relaxed">
+                            Thư viện của bạn hiện chưa có bài hát nào. Hãy chuyển qua mục <b>Add & Scrape Chords</b> để thêm bài hát mới!
+                          </p>
+                          <button
+                            onClick={() => setActiveTab('add')}
+                            className="mt-4 px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold rounded-lg transition border border-stone-200 cursor-pointer"
+                          >
+                            Thêm bài hát mới
+                          </button>
+                        </>
+                      )}
                     </div>
                   ) : filteredSongs.length === 0 ? (
                     <div className="text-center py-16 bg-white border border-stone-200 rounded-lg shadow-sm max-w-xl mx-auto mt-8">

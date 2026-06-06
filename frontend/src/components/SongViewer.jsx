@@ -430,7 +430,7 @@ export default function SongViewer({
   }, []);
 
   return (
-    <div className="song-viewer-container flex flex-col min-h-screen text-stone-900 bg-stone-100 md:bg-white pb-28 animate-fade-in" ref={songContainerRef}>
+    <div className="song-viewer-container flex flex-col min-h-screen text-stone-900 bg-stone-100 md:bg-white pb-28 animate-fade-in w-full md:w-[90vw] md:max-w-[90vw] mx-auto md:shadow-lg md:border-x md:border-stone-200/80" ref={songContainerRef}>
       {/* Sub Header / Action bar */}
       <header className={`sticky top-0 z-30 bg-[#f5f3ef]/90 backdrop-blur border-b border-stone-200 flex items-center justify-between shadow-sm transition-all duration-200 ${
         localIsCompact ? 'px-3 py-1.5' : 'py-3 song-viewer-padding-x'
@@ -526,7 +526,7 @@ export default function SongViewer({
       <main className={`flex-grow flex flex-col transition-all duration-200 ${localIsCompact ? 'px-3.5 py-2 md:p-3' : 'px-4.5 py-4 md:p-0 bg-white'}`}>
         <div className={`flex-grow bg-white select-text transition-all duration-200 w-full ${
           localIsCompact 
-            ? 'py-3 px-[24px] sm:px-6 max-w-4xl mx-auto border border-stone-200/85 rounded-2xl shadow-md' 
+            ? 'py-3 px-[24px] sm:px-6 w-full md:max-w-full mx-auto border border-stone-200/85 md:border-none rounded-2xl md:rounded-none shadow-md md:shadow-none bg-white' 
             : 'py-6 md:py-8 mx-auto border-none shadow-none rounded-none song-viewer-padding-x'
         }`}>
           {/* Inline chords song sheet */}
