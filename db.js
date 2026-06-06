@@ -7,6 +7,15 @@ const __dirname = path.dirname(__filename);
 
 const SONGS_FILE = path.join(__dirname, 'songs.json');
 const PLAYLISTS_FILE = path.join(__dirname, 'playlists.json');
+const USERS_FILE = path.join(__dirname, 'users.json');
+const PLAY_HISTORY_FILE = path.join(__dirname, 'play_history.json');
+const FAVORITES_FILE = path.join(__dirname, 'favorites.json');
+
+let songsCache = null;
+let playlistsCache = null;
+let usersCache = null;
+let playHistoryCache = null;
+let favoritesCache = null;
 
 // Helper to generate a URL-friendly slug
 export function slugify(text) {
@@ -184,120 +193,18 @@ export function addSpacesAroundChords(text) {
 }
 
 export function getSongs() {
+  if (songsCache) {
+    return songsCache;
+  }
   try {
     if (!fs.existsSync(SONGS_FILE)) {
       fs.writeFileSync(SONGS_FILE, JSON.stringify(DEFAULT_SONGS, null, 2), 'utf-8');
-      return DEFAULT_SONGS;
+      songsCache = DEFAULT_SONGS;
+      return songsCache;
     }
     const data = fs.readFileSync(SONGS_FILE, 'utf-8');
-    const songs = JSON.parse(data);
-
-    let modified = false;
-
-    // Deduplication check
-    const uniqueSongs = [];
-    const idMappings = {}; // maps duplicate song ID to kept song ID
-    const seen = new Set();
-
-    // Sort songs so favorites are preferred first, then longer chordPro sheets (more complete)
-    const sortedSongs = [...songs].sort((a, b) => {
-      if (a.isFavorite && !b.isFavorite) return -1;
-      if (!a.isFavorite && b.isFavorite) return 1;
-      const lenA = (a.chordPro || '').length;
-      const lenB = (b.chordPro || '').length;
-      return lenB - lenA;
-    });
-
-    for (const song of sortedSongs) {
-      const titleKey = slugify(song.title || '');
-      const artistKey = slugify(song.artist || 'khuyet-danh');
-      const key = `${titleKey}|${artistKey}`;
-
-      if (seen.has(key)) {
-        const kept = uniqueSongs.find(s => `${slugify(s.title || '')}|${slugify(s.artist || 'khuyet-danh')}` === key);
-        if (kept) {
-          idMappings[song.id] = kept.id;
-        }
-        modified = true;
-      } else {
-        seen.add(key);
-        uniqueSongs.push(song);
-      }
-    }
-
-    // Filter original list to maintain the index/chronological ordering of the unique subset
-    const finalUniqueSongs = songs.filter(s => uniqueSongs.some(u => u.id === s.id));
-    if (finalUniqueSongs.length !== songs.length) {
-      modified = true;
-    }
-
-    let fixedSongs = finalUniqueSongs.map(song => {
-      let updatedSong = { ...song };
-      let songModified = false;
-      
-      const originalChordPro = song.chordPro || '';
-      const fixedChordPro = addSpacesAroundChords(originalChordPro);
-      if (fixedChordPro !== originalChordPro) {
-        updatedSong.chordPro = fixedChordPro;
-        songModified = true;
-      }
-      
-      if (song.artist && song.artist.includes("Tất cả 0-9 A B C D E F G H I J K L M N O P Q R S T U V W X Y Z")) {
-        updatedSong.artist = "Khuyết Danh";
-        songModified = true;
-      }
-
-      if (song.composer && song.composer.includes("Tất cả 0-9 A B C D E F G H I J K L M N O P Q R S T U V W X Y Z")) {
-        updatedSong.composer = "";
-        songModified = true;
-      }
-
-      const detectedKey = detectWrittenKey(song.chordPro, song.key);
-      if (detectedKey !== song.key) {
-        updatedSong.key = detectedKey;
-        songModified = true;
-      }
-
-      if (songModified) {
-        modified = true;
-        return updatedSong;
-      }
-      return song;
-    });
-
-    if (modified) {
-      const diffCount = songs.length - fixedSongs.length;
-      console.log(`🧹 Database Self-Healing: Cleaned spaces/artists (removed ${diffCount} duplicate songs).`);
-      saveSongs(fixedSongs);
-
-      // Clean up playlist entries referencing deleted duplicates
-      if (Object.keys(idMappings).length > 0) {
-        try {
-          const playlists = getPlaylists();
-          let playlistModified = false;
-          const updatedPlaylists = playlists.map(pl => {
-            const mappedIds = pl.songIds.map(id => idMappings[id] || id);
-            // Deduplicate playlist IDs
-            const uniqueIds = [...new Set(mappedIds)];
-            if (JSON.stringify(pl.songIds) !== JSON.stringify(uniqueIds)) {
-              playlistModified = true;
-              return { ...pl, songIds: uniqueIds };
-            }
-            return pl;
-          });
-          if (playlistModified) {
-            console.log('🧹 Database Self-Healing: Playlists mapping references updated.');
-            savePlaylists(updatedPlaylists);
-          }
-        } catch (plErr) {
-          console.error('Error updating playlists mapped references:', plErr);
-        }
-      }
-
-      return fixedSongs;
-    }
-
-    return songs;
+    songsCache = JSON.parse(data);
+    return songsCache;
   } catch (error) {
     console.error('Error reading songs database:', error);
     return DEFAULT_SONGS;
@@ -307,11 +214,133 @@ export function getSongs() {
 export function saveSongs(songs) {
   try {
     fs.writeFileSync(SONGS_FILE, JSON.stringify(songs, null, 2), 'utf-8');
+    songsCache = songs;
     return true;
   } catch (error) {
     console.error('Error writing songs database:', error);
     return false;
   }
+}
+
+export function runCleanup() {
+  const songs = [...getSongs()];
+  let modified = false;
+
+  const uniqueSongs = [];
+  const idMappings = {}; // maps duplicate song ID to kept song ID
+  const seen = new Set();
+
+  // Sort songs so favorites are preferred first, then longer chordPro sheets (more complete)
+  const sortedSongs = [...songs].sort((a, b) => {
+    if (a.isFavorite && !b.isFavorite) return -1;
+    if (!a.isFavorite && b.isFavorite) return 1;
+    const lenA = (a.chordPro || '').length;
+    const lenB = (b.chordPro || '').length;
+    return lenB - lenA;
+  });
+
+  for (const song of sortedSongs) {
+    const titleKey = slugify(song.title || '');
+    const artistKey = slugify(song.artist || 'khuyet-danh');
+    const key = `${titleKey}|${artistKey}`;
+
+    if (seen.has(key)) {
+      const kept = uniqueSongs.find(s => `${slugify(s.title || '')}|${slugify(s.artist || 'khuyet-danh')}` === key);
+      if (kept) {
+        idMappings[song.id] = kept.id;
+      }
+      modified = true;
+    } else {
+      seen.add(key);
+      uniqueSongs.push(song);
+    }
+  }
+
+  // Filter original list to maintain the index/chronological ordering of the unique subset
+  const finalUniqueSongs = songs.filter(s => uniqueSongs.some(u => u.id === s.id));
+  if (finalUniqueSongs.length !== songs.length) {
+    modified = true;
+  }
+
+  let fixedSongs = finalUniqueSongs.map(song => {
+    let updatedSong = { ...song };
+    let songModified = false;
+    
+    const originalChordPro = song.chordPro || '';
+    const fixedChordPro = addSpacesAroundChords(originalChordPro);
+    if (fixedChordPro !== originalChordPro) {
+      updatedSong.chordPro = fixedChordPro;
+      songModified = true;
+    }
+    
+    if (song.artist && song.artist.includes("Tất cả 0-9 A B C D E F G H I J K L M N O P Q R S T U V W X Y Z")) {
+      updatedSong.artist = "Khuyết Danh";
+      songModified = true;
+    }
+
+    if (song.composer && song.composer.includes("Tất cả 0-9 A B C D E F G H I J K L M N O P Q R S T U V W X Y Z")) {
+      updatedSong.composer = "";
+      songModified = true;
+    }
+
+    const detectedKey = detectWrittenKey(song.chordPro, song.key);
+    if (detectedKey !== song.key) {
+      updatedSong.key = detectedKey;
+      songModified = true;
+    }
+
+    if (songModified) {
+      modified = true;
+      return updatedSong;
+    }
+    return song;
+  });
+
+  const duplicateCount = songs.length - fixedSongs.length;
+  let fixedCount = 0;
+
+  if (modified) {
+    saveSongs(fixedSongs);
+
+    // Clean up playlist entries referencing deleted duplicates
+    if (Object.keys(idMappings).length > 0) {
+      try {
+        const playlists = getPlaylists();
+        let playlistModified = false;
+        const updatedPlaylists = playlists.map(pl => {
+          const mappedIds = pl.songIds.map(id => idMappings[id] || id);
+          // Deduplicate playlist IDs
+          const uniqueIds = [...new Set(mappedIds)];
+          if (JSON.stringify(pl.songIds) !== JSON.stringify(uniqueIds)) {
+            playlistModified = true;
+            return { ...pl, songIds: uniqueIds };
+          }
+          return pl;
+        });
+        if (playlistModified) {
+          savePlaylists(updatedPlaylists);
+        }
+      } catch (plErr) {
+        console.error('Error updating playlists mapped references:', plErr);
+      }
+    }
+
+    // Count how many songs were modified (not deleted, but values fixed)
+    for (let i = 0; i < fixedSongs.length; i++) {
+      const original = songs.find(s => s.id === fixedSongs[i].id);
+      if (original && JSON.stringify(original) !== JSON.stringify(fixedSongs[i])) {
+        fixedCount++;
+      }
+    }
+  }
+
+  return {
+    success: true,
+    totalBefore: songs.length,
+    totalAfter: fixedSongs.length,
+    duplicatesRemoved: duplicateCount,
+    songsFixed: fixedCount
+  };
 }
 
 export function getSong(id) {
@@ -415,14 +444,19 @@ export function toggleFavorite(id) {
 
 // Playlists
 export function getPlaylists() {
+  if (playlistsCache) {
+    return playlistsCache;
+  }
   try {
     if (!fs.existsSync(PLAYLISTS_FILE)) {
       const defaultPlaylists = [{ id: 'campfire-night', name: 'Đêm Lửa Trại', songIds: ['nho-oi', 'cat-bui'] }];
       fs.writeFileSync(PLAYLISTS_FILE, JSON.stringify(defaultPlaylists, null, 2), 'utf-8');
-      return defaultPlaylists;
+      playlistsCache = defaultPlaylists;
+      return playlistsCache;
     }
     const data = fs.readFileSync(PLAYLISTS_FILE, 'utf-8');
-    return JSON.parse(data);
+    playlistsCache = JSON.parse(data);
+    return playlistsCache;
   } catch (error) {
     console.error('Error reading playlists database:', error);
     return [];
@@ -432,6 +466,7 @@ export function getPlaylists() {
 export function savePlaylists(playlists) {
   try {
     fs.writeFileSync(PLAYLISTS_FILE, JSON.stringify(playlists, null, 2), 'utf-8');
+    playlistsCache = playlists;
     return true;
   } catch (error) {
     console.error('Error writing playlists database:', error);
@@ -490,3 +525,207 @@ export function deletePlaylist(id) {
   savePlaylists(filtered);
   return true;
 }
+
+// ==========================================
+// USER ACCOUNTS, FAVORITES & PLAY HISTORY
+// ==========================================
+
+export function getUsers() {
+  if (usersCache) {
+    return usersCache;
+  }
+  try {
+    if (!fs.existsSync(USERS_FILE)) {
+      const defaultUsers = [
+        {
+          id: 'hungtm',
+          email: 'hungtm@gmail.com',
+          password: 'Henrytran',
+          role: 'admin',
+          securityQuestion: 'What is your favorite instrument?',
+          securityAnswer: 'guitar'
+        }
+      ];
+      fs.writeFileSync(USERS_FILE, JSON.stringify(defaultUsers, null, 2), 'utf-8');
+      usersCache = defaultUsers;
+      return usersCache;
+    }
+    const data = fs.readFileSync(USERS_FILE, 'utf-8');
+    usersCache = JSON.parse(data);
+    
+    // Auto-create hungtm if it doesn't exist
+    if (!usersCache.some(u => u.email === 'hungtm@gmail.com')) {
+      usersCache.push({
+        id: 'hungtm',
+        email: 'hungtm@gmail.com',
+        password: 'Henrytran',
+        role: 'admin',
+        securityQuestion: 'What is your favorite instrument?',
+        securityAnswer: 'guitar'
+      });
+      saveUsers(usersCache);
+    }
+    return usersCache;
+  } catch (error) {
+    console.error('Error reading users database:', error);
+    return [];
+  }
+}
+
+export function saveUsers(users) {
+  try {
+    fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2), 'utf-8');
+    usersCache = users;
+    return true;
+  } catch (error) {
+    console.error('Error writing users database:', error);
+    return false;
+  }
+}
+
+export function addUser(userData) {
+  const users = getUsers();
+  const email = userData.email.trim().toLowerCase();
+  
+  if (users.some(u => u.email === email)) {
+    return null; // Email already exists
+  }
+  
+  const id = slugify(email.split('@')[0]);
+  let finalId = id;
+  let counter = 1;
+  while (users.some(u => u.id === finalId)) {
+    finalId = `${id}-${counter}`;
+    counter++;
+  }
+  
+  const newUser = {
+    id: finalId,
+    email,
+    password: userData.password,
+    role: userData.role || 'user',
+    securityQuestion: userData.securityQuestion || 'What is your birth city?',
+    securityAnswer: (userData.securityAnswer || '').trim().toLowerCase()
+  };
+  
+  users.push(newUser);
+  saveUsers(users);
+  return newUser;
+}
+
+export function getFavoritesDb() {
+  if (favoritesCache) {
+    return favoritesCache;
+  }
+  try {
+    if (!fs.existsSync(FAVORITES_FILE)) {
+      const defaultFavorites = {};
+      fs.writeFileSync(FAVORITES_FILE, JSON.stringify(defaultFavorites, null, 2), 'utf-8');
+      favoritesCache = defaultFavorites;
+      return favoritesCache;
+    }
+    const data = fs.readFileSync(FAVORITES_FILE, 'utf-8');
+    favoritesCache = JSON.parse(data);
+    return favoritesCache;
+  } catch (error) {
+    console.error('Error reading favorites database:', error);
+    return {};
+  }
+}
+
+export function saveFavoritesDb(favorites) {
+  try {
+    fs.writeFileSync(FAVORITES_FILE, JSON.stringify(favorites, null, 2), 'utf-8');
+    favoritesCache = favorites;
+    return true;
+  } catch (error) {
+    console.error('Error writing favorites database:', error);
+    return false;
+  }
+}
+
+export function getUserFavorites(userId) {
+  const favorites = getFavoritesDb();
+  return favorites[userId] || [];
+}
+
+export function toggleUserFavorite(userId, songId) {
+  const favorites = getFavoritesDb();
+  if (!favorites[userId]) {
+    favorites[userId] = [];
+  }
+  
+  const index = favorites[userId].indexOf(songId);
+  if (index === -1) {
+    favorites[userId].push(songId);
+  } else {
+    favorites[userId].splice(index, 1);
+  }
+  
+  saveFavoritesDb(favorites);
+  return favorites[userId];
+}
+
+export function getPlayHistoryDb() {
+  if (playHistoryCache) {
+    return playHistoryCache;
+  }
+  try {
+    if (!fs.existsSync(PLAY_HISTORY_FILE)) {
+      const defaultHistory = [];
+      fs.writeFileSync(PLAY_HISTORY_FILE, JSON.stringify(defaultHistory, null, 2), 'utf-8');
+      playHistoryCache = defaultHistory;
+      return playHistoryCache;
+    }
+    const data = fs.readFileSync(PLAY_HISTORY_FILE, 'utf-8');
+    playHistoryCache = JSON.parse(data);
+    return playHistoryCache;
+  } catch (error) {
+    console.error('Error reading play history database:', error);
+    return [];
+  }
+}
+
+export function savePlayHistoryDb(history) {
+  try {
+    fs.writeFileSync(PLAY_HISTORY_FILE, JSON.stringify(history, null, 2), 'utf-8');
+    playHistoryCache = history;
+    return true;
+  } catch (error) {
+    console.error('Error writing play history database:', error);
+    return false;
+  }
+}
+
+export function getPlayHistory(userId) {
+  const history = getPlayHistoryDb();
+  const userHistory = history.filter(h => h.userId === userId);
+  
+  // Sort by playCount descending
+  return userHistory.sort((a, b) => b.playCount - a.playCount);
+}
+
+export function incrementPlayCount(userId, songId) {
+  const history = getPlayHistoryDb();
+  const index = history.findIndex(h => h.userId === userId && h.songId === songId);
+  
+  if (index !== -1) {
+    history[index].playCount += 1;
+    history[index].lastPlayed = new Date().toISOString();
+  } else {
+    history.push({
+      userId,
+      songId,
+      playCount: 1,
+      lastPlayed: new Date().toISOString()
+    });
+  }
+  
+  savePlayHistoryDb(history);
+  
+  const entry = history.find(h => h.userId === userId && h.songId === songId);
+  return entry ? entry.playCount : 1;
+}
+
+// Auto-initialize presets
+getUsers();

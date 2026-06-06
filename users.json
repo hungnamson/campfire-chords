@@ -1,0 +1,26 @@
+[
+  {
+    "id": "hungtm",
+    "email": "hungtm@gmail.com",
+    "password": "Henrytran",
+    "role": "admin",
+    "securityQuestion": "What is your favorite instrument?",
+    "securityAnswer": "guitar"
+  },
+  {
+    "id": "htran",
+    "email": "htran@fastsigns.com",
+    "password": "password",
+    "role": "user",
+    "securityQuestion": "What is your favorite instrument?",
+    "securityAnswer": "guitar"
+  },
+  {
+    "id": "henrytran",
+    "email": "henry.tran@fastsigns.com",
+    "password": "hung2410",
+    "role": "user",
+    "securityQuestion": "What is your favorite instrument?",
+    "securityAnswer": "guitar"
+  }
+]

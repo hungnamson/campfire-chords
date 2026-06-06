@@ -13,7 +13,14 @@ import {
   createPlaylist,
   addSongToPlaylist,
   removeSongFromPlaylist,
-  deletePlaylist
+  deletePlaylist,
+  runCleanup,
+  getUsers,
+  addUser,
+  getUserFavorites,
+  toggleUserFavorite,
+  getPlayHistory,
+  incrementPlayCount
 } from './db.js';
 import { scrapeHopAmChuan, isHopAmChuanUrl } from './scraper.js';
 
@@ -322,6 +329,141 @@ app.post('/api/songs/import-batch', (req, res) => {
     message: `Successfully imported ${importedSongs.length} songs`, 
     count: importedSongs.length 
   });
+});
+
+// 8c. Cleanup & Deduplicate Database
+app.post('/api/songs/cleanup', (req, res) => {
+  try {
+    const result = runCleanup();
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==========================================
+// AUTH & USER ROUTES
+// ==========================================
+
+// Login
+app.post('/api/auth/login', (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password are required' });
+  }
+
+  const users = getUsers();
+  const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+  
+  if (!user || user.password !== password) {
+    return res.status(401).json({ error: 'Invalid email or password' });
+  }
+
+  res.json({
+    id: user.id,
+    email: user.email,
+    role: user.role
+  });
+});
+
+// Register
+app.post('/api/auth/register', (req, res) => {
+  const { email, password, securityQuestion, securityAnswer } = req.body;
+  if (!email || !password || !securityQuestion || !securityAnswer) {
+    return res.status(400).json({ error: 'All fields are required' });
+  }
+
+  const newUser = addUser({
+    email,
+    password,
+    role: 'user',
+    securityQuestion,
+    securityAnswer
+  });
+
+  if (!newUser) {
+    return res.status(400).json({ error: 'Email is already registered' });
+  }
+
+  res.status(201).json({
+    id: newUser.id,
+    email: newUser.email,
+    role: newUser.role
+  });
+});
+
+// Get security question for recovery
+app.post('/api/auth/recover-question', (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ error: 'Email is required' });
+  }
+
+  const users = getUsers();
+  const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+  
+  if (!user) {
+    return res.status(404).json({ error: 'Email not found' });
+  }
+
+  res.json({ securityQuestion: user.securityQuestion });
+});
+
+// Recover password
+app.post('/api/auth/recover-password', (req, res) => {
+  const { email, securityAnswer } = req.body;
+  if (!email || !securityAnswer) {
+    return res.status(400).json({ error: 'Email and security answer are required' });
+  }
+
+  const users = getUsers();
+  const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+  
+  if (!user) {
+    return res.status(404).json({ error: 'Email not found' });
+  }
+
+  if (user.securityAnswer.toLowerCase() !== securityAnswer.trim().toLowerCase()) {
+    return res.status(401).json({ error: 'Incorrect answer' });
+  }
+
+  res.json({ password: user.password });
+});
+
+// ==========================================
+// USER FAVORITES & HISTORY ROUTES
+// ==========================================
+
+// Get user favorites
+app.get('/api/user/:userId/favorites', (req, res) => {
+  const favs = getUserFavorites(req.params.userId);
+  res.json(favs);
+});
+
+// Toggle user favorite
+app.post('/api/user/:userId/favorites/toggle', (req, res) => {
+  const { songId } = req.body;
+  if (!songId) {
+    return res.status(400).json({ error: 'songId is required' });
+  }
+  const favs = toggleUserFavorite(req.params.userId, songId);
+  res.json(favs);
+});
+
+// Get user play history
+app.get('/api/user/:userId/history', (req, res) => {
+  const history = getPlayHistory(req.params.userId);
+  res.json(history);
+});
+
+// Increment play count
+app.post('/api/user/:userId/history/increment', (req, res) => {
+  const { songId } = req.body;
+  if (!songId) {
+    return res.status(400).json({ error: 'songId is required' });
+  }
+  const count = incrementPlayCount(req.params.userId, songId);
+  res.json({ count });
 });
 
 // Playlists API

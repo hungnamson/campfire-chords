@@ -22,7 +22,8 @@ import {
   Menu,
   Maximize2,
   Minimize2,
-  Mic
+  Mic,
+  Sparkles
 } from 'lucide-react';
 import SongViewer from './components/SongViewer';
 import InstrumentTuner from './components/InstrumentTuner';
@@ -57,6 +58,100 @@ export default function App() {
   const [showKeySelector, setShowKeySelector] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [showTuner, setShowTuner] = useState(false);
+  const [cleanupResult, setCleanupResult] = useState(null);
+  const [isCleaningDb, setIsCleaningDb] = useState(false);
+
+  // Authentication & User profile states
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('campfire_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authMode, setAuthMode] = useState('login'); // 'login', 'register', 'recover-email', 'recover-answer', 'recovered'
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authQuestion, setAuthQuestion] = useState('What is your favorite instrument?');
+  const [authAnswer, setAuthAnswer] = useState('');
+  const [authAnswerInput, setAuthAnswerInput] = useState('');
+  const [recoveredPassword, setRecoveredPassword] = useState('');
+  const [recoveredQuestionText, setRecoveredQuestionText] = useState('');
+  const [authError, setAuthError] = useState(null);
+  const [authSuccess, setAuthSuccess] = useState(null);
+
+  // User personalizations (favorites list and play history)
+  const [userFavoritesList, setUserFavoritesList] = useState([]);
+  const [playHistory, setPlayHistory] = useState([]);
+
+  const fetchUserFavorites = async () => {
+    if (!currentUser) return;
+    try {
+      const res = await fetch(`${API_BASE}/user/${currentUser.id}/favorites`);
+      if (res.ok) {
+        const data = await res.json();
+        setUserFavoritesList(data);
+      }
+    } catch (e) {
+      console.error('Error fetching user favorites:', e);
+    }
+  };
+
+  const fetchPlayHistory = async () => {
+    if (!currentUser) return;
+    try {
+      const res = await fetch(`${API_BASE}/user/${currentUser.id}/history`);
+      if (res.ok) {
+        const data = await res.json();
+        setPlayHistory(data);
+      }
+    } catch (e) {
+      console.error('Error fetching play history:', e);
+    }
+  };
+
+  const incrementSongPlayCount = async (songId) => {
+    if (!currentUser) return;
+    try {
+      const res = await fetch(`${API_BASE}/user/${currentUser.id}/history/increment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ songId })
+      });
+      if (res.ok) {
+        fetchPlayHistory();
+      }
+    } catch (e) {
+      console.error('Error incrementing play count:', e);
+    }
+  };
+
+  const isSongFavorited = (song) => {
+    if (currentUser) {
+      return userFavoritesList.includes(song.id);
+    }
+    return song?.isFavorite || false;
+  };
+
+  // Load favorites and history when currentUser changes
+  useEffect(() => {
+    if (currentUser) {
+      fetchUserFavorites();
+      fetchPlayHistory();
+    } else {
+      setUserFavoritesList([]);
+      setPlayHistory([]);
+    }
+  }, [currentUser]);
+
+  // Automatically record song play events when a song details sheet is opened
+  useEffect(() => {
+    if (activeSongId && currentUser) {
+      incrementSongPlayCount(activeSongId);
+    }
+  }, [activeSongId]);
 
   // Persist font size, compact state, and instrument changes
   useEffect(() => {
@@ -175,13 +270,29 @@ export default function App() {
   };
 
   const handleToggleFavorite = async (songId) => {
-    try {
-      const res = await fetch(`${API_BASE}/songs/${songId}/favorite`, { method: 'POST' });
-      if (res.ok) {
-        setSongs(prev => prev.map(s => s.id === songId ? { ...s, isFavorite: !s.isFavorite } : s));
+    if (currentUser) {
+      try {
+        const res = await fetch(`${API_BASE}/user/${currentUser.id}/favorites/toggle`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ songId })
+        });
+        if (res.ok) {
+          const updatedFavs = await res.json();
+          setUserFavoritesList(updatedFavs);
+        }
+      } catch (e) {
+        console.error('Error toggling user favorite:', e);
       }
-    } catch (e) {
-      console.error(e);
+    } else {
+      try {
+        const res = await fetch(`${API_BASE}/songs/${songId}/favorite`, { method: 'POST' });
+        if (res.ok) {
+          setSongs(prev => prev.map(s => s.id === songId ? { ...s, isFavorite: !s.isFavorite } : s));
+        }
+      } catch (e) {
+        console.error(e);
+      }
     }
   };
 
@@ -199,6 +310,132 @@ export default function App() {
       }
     } catch (e) {
       console.error(e);
+    }
+  };
+
+  const handleLoginSubmit = async (e) => {
+    e.preventDefault();
+    setAuthError(null);
+    setAuthSuccess(null);
+    try {
+      const res = await fetch(`${API_BASE}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: authEmail, password: authPassword })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Login failed');
+      }
+      
+      setCurrentUser(data);
+      localStorage.setItem('campfire_user', JSON.stringify(data));
+      setShowAuthModal(false);
+      setAuthPassword('');
+    } catch (err) {
+      setAuthError(err.message);
+    }
+  };
+
+  const handleRegisterSubmit = async (e) => {
+    e.preventDefault();
+    setAuthError(null);
+    setAuthSuccess(null);
+    try {
+      const res = await fetch(`${API_BASE}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: authEmail,
+          password: authPassword,
+          securityQuestion: authQuestion,
+          securityAnswer: authAnswer
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Registration failed');
+      }
+      
+      setAuthSuccess('Đăng ký thành công! Đang tự động đăng nhập...');
+      setTimeout(() => {
+        setCurrentUser(data);
+        localStorage.setItem('campfire_user', JSON.stringify(data));
+        setShowAuthModal(false);
+        setAuthSuccess(null);
+        setAuthPassword('');
+        setAuthAnswer('');
+      }, 1500);
+    } catch (err) {
+      setAuthError(err.message);
+    }
+  };
+
+  const handleRecoverEmailSubmit = async (e) => {
+    e.preventDefault();
+    setAuthError(null);
+    setAuthSuccess(null);
+    try {
+      const res = await fetch(`${API_BASE}/auth/recover-question`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: authEmail })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Email not found');
+      }
+      
+      setRecoveredQuestionText(data.securityQuestion);
+      setAuthMode('recover-answer');
+      setAuthAnswerInput('');
+    } catch (err) {
+      setAuthError(err.message);
+    }
+  };
+
+  const handleRecoverAnswerSubmit = async (e) => {
+    e.preventDefault();
+    setAuthError(null);
+    setAuthSuccess(null);
+    try {
+      const res = await fetch(`${API_BASE}/auth/recover-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: authEmail, securityAnswer: authAnswerInput })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Incorrect security answer');
+      }
+      
+      setRecoveredPassword(data.password);
+      setAuthMode('recovered');
+    } catch (err) {
+      setAuthError(err.message);
+    }
+  };
+
+  const handleTriggerCleanup = async () => {
+    setIsCleaningDb(true);
+    try {
+      const res = await fetch(`${API_BASE}/songs/cleanup`, { method: 'POST' });
+      if (!res.ok) {
+        throw new Error('Dọn dẹp thất bại hoặc có lỗi xảy ra.');
+      }
+      const data = await res.json();
+      if (data && data.success) {
+        setCleanupResult(data);
+        fetchSongs(); // Refetch the updated song list
+        fetchPlaylists(); // Refetch playlists since they might have updated IDs
+      } else {
+        alert('Dọn dẹp thất bại hoặc có lỗi xảy ra.');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Không thể kết nối đến server để thực hiện dọn dẹp.');
+    } finally {
+      setIsCleaningDb(false);
     }
   };
 
@@ -789,6 +1026,47 @@ export default function App() {
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setShowSettingsMenu(false)}></div>
                   <div className="absolute right-0 mt-2.5 w-64 bg-white border border-stone-200/80 rounded-2xl shadow-xl z-50 p-2 text-left animate-fade-in select-none">
+                    {/* User profile / Auth panel */}
+                    {currentUser ? (
+                      <div className="px-4 py-3 border-b border-stone-100 mb-1.5 flex flex-col gap-1.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs text-stone-700 font-bold truncate max-w-[140px]">{currentUser.email}</span>
+                          <span className={`text-[9px] uppercase font-black tracking-wider px-1.5 py-0.5 rounded border shrink-0 ${
+                            currentUser.role === 'admin' 
+                              ? 'bg-red-50 text-red-650 border-red-200' 
+                              : 'bg-stone-50 text-stone-600 border-stone-200'
+                          }`}>
+                            {currentUser.role}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => {
+                            localStorage.removeItem('campfire_user');
+                            setCurrentUser(null);
+                            setShowSettingsMenu(false);
+                          }}
+                          className="text-left text-[11px] font-bold text-red-655 hover:text-red-750 transition cursor-pointer"
+                        >
+                          Đăng xuất / Sign Out
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="px-4 py-2.5 border-b border-stone-100 mb-1.5">
+                        <button
+                          onClick={() => {
+                            setAuthMode('login');
+                            setAuthError(null);
+                            setAuthSuccess(null);
+                            setShowAuthModal(true);
+                            setShowSettingsMenu(false);
+                          }}
+                          className="w-full text-center py-2 bg-stone-900 hover:bg-stone-850 text-white font-bold text-xs rounded-xl transition shadow-sm cursor-pointer"
+                        >
+                          Đăng nhập / Sign In
+                        </button>
+                      </div>
+                    )}
+                    
                     <p className="text-[10px] uppercase font-black tracking-widest text-stone-400 px-4 py-2 border-b border-stone-100 mb-1.5">Features</p>
                     
                     <button
@@ -823,6 +1101,25 @@ export default function App() {
                       <ListMusic className="w-4.5 h-4.5 shrink-0" />
                       <span>Campfire Setlists</span>
                     </button>
+
+                    {currentUser && (
+                      <button
+                        onClick={() => {
+                          setActiveTab('history');
+                          setSelectedPlaylistId(null);
+                          setActiveSongId(null);
+                          setShowSettingsMenu(false);
+                        }}
+                        className={`w-full flex items-center gap-3 px-4 py-3.5 text-sm font-bold rounded-xl transition-all text-left cursor-pointer ${
+                          activeTab === 'history' && !activeSongId 
+                            ? 'text-red-655 font-extrabold bg-red-55' 
+                            : 'text-stone-700 hover:bg-stone-50 hover:text-stone-900'
+                        }`}
+                      >
+                        <ListMusic className="w-4.5 h-4.5 shrink-0 text-red-650" />
+                        <span>Lịch sử chơi nhạc / History</span>
+                      </button>
+                    )}
  
                     <button
                       onClick={() => {
@@ -850,6 +1147,20 @@ export default function App() {
                       <Mic className="w-4.5 h-4.5 text-stone-500 shrink-0" />
                       <span>Bộ lên dây / Instrument Tuner</span>
                     </button>
+ 
+                    {currentUser?.role === 'admin' && (
+                      <button
+                        onClick={() => {
+                          handleTriggerCleanup();
+                          setShowSettingsMenu(false);
+                        }}
+                        disabled={isCleaningDb}
+                        className="w-full flex items-center gap-3 px-4 py-3.5 text-sm font-bold rounded-xl transition-all text-left text-stone-700 hover:bg-stone-50 hover:text-stone-900 disabled:opacity-50 cursor-pointer animate-fade-in"
+                      >
+                        <Sparkles className="w-4.5 h-4.5 text-yellow-600 shrink-0 animate-pulse" />
+                        <span>{isCleaningDb ? 'Đang dọn dẹp...' : 'Dọn dẹp Database / Cleanup'}</span>
+                      </button>
+                    )}
  
                     {/* Instrument Selector Segmented Control */}
                     <div className="border-t border-stone-100 mt-2 pt-2.5 px-4 pb-2 flex flex-col gap-2 select-none">
@@ -902,7 +1213,7 @@ export default function App() {
           {activeSong ? (
             <div className="relative flex-grow flex flex-col">
               <SongViewer 
-                song={activeSong} 
+                song={{ ...activeSong, isFavorite: isSongFavorited(activeSong) }} 
                 transposeOffset={transposeOffset}
                 setTransposeOffset={setTransposeOffset}
                 onBack={() => {
@@ -973,32 +1284,71 @@ export default function App() {
                       </button>
                     </div>
                   ) : filteredSongs.length === 0 && !searchQuery.trim() ? (
-                    <div className="text-center py-20 bg-white border border-stone-200/80 rounded-xl shadow-sm max-w-xl mx-auto mt-8 select-none animate-fade-in">
-                      <div className="w-16 h-16 bg-red-600/5 border border-red-600/10 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
-                        <Flame className="w-8 h-8 text-red-600 fill-red-600" />
+                    <div className="flex flex-col gap-6 max-w-4xl mx-auto w-full">
+                      <div className="text-center py-12 bg-white border border-stone-200/80 rounded-xl shadow-sm select-none animate-fade-in">
+                        <div className="w-16 h-16 bg-red-600/5 border border-red-600/10 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+                          <Flame className="w-8 h-8 text-red-600 fill-red-600" />
+                        </div>
+                        <h3 className="text-lg font-bold text-stone-900 font-display">Campfire Chords</h3>
+                        {songs.length > 0 ? (
+                          <>
+                            <p className="text-sm font-bold text-stone-750 mt-2">
+                              Thư viện hiện có <span className="text-red-600 font-black">{songs.length}</span> bài hát
+                            </p>
+                            <p className="text-xs text-stone-550 mt-1.5 max-w-xs mx-auto leading-relaxed">
+                              Nhập tên bài hát, ca sĩ, tác giả hoặc lời nhạc vào thanh tìm kiếm ở trên để tìm hợp âm.
+                            </p>
+                          </>
+                        ) : (
+                          <>
+                            <p className="text-xs text-stone-500 mt-2 max-w-xs mx-auto leading-relaxed">
+                              Thư viện của bạn hiện chưa có bài hát nào. Hãy chuyển qua mục <b>Add & Scrape Chords</b> để thêm bài hát mới!
+                            </p>
+                            <button
+                              onClick={() => setActiveTab('add')}
+                              className="mt-4 px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold rounded-lg transition border border-stone-200 cursor-pointer"
+                            >
+                              Thêm bài hát mới
+                            </button>
+                          </>
+                        )}
                       </div>
-                      <h3 className="text-lg font-bold text-stone-900 font-display">Campfire Chords</h3>
-                      {songs.length > 0 ? (
-                        <>
-                          <p className="text-sm font-bold text-stone-750 mt-2">
-                            Thư viện hiện có <span className="text-red-600 font-black">{songs.length}</span> bài hát
-                          </p>
-                          <p className="text-xs text-stone-550 mt-1.5 max-w-xs mx-auto leading-relaxed">
-                            Nhập tên bài hát, ca sĩ, tác giả hoặc lời nhạc vào thanh tìm kiếm ở trên để tìm hợp âm.
-                          </p>
-                        </>
-                      ) : (
-                        <>
-                          <p className="text-xs text-stone-500 mt-2 max-w-xs mx-auto leading-relaxed">
-                            Thư viện của bạn hiện chưa có bài hát nào. Hãy chuyển qua mục <b>Add & Scrape Chords</b> để thêm bài hát mới!
-                          </p>
-                          <button
-                            onClick={() => setActiveTab('add')}
-                            className="mt-4 px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold rounded-lg transition border border-stone-200 cursor-pointer"
-                          >
-                            Thêm bài hát mới
-                          </button>
-                        </>
+
+                      {currentUser && userFavoritesList.length > 0 && (
+                        <div className="mt-4 text-left animate-fade-in">
+                          <h3 className="text-xs uppercase font-bold tracking-widest text-stone-550 mb-3 flex items-center gap-1.5 font-sans">
+                            <Heart className="w-3.5 h-3.5 fill-red-600 text-red-600 animate-pulse" />
+                            Bài hát yêu thích / Favorites ({userFavoritesList.length})
+                          </h3>
+                          <div className="songs-grid">
+                            {songs.filter(s => userFavoritesList.includes(s.id)).map(song => (
+                              <div 
+                                key={song.id}
+                                onClick={() => setActiveSongId(song.id)}
+                                className="bg-white border border-stone-200/80 hover:border-red-605/30 rounded-lg p-4 cursor-pointer transition-all hover:-translate-y-0.5 shadow-sm hover:shadow flex items-center justify-between"
+                              >
+                                <div className="truncate pr-4">
+                                  <div className="flex items-center gap-1.5">
+                                    <Heart className="w-3.5 h-3.5 fill-red-600 text-red-600 shrink-0" />
+                                    <h3 className="font-bold text-sm text-stone-900 truncate">{song.title}</h3>
+                                  </div>
+                                  <p className="text-xs text-stone-500 truncate mt-0.5">{song.artist}{song.composer ? ` • ${song.composer}` : ''}</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-mono text-[10px] font-bold text-stone-500 bg-stone-100 px-1.5 py-0.5 rounded">
+                                    {song.key}
+                                  </span>
+                                  <button 
+                                    onClick={(e) => handleDeleteSong(song.id, e)}
+                                    className="p-1 hover:bg-stone-100 text-stone-400 hover:text-red-600 rounded transition cursor-pointer"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       )}
                     </div>
                   ) : filteredSongs.length === 0 ? (
@@ -1021,7 +1371,7 @@ export default function App() {
                           >
                             <div className="truncate pr-4">
                               <div className="flex items-center gap-1.5">
-                                {song.isFavorite && <Heart className="w-3.5 h-3.5 fill-red-600 text-red-600 shrink-0" />}
+                                {isSongFavorited(song) && <Heart className="w-3.5 h-3.5 fill-red-600 text-red-600 shrink-0" />}
                                 <h3 className="font-bold text-sm text-stone-900 truncate">{song.title}</h3>
                               </div>
                               <p className="text-xs text-stone-500 truncate mt-0.5">{song.artist}{song.composer ? ` • ${song.composer}` : ''}</p>
@@ -1221,130 +1571,148 @@ export default function App() {
                 )}
               </div>
 
-              {/* HopAmViet Category Scraper Tool */}
-              <div className="bg-white border border-stone-200 rounded-xl p-6 shadow-sm">
-                <h2 className="text-base font-bold text-stone-900 mb-2 font-display flex items-center gap-2">
-                  <Globe className="w-5 h-5 text-red-600" /> HopAmViet Category Scraper Tool
-                </h2>
-                <p className="text-xs text-stone-500 mb-4 leading-relaxed">
-                  Generate a custom script to crawl entire categories of songs from <b>hopamviet.vn</b> (e.g. Nhạc Vàng, Nhạc Trẻ) directly via your browser, bypassing Cloudflare. 
-                  {directImport ? " Songs will be saved directly into your local database in real-time!" : " It will compile all songs into a single JSON file for manual upload."}
-                </p>
+              {/* HopAmViet Category Scraper Tool & Batch JSON Importer (Admin Only) */}
+              {currentUser?.role === 'admin' ? (
+                <>
+                  {/* HopAmViet Category Scraper Tool */}
+                  <div className="bg-white border border-stone-200 rounded-xl p-6 shadow-sm animate-fade-in">
+                    <h2 className="text-base font-bold text-stone-900 mb-2 font-display flex items-center gap-2">
+                      <Globe className="w-5 h-5 text-red-600" /> HopAmViet Category Scraper Tool
+                    </h2>
+                    <p className="text-xs text-stone-500 mb-4 leading-relaxed">
+                      Generate a custom script to crawl entire categories of songs from <b>hopamviet.vn</b> (e.g. Nhạc Vàng, Nhạc Trẻ) directly via your browser, bypassing Cloudflare. 
+                      {directImport ? " Songs will be saved directly into your local database in real-time!" : " It will compile all songs into a single JSON file for manual upload."}
+                    </p>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] uppercase font-bold text-stone-400">Category / List URL</label>
-                    <input
-                      type="url"
-                      value={categoryUrl}
-                      onChange={(e) => setCategoryUrl(e.target.value)}
-                      placeholder="https://hopamviet.vn/chord/category/1/nhac-vang"
-                      className="px-3 py-2.5 bg-white border border-stone-200 rounded text-sm placeholder-stone-400 shadow-sm"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-[10px] uppercase font-bold text-stone-400">Start Page</label>
-                      <input
-                        type="number"
-                        min="1"
-                        value={startPage}
-                        onChange={(e) => setStartPage(Math.max(1, parseInt(e.target.value) || 1))}
-                        className="px-3 py-2.5 bg-white border border-stone-200 rounded text-sm shadow-sm"
-                      />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[10px] uppercase font-bold text-stone-400">Category / List URL</label>
+                        <input
+                          type="url"
+                          value={categoryUrl}
+                          onChange={(e) => setCategoryUrl(e.target.value)}
+                          placeholder="https://hopamviet.vn/chord/category/1/nhac-vang"
+                          className="px-3 py-2.5 bg-white border border-stone-200 rounded text-sm placeholder-stone-400 shadow-sm"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[10px] uppercase font-bold text-stone-400">Start Page</label>
+                          <input
+                            type="number"
+                            min="1"
+                            value={startPage}
+                            onChange={(e) => setStartPage(Math.max(1, parseInt(e.target.value) || 1))}
+                            className="px-3 py-2.5 bg-white border border-stone-200 rounded text-sm shadow-sm"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[10px] uppercase font-bold text-stone-400">End Page</label>
+                          <input
+                            type="number"
+                            min={startPage}
+                            value={endPage}
+                            onChange={(e) => setEndPage(Math.max(startPage, parseInt(e.target.value) || startPage))}
+                            className="px-3 py-2.5 bg-white border border-stone-200 rounded text-sm shadow-sm"
+                          />
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-[10px] uppercase font-bold text-stone-400">End Page</label>
+
+                    <div className="flex items-center gap-2 mb-4">
                       <input
-                        type="number"
-                        min={startPage}
-                        value={endPage}
-                        onChange={(e) => setEndPage(Math.max(startPage, parseInt(e.target.value) || startPage))}
-                        className="px-3 py-2.5 bg-white border border-stone-200 rounded text-sm shadow-sm"
+                        type="checkbox"
+                        id="directImportCheck"
+                        checked={directImport}
+                        onChange={(e) => setDirectImport(e.target.checked)}
+                        className="w-4 h-4 text-red-655 border-stone-300 rounded focus:ring-red-500/20"
                       />
+                      <label htmlFor="directImportCheck" className="text-xs font-semibold text-stone-700 select-none cursor-pointer">
+                        Directly import to local app database (CORS upload to http://localhost:3000)
+                      </label>
+                    </div>
+
+                    <div className="flex flex-col gap-2 bg-[#f5f3ef]/45 border border-stone-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] uppercase font-bold text-stone-500">How to use:</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(generateScraperScript());
+                            setCopiedScript(true);
+                            setTimeout(() => setCopiedScript(false), 2000);
+                          }}
+                          className="px-3 py-1.5 bg-red-600 text-white font-bold text-[11px] rounded hover:bg-red-755 transition shadow-sm active:scale-95"
+                        >
+                          {copiedScript ? 'Copied script!' : 'Copy Scraper Script'}
+                        </button>
+                      </div>
+                      <ol className="text-xs text-stone-600 list-decimal list-inside flex flex-col gap-1.5 mt-2 leading-relaxed">
+                        <li>Open <b><a href={`${categoryUrl}${startPage > 1 ? (categoryUrl.includes('?') ? '&' : '?') + 'page=' + startPage : ''}`} target="_blank" rel="noreferrer" className="text-red-600 hover:underline inline-flex items-center gap-0.5">this link in a new browser tab <ChevronRight className="w-3.5 h-3.5" /></a></b>.</li>
+                        <li>Press <b>Option + Command + J</b> (Mac) or <b>F12</b> (Windows) to open Developer Console.</li>
+                        <li>Paste the copied script and press <b>Enter</b>.</li>
+                        <li>Keep the tab open and watch the songs crawl and save in real-time!</li>
+                      </ol>
+                    </div>
+                  </div>
+
+                  {/* Batch JSON Importer Section */}
+                  <div className="bg-white border border-stone-200 rounded-xl p-6 shadow-sm animate-fade-in">
+                    <h2 className="text-base font-bold text-stone-900 mb-2 font-display flex items-center gap-2">
+                      <Upload className="w-5 h-5 text-red-600" /> Batch JSON Song Importer
+                    </h2>
+                    <p className="text-xs text-stone-500 mb-4 leading-relaxed">
+                      Have a scraped song list (like <b>hopamviet_nhac_vang.json</b>)? Upload it here. The application will import all songs, convert text chords to bracket layouts, and cache them locally.
+                    </p>
+
+                    <div className="relative group border-2 border-dashed border-stone-200 hover:border-red-600/40 bg-[#f5f3ef]/30 hover:bg-[#f5f3ef]/60 rounded-xl p-8 transition flex flex-col items-center justify-center cursor-pointer">
+                      <input
+                        type="file"
+                        accept=".json"
+                        onChange={handleFileImport}
+                        disabled={isImportingFile}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                        title=""
+                      />
+                      <div className="p-3 bg-white rounded-full shadow-sm border border-stone-200/60 mb-3 group-hover:scale-105 transition-transform">
+                        <Upload className="w-6 h-6 text-stone-500 group-hover:text-red-650 transition-colors" />
+                      </div>
+                      <span className="text-sm font-semibold text-stone-850 group-hover:text-red-605 transition-colors">
+                        {isImportingFile ? 'Uploading & Parsing...' : 'Select JSON File'}
+                      </span>
+                      <span className="text-[11px] text-stone-400 mt-1 select-none">
+                        Supports JSON array files containing songs
+                      </span>
+                    </div>
+
+                    {importFileStatus && (
+                      <div className={`mt-4 p-3 rounded-lg border text-xs font-medium flex items-center gap-2 animate-fade-in ${
+                        importFileStatus.type === 'success' 
+                          ? 'bg-green-50 border-green-200 text-green-700' 
+                          : importFileStatus.type === 'error'
+                          ? 'bg-red-50 border-red-200 text-red-700'
+                          : 'bg-stone-50 border-stone-200 text-stone-700'
+                      }`}>
+                        <Info className="w-4 h-4 shrink-0" />
+                        <span>{importFileStatus.message}</span>
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="bg-[#f5f3ef]/35 border border-stone-200 rounded-xl p-6 shadow-xs select-none animate-fade-in">
+                  <div className="flex items-center gap-3">
+                    <Info className="w-5 h-5 text-stone-550 shrink-0" />
+                    <div>
+                      <h4 className="text-sm font-bold text-stone-900">Tính năng dành cho Quản trị viên (Admin Only)</h4>
+                      <p className="text-xs text-stone-500 mt-0.5 leading-relaxed">
+                        HopAmViet Category Scraper Tool và Batch JSON Song Importer chỉ khả dụng khi bạn đăng nhập với tư cách Quản trị viên. 
+                        Vui lòng đăng nhập bằng tài khoản admin (Ví dụ: <b>hungtm@gmail.com</b>) để sử dụng các công cụ này.
+                      </p>
                     </div>
                   </div>
                 </div>
-
-                <div className="flex items-center gap-2 mb-4">
-                  <input
-                    type="checkbox"
-                    id="directImportCheck"
-                    checked={directImport}
-                    onChange={(e) => setDirectImport(e.target.checked)}
-                    className="w-4 h-4 text-red-650 border-stone-300 rounded focus:ring-red-500/20"
-                  />
-                  <label htmlFor="directImportCheck" className="text-xs font-semibold text-stone-700 select-none cursor-pointer">
-                    Directly import to local app database (CORS upload to http://localhost:3000)
-                  </label>
-                </div>
-
-                <div className="flex flex-col gap-2 bg-[#f5f3ef]/45 border border-stone-200 rounded-lg p-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] uppercase font-bold text-stone-500">How to use:</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        navigator.clipboard.writeText(generateScraperScript());
-                        setCopiedScript(true);
-                        setTimeout(() => setCopiedScript(false), 2000);
-                      }}
-                      className="px-3 py-1.5 bg-red-600 text-white font-bold text-[11px] rounded hover:bg-red-755 transition shadow-sm active:scale-95"
-                    >
-                      {copiedScript ? 'Copied script!' : 'Copy Scraper Script'}
-                    </button>
-                  </div>
-                  <ol className="text-xs text-stone-600 list-decimal list-inside flex flex-col gap-1.5 mt-2 leading-relaxed">
-                    <li>Open <b><a href={`${categoryUrl}${startPage > 1 ? (categoryUrl.includes('?') ? '&' : '?') + 'page=' + startPage : ''}`} target="_blank" rel="noreferrer" className="text-red-600 hover:underline inline-flex items-center gap-0.5">this link in a new browser tab <ChevronRight className="w-3.5 h-3.5" /></a></b>.</li>
-                    <li>Press <b>Option + Command + J</b> (Mac) or <b>F12</b> (Windows) to open Developer Console.</li>
-                    <li>Paste the copied script and press <b>Enter</b>.</li>
-                    <li>Keep the tab open and watch the songs crawl and save in real-time!</li>
-                  </ol>
-                </div>
-              </div>
-
-              {/* Batch JSON Importer Section */}
-              <div className="bg-white border border-stone-200 rounded-xl p-6 shadow-sm">
-                <h2 className="text-base font-bold text-stone-900 mb-2 font-display flex items-center gap-2">
-                  <Upload className="w-5 h-5 text-red-600" /> Batch JSON Song Importer
-                </h2>
-                <p className="text-xs text-stone-500 mb-4 leading-relaxed">
-                  Have a scraped song list (like <b>hopamviet_nhac_vang.json</b>)? Upload it here. The application will import all songs, convert text chords to bracket layouts, and cache them locally.
-                </p>
-
-                <div className="relative group border-2 border-dashed border-stone-200 hover:border-red-600/40 bg-[#f5f3ef]/30 hover:bg-[#f5f3ef]/60 rounded-xl p-8 transition flex flex-col items-center justify-center cursor-pointer">
-                  <input
-                    type="file"
-                    accept=".json"
-                    onChange={handleFileImport}
-                    disabled={isImportingFile}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
-                    title=""
-                  />
-                  <div className="p-3 bg-white rounded-full shadow-sm border border-stone-200/60 mb-3 group-hover:scale-105 transition-transform">
-                    <Upload className="w-6 h-6 text-stone-500 group-hover:text-red-650 transition-colors" />
-                  </div>
-                  <span className="text-sm font-semibold text-stone-850 group-hover:text-red-600 transition-colors">
-                    {isImportingFile ? 'Uploading & Parsing...' : 'Select JSON File'}
-                  </span>
-                  <span className="text-[11px] text-stone-400 mt-1 select-none">
-                    Supports JSON array files containing songs
-                  </span>
-                </div>
-
-                {importFileStatus && (
-                  <div className={`mt-4 p-3 rounded-lg border text-xs font-medium flex items-center gap-2 animate-fade-in ${
-                    importFileStatus.type === 'success' 
-                      ? 'bg-green-50 border-green-200 text-green-700' 
-                      : importFileStatus.type === 'error'
-                      ? 'bg-red-50 border-red-200 text-red-700'
-                      : 'bg-stone-50 border-stone-200 text-stone-700'
-                  }`}>
-                    <Info className="w-4 h-4 shrink-0" />
-                    <span>{importFileStatus.message}</span>
-                  </div>
-                )}
-              </div>
+              )}
 
               {/* Paste Importer Section */}
               <div className="bg-white border border-stone-200 rounded-xl p-6 shadow-sm">
@@ -1448,6 +1816,59 @@ Ta đi tìm bóng mát"
                 </form>
               </div>
 
+            </div>
+          )}
+
+          {/* TAB 4: PLAY HISTORY */}
+          {activeTab === 'history' && (
+            <div className="animate-fade-in flex flex-col gap-6 max-w-4xl mx-auto w-full">
+              <div className="border-b border-stone-200 pb-4">
+                <h2 className="text-lg font-bold text-stone-900 font-display flex items-center gap-2">
+                  <ListMusic className="w-5 h-5 text-red-650" />
+                  Lịch sử chơi nhạc / Play History
+                </h2>
+                <p className="text-xs text-stone-500">Các bài hát bạn đã chơi gần đây, được sắp xếp theo số lần chơi.</p>
+              </div>
+
+              {playHistory.length === 0 ? (
+                <div className="text-center py-20 bg-white border border-stone-200/80 rounded-xl shadow-sm select-none animate-fade-in">
+                  <div className="w-16 h-16 bg-red-655/5 border border-red-655/10 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+                    <Flame className="w-8 h-8 text-red-655 fill-red-655" />
+                  </div>
+                  <h3 className="text-sm font-bold text-stone-900 font-sans">Lịch sử chơi nhạc trống</h3>
+                  <p className="text-xs text-stone-550 mt-2 max-w-xs mx-auto leading-relaxed">
+                    Bạn chưa chơi bài hát nào khi đăng nhập. Hãy mở các bài hát từ thư viện để theo dõi lịch sử và xếp hạng số lần chơi!
+                  </p>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {playHistory.map((item, idx) => {
+                    const song = songs.find(s => s.id === item.songId);
+                    if (!song) return null;
+                    return (
+                      <div
+                        key={item.songId}
+                        onClick={() => setActiveSongId(song.id)}
+                        className="bg-white hover:bg-stone-50 border border-stone-200 rounded-lg p-4 flex items-center justify-between cursor-pointer transition group shadow-sm hover:shadow"
+                      >
+                        <div className="flex items-center gap-3 truncate">
+                          <span className="font-mono text-xs font-bold text-stone-400 w-5">{idx + 1}.</span>
+                          <div className="truncate">
+                            <h3 className="font-bold text-sm text-stone-900 group-hover:text-red-655 transition-colors truncate">{song.title}</h3>
+                            <p className="text-xs text-stone-500 truncate">{song.artist}{song.composer ? ` • ${song.composer}` : ''}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-red-50 text-red-655 border border-red-100">
+                            Đã chơi {item.playCount} lần
+                          </span>
+                          <span className="font-mono text-xs font-semibold text-stone-500">{song.key}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
             </>
@@ -1637,6 +2058,372 @@ Ta đi tìm bóng mát"
 
       {showTuner && (
         <InstrumentTuner isOpen={showTuner} onClose={() => setShowTuner(false)} />
+      )}
+
+      {cleanupResult && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/60 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-white border border-stone-200 rounded-2xl max-w-md w-full shadow-2xl p-6 relative select-none">
+            <button
+              onClick={() => setCleanupResult(null)}
+              className="absolute right-4 top-4 p-1 hover:bg-stone-100 rounded-full text-stone-400 hover:text-stone-700 transition cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-green-50 border border-green-200 rounded-full flex items-center justify-center text-green-600">
+                <Sparkles className="w-5 h-5 fill-green-50 text-green-650" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-stone-900">Dọn dẹp Database thành công</h3>
+                <p className="text-xs text-stone-500">Kết quả tối ưu hóa thư viện bài hát</p>
+              </div>
+            </div>
+            
+            <div className="flex flex-col gap-3 bg-stone-50 border border-stone-200/80 rounded-xl p-4 my-4 font-sans text-xs">
+              <div className="flex justify-between">
+                <span className="text-stone-500 font-medium">Tổng số bài hát ban đầu:</span>
+                <span className="font-bold text-stone-850">{cleanupResult.totalBefore}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-stone-500 font-medium">Tổng số bài hát hiện tại:</span>
+                <span className="font-bold text-stone-850">{cleanupResult.totalAfter}</span>
+              </div>
+              <div className="h-px bg-stone-200 my-1"></div>
+              <div className="flex justify-between">
+                <span className="text-stone-500 font-medium">Đã xóa trùng lặp:</span>
+                <span className="font-bold text-red-650">-{cleanupResult.duplicatesRemoved} bài hát</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-stone-500 font-medium">Đã tự động căn chỉnh key/hợp âm:</span>
+                <span className="font-bold text-blue-650">+{cleanupResult.songsFixed} bài hát</span>
+              </div>
+            </div>
+            
+            <p className="text-[11px] text-stone-500 leading-relaxed text-center">
+              Các bài hát trùng lặp đã được gộp lại, ưu tiên các bài hát có hợp âm đầy đủ hơn hoặc được đánh dấu yêu thích. Danh sách Setlist đã được tự động cập nhật liên kết.
+            </p>
+            
+            <button
+              onClick={() => setCleanupResult(null)}
+              className="mt-5 w-full py-2.5 bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs rounded-xl transition shadow-md cursor-pointer"
+            >
+              Đóng / Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showAuthModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/60 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-white border border-stone-200 rounded-2xl max-w-md w-full shadow-2xl p-6 relative select-none">
+            <button
+              onClick={() => setShowAuthModal(false)}
+              className="absolute right-4 top-4 p-1 hover:bg-stone-100 rounded-full text-stone-400 hover:text-stone-700 transition cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {authMode === 'login' && (
+              <form onSubmit={handleLoginSubmit} className="flex flex-col gap-4">
+                <div className="flex flex-col gap-1 mb-2">
+                  <h3 className="text-lg font-bold text-stone-900 font-display">Đăng nhập tài khoản</h3>
+                  <p className="text-xs text-stone-500">Đăng nhập để lưu danh sách yêu thích và lịch sử chơi nhạc.</p>
+                </div>
+
+                {authError && (
+                  <div className="p-3 bg-red-50 border border-red-200 text-red-755 text-xs rounded-xl font-medium animate-fade-in">
+                    {authError}
+                  </div>
+                )}
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] uppercase font-bold text-stone-400 font-sans">Email Address</label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="example@gmail.com"
+                    value={authEmail}
+                    onChange={(e) => setAuthEmail(e.target.value)}
+                    className="px-3.5 py-2.5 bg-white border border-stone-200 rounded-xl text-sm placeholder-stone-400 shadow-xs focus:ring-1 focus:ring-red-500/20 focus:border-red-600 outline-none font-sans"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[10px] uppercase font-bold text-stone-400 font-sans">Password</label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthMode('recover-email');
+                        setAuthError(null);
+                        setAuthSuccess(null);
+                      }}
+                      className="text-[10px] font-bold text-red-600 hover:text-red-750 font-sans cursor-pointer"
+                    >
+                      Quên mật khẩu?
+                    </button>
+                  </div>
+                  <input
+                    type="password"
+                    required
+                    placeholder="••••••••"
+                    value={authPassword}
+                    onChange={(e) => setAuthPassword(e.target.value)}
+                    className="px-3.5 py-2.5 bg-white border border-stone-200 rounded-xl text-sm placeholder-stone-400 shadow-xs focus:ring-1 focus:ring-red-500/20 focus:border-red-600 outline-none font-sans"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="mt-2 py-3 bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs rounded-xl transition shadow-md cursor-pointer flex items-center justify-center gap-2 font-sans"
+                >
+                  Đăng nhập / Sign In
+                </button>
+
+                <div className="text-center text-xs text-stone-500 mt-2 font-sans">
+                  Chưa có tài khoản?{' '}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthMode('register');
+                      setAuthError(null);
+                      setAuthSuccess(null);
+                    }}
+                    className="font-bold text-red-600 hover:text-red-750 cursor-pointer"
+                  >
+                    Đăng ký ngay
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {authMode === 'register' && (
+              <form onSubmit={handleRegisterSubmit} className="flex flex-col gap-3.5">
+                <div className="flex flex-col gap-1 mb-1">
+                  <h3 className="text-lg font-bold text-stone-900 font-display">Tạo tài khoản mới</h3>
+                  <p className="text-xs text-stone-500">Đăng ký thành viên để đồng bộ hóa và lưu trữ dữ liệu cá nhân.</p>
+                </div>
+
+                {authError && (
+                  <div className="p-3 bg-red-50 border border-red-200 text-red-755 text-xs rounded-xl font-medium animate-fade-in font-sans">
+                    {authError}
+                  </div>
+                )}
+                {authSuccess && (
+                  <div className="p-3 bg-green-50 border border-green-200 text-green-750 text-xs rounded-xl font-medium animate-fade-in font-sans">
+                    {authSuccess}
+                  </div>
+                )}
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] uppercase font-bold text-stone-400 font-sans">Email Address</label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="example@gmail.com"
+                    value={authEmail}
+                    onChange={(e) => setAuthEmail(e.target.value)}
+                    className="px-3.5 py-2.5 bg-white border border-stone-200 rounded-xl text-sm placeholder-stone-400 shadow-xs focus:ring-1 focus:ring-red-500/20 focus:border-red-600 outline-none font-sans"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] uppercase font-bold text-stone-400 font-sans">Password</label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="••••••••"
+                    value={authPassword}
+                    onChange={(e) => setAuthPassword(e.target.value)}
+                    className="px-3.5 py-2.5 bg-white border border-stone-200 rounded-xl text-sm placeholder-stone-400 shadow-xs focus:ring-1 focus:ring-red-500/20 focus:border-red-600 outline-none font-sans"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] uppercase font-bold text-stone-400 font-sans">Security Question (For recovery)</label>
+                  <select
+                    value={authQuestion}
+                    onChange={(e) => setAuthQuestion(e.target.value)}
+                    className="px-3.5 py-2.5 bg-white border border-stone-200 rounded-xl text-sm shadow-xs focus:ring-1 focus:ring-red-500/20 focus:border-red-600 outline-none font-sans"
+                  >
+                    <option value="What is your favorite instrument?">Nhạc cụ yêu thích của bạn là gì? (E.g. guitar)</option>
+                    <option value="What is your birth city?">Thành phố nơi bạn sinh ra? (E.g. hanoi)</option>
+                    <option value="What is your pet name?">Tên thú cưng đầu tiên của bạn?</option>
+                    <option value="What is your favorite singer?">Ca sĩ yêu thích nhất của bạn?</option>
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] uppercase font-bold text-stone-400 font-sans">Security Answer</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Nhập câu trả lời bí mật..."
+                    value={authAnswer}
+                    onChange={(e) => setAuthAnswer(e.target.value)}
+                    className="px-3.5 py-2.5 bg-white border border-stone-200 rounded-xl text-sm placeholder-stone-400 shadow-xs focus:ring-1 focus:ring-red-500/20 focus:border-red-600 outline-none font-sans"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="mt-2 py-3 bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs rounded-xl transition shadow-md cursor-pointer flex items-center justify-center gap-2 font-sans"
+                >
+                  Đăng ký tài khoản / Sign Up
+                </button>
+
+                <div className="text-center text-xs text-stone-500 mt-1 font-sans">
+                  Đã có tài khoản?{' '}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthMode('login');
+                      setAuthError(null);
+                      setAuthSuccess(null);
+                    }}
+                    className="font-bold text-red-600 hover:text-red-755 cursor-pointer"
+                  >
+                    Đăng nhập
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {authMode === 'recover-email' && (
+              <form onSubmit={handleRecoverEmailSubmit} className="flex flex-col gap-4">
+                <div className="flex flex-col gap-1 mb-2">
+                  <h3 className="text-lg font-bold text-stone-900 font-display">Lấy lại mật khẩu</h3>
+                  <p className="text-xs text-stone-500">Nhập email tài khoản của bạn để tìm câu hỏi bảo mật.</p>
+                </div>
+
+                {authError && (
+                  <div className="p-3 bg-red-50 border border-red-200 text-red-755 text-xs rounded-xl font-medium animate-fade-in font-sans">
+                    {authError}
+                  </div>
+                )}
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] uppercase font-bold text-stone-400 font-sans">Email Address</label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="example@gmail.com"
+                    value={authEmail}
+                    onChange={(e) => setAuthEmail(e.target.value)}
+                    className="px-3.5 py-2.5 bg-white border border-stone-200 rounded-xl text-sm placeholder-stone-400 shadow-xs focus:ring-1 focus:ring-red-500/20 focus:border-red-600 outline-none font-sans"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="mt-2 py-3 bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs rounded-xl transition shadow-md cursor-pointer flex items-center justify-center gap-2 font-sans"
+                >
+                  Tìm câu hỏi bảo mật / Next
+                </button>
+
+                <div className="text-center text-xs text-stone-500 mt-2 font-sans">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthMode('login');
+                      setAuthError(null);
+                      setAuthSuccess(null);
+                    }}
+                    className="font-bold text-red-650 hover:text-red-750 cursor-pointer"
+                  >
+                    Quay lại Đăng nhập
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {authMode === 'recover-answer' && (
+              <form onSubmit={handleRecoverAnswerSubmit} className="flex flex-col gap-4">
+                <div className="flex flex-col gap-1 mb-2">
+                  <h3 className="text-lg font-bold text-stone-900 font-display">Trả lời câu hỏi bảo mật</h3>
+                  <p className="text-xs text-stone-500">Trả lời chính xác câu hỏi bảo mật của bạn để xem mật khẩu.</p>
+                </div>
+
+                {authError && (
+                  <div className="p-3 bg-red-50 border border-red-200 text-red-755 text-xs rounded-xl font-medium animate-fade-in font-sans">
+                    {authError}
+                  </div>
+                )}
+
+                <div className="bg-stone-50 border border-stone-200 rounded-xl p-4 font-sans text-xs">
+                  <span className="text-stone-400 font-bold block uppercase tracking-wider text-[9px] mb-1">Security Question:</span>
+                  <span className="font-bold text-stone-850 text-sm">
+                    {recoveredQuestionText === 'What is your favorite instrument?' ? 'Nhạc cụ yêu thích của bạn là gì?' :
+                     recoveredQuestionText === 'What is your birth city?' ? 'Thành phố nơi bạn sinh ra?' :
+                     recoveredQuestionText === 'What is your pet name?' ? 'Tên thú cưng đầu tiên của bạn?' :
+                     recoveredQuestionText === 'What is your favorite singer?' ? 'Ca sĩ yêu thích nhất của bạn?' :
+                     recoveredQuestionText}
+                  </span>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] uppercase font-bold text-stone-400 font-sans">Security Answer</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Nhập câu trả lời..."
+                    value={authAnswerInput}
+                    onChange={(e) => setAuthAnswerInput(e.target.value)}
+                    className="px-3.5 py-2.5 bg-white border border-stone-200 rounded-xl text-sm placeholder-stone-400 shadow-xs focus:ring-1 focus:ring-red-500/20 focus:border-red-600 outline-none font-sans"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="mt-2 py-3 bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs rounded-xl transition shadow-md cursor-pointer flex items-center justify-center gap-2 font-sans"
+                >
+                  Xác nhận câu trả lời / Submit
+                </button>
+
+                <div className="text-center text-xs text-stone-500 mt-2 font-sans">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthMode('recover-email');
+                      setAuthError(null);
+                      setAuthSuccess(null);
+                    }}
+                    className="font-bold text-red-650 hover:text-red-750 cursor-pointer"
+                  >
+                    Quay lại bước trước
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {authMode === 'recovered' && (
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-1 mb-2">
+                  <h3 className="text-lg font-bold text-stone-900 font-display">Lấy lại mật khẩu thành công</h3>
+                  <p className="text-xs text-stone-500">Mật khẩu tài khoản của bạn đã được khôi phục.</p>
+                </div>
+
+                <div className="bg-green-50 border border-green-200 rounded-xl p-5 text-center my-2">
+                  <span className="text-[10px] uppercase font-black tracking-widest text-green-655 block mb-1">Mật khẩu của bạn là:</span>
+                  <span className="font-mono text-2xl font-black text-green-900 tracking-wide select-text">{recoveredPassword}</span>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setAuthPassword(recoveredPassword);
+                    setAuthMode('login');
+                    setAuthError(null);
+                    setAuthSuccess(null);
+                  }}
+                  className="mt-2 py-3 bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs rounded-xl transition shadow-md cursor-pointer flex items-center justify-center gap-2 font-sans"
+                >
+                  Đăng nhập ngay với mật khẩu này
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
     </div>
