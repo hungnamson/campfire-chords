@@ -476,7 +476,7 @@ export default function SongViewer({
           <button
             onClick={() => onToggleFavorite(song.id)}
             className={`p-1.5 rounded-full hover:bg-stone-200 transition-colors ${
-              song.isFavorite ? 'text-red-600' : 'text-stone-400 hover:text-stone-750'
+              song.isFavorite ? 'text-red-600' : 'text-stone-400 hover:text-stone-800'
             }`}
           >
             <Heart className="w-4.5 h-4.5" fill={song.isFavorite ? "currentColor" : "none"} />
@@ -599,7 +599,7 @@ export default function SongViewer({
               </div>
               <button
                 onClick={() => setShowSongInfo(false)}
-                className="p-1 rounded-full hover:bg-stone-100 text-stone-400 hover:text-stone-750 transition"
+                className="p-1 rounded-full hover:bg-stone-100 text-stone-400 hover:text-stone-800 transition"
               >
                 <Plus className="w-4.5 h-4.5 rotate-45" />
               </button>

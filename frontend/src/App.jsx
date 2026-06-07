@@ -1115,7 +1115,7 @@ export default function App() {
                         <span className="text-xs text-stone-700 font-bold truncate max-w-[140px]">{currentUser.email}</span>
                         <span className={`text-[9px] uppercase font-black tracking-wider px-1.5 py-0.5 rounded border shrink-0 ${
                           currentUser.role === 'admin' 
-                            ? 'bg-red-50 text-red-650 border-red-200' 
+                            ? 'bg-red-50 text-red-700 border-red-200' 
                             : 'bg-stone-50 text-stone-600 border-stone-200'
                         }`}>
                           {currentUser.role}
@@ -1127,7 +1127,7 @@ export default function App() {
                           setCurrentUser(null);
                           setShowSettingsMenu(false);
                         }}
-                        className="text-left text-[11px] font-bold text-red-655 hover:text-red-750 transition cursor-pointer"
+                        className="text-left text-[11px] font-bold text-red-700 hover:text-red-800 transition cursor-pointer"
                       >
                         Đăng xuất / Sign Out
                       </button>
@@ -1142,7 +1142,7 @@ export default function App() {
                           setShowAuthModal(true);
                           setShowSettingsMenu(false);
                         }}
-                        className="w-full text-center py-2 bg-stone-900 hover:bg-stone-850 text-white font-bold text-xs rounded-xl transition shadow-sm cursor-pointer"
+                        className="w-full text-center py-2 bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs rounded-xl transition shadow-sm cursor-pointer"
                       >
                         Đăng nhập / Sign In
                       </button>
@@ -1160,8 +1160,8 @@ export default function App() {
                     }}
                     className={`w-full flex items-center gap-3 px-4 py-3.5 text-sm font-bold rounded-xl transition-all text-left cursor-pointer ${
                       activeTab === 'library' && !selectedPlaylistId && !activeSongId 
-                        ? 'text-red-600 font-extrabold bg-red-50' 
-                        : 'text-stone-700 hover:bg-stone-50 hover:text-stone-900'
+                        ? 'text-red-700 font-extrabold bg-red-50' 
+                        : 'text-stone-800 hover:bg-stone-50 hover:text-stone-950'
                     }`}
                   >
                     <Music className="w-4.5 h-4.5 shrink-0" />
@@ -1176,8 +1176,8 @@ export default function App() {
                     }}
                     className={`w-full flex items-center gap-3 px-4 py-3.5 text-sm font-bold rounded-xl transition-all text-left cursor-pointer ${
                       activeTab === 'setlists' && !activeSongId 
-                        ? 'text-red-600 font-extrabold bg-red-50' 
-                        : 'text-stone-700 hover:bg-stone-50 hover:text-stone-900'
+                        ? 'text-red-700 font-extrabold bg-red-50' 
+                        : 'text-stone-800 hover:bg-stone-50 hover:text-stone-950'
                     }`}
                   >
                     <ListMusic className="w-4.5 h-4.5 shrink-0" />
@@ -1194,11 +1194,11 @@ export default function App() {
                       }}
                       className={`w-full flex items-center gap-3 px-4 py-3.5 text-sm font-bold rounded-xl transition-all text-left cursor-pointer ${
                         activeTab === 'history' && !activeSongId 
-                          ? 'text-red-655 font-extrabold bg-red-55' 
-                          : 'text-stone-700 hover:bg-stone-50 hover:text-stone-900'
+                          ? 'text-red-700 font-extrabold bg-red-50' 
+                          : 'text-stone-800 hover:bg-stone-50 hover:text-stone-950'
                       }`}
                     >
-                      <ListMusic className="w-4.5 h-4.5 shrink-0 text-red-650" />
+                      <ListMusic className="w-4.5 h-4.5 shrink-0 text-red-700" />
                       <span>Lịch sử chơi nhạc / History</span>
                     </button>
                   )}
@@ -1211,8 +1211,8 @@ export default function App() {
                     }}
                     className={`w-full flex items-center gap-3 px-4 py-3.5 text-sm font-bold rounded-xl transition-all text-left cursor-pointer ${
                       activeTab === 'add' && !activeSongId 
-                        ? 'text-red-600 font-extrabold bg-red-50' 
-                        : 'text-stone-700 hover:bg-stone-50 hover:text-stone-900'
+                        ? 'text-red-700 font-extrabold bg-red-50' 
+                        : 'text-stone-800 hover:bg-stone-50 hover:text-stone-950'
                     }`}
                   >
                     <PlusCircle className="w-4.5 h-4.5 shrink-0" />
@@ -1224,9 +1224,9 @@ export default function App() {
                       setShowTuner(true);
                       setShowSettingsMenu(false);
                     }}
-                    className="w-full flex items-center gap-3 px-4 py-3.5 text-sm font-bold rounded-xl transition-all text-left text-stone-700 hover:bg-stone-50 hover:text-stone-900 cursor-pointer"
+                    className="w-full flex items-center gap-3 px-4 py-3.5 text-sm font-bold rounded-xl transition-all text-left text-stone-800 hover:bg-stone-50 hover:text-stone-950 cursor-pointer"
                   >
-                    <Mic className="w-4.5 h-4.5 text-stone-550 shrink-0" />
+                    <Mic className="w-4.5 h-4.5 text-stone-500 shrink-0" />
                     <span>Bộ lên dây / Instrument Tuner</span>
                   </button>
 
@@ -1237,7 +1237,7 @@ export default function App() {
                         setShowSettingsMenu(false);
                       }}
                       disabled={isCleaningDb}
-                      className="w-full flex items-center gap-3 px-4 py-3.5 text-sm font-bold rounded-xl transition-all text-left text-stone-700 hover:bg-stone-50 hover:text-stone-900 disabled:opacity-50 cursor-pointer animate-fade-in"
+                      className="w-full flex items-center gap-3 px-4 py-3.5 text-sm font-bold rounded-xl transition-all text-left text-stone-800 hover:bg-stone-50 hover:text-stone-950 disabled:opacity-50 cursor-pointer animate-fade-in"
                     >
                       <Sparkles className="w-4.5 h-4.5 text-yellow-600 shrink-0 animate-pulse" />
                       <span>{isCleaningDb ? 'Đang dọn dẹp...' : 'Dọn dẹp Database / Cleanup'}</span>
@@ -1255,7 +1255,7 @@ export default function App() {
                           className={`py-2 text-xs font-black capitalize rounded-lg transition-all cursor-pointer ${
                             instrument === inst 
                               ? 'bg-white text-stone-900 shadow-sm' 
-                              : 'text-stone-500 hover:text-stone-850'
+                              : 'text-stone-500 hover:text-stone-800'
                           }`}
                         >
                           {inst === 'ukulele' ? 'Uke' : inst}
@@ -1315,7 +1315,7 @@ export default function App() {
                   const hasNext = playlistIndex !== -1 && playlistIndex < activePlaylistSongs.length - 1;
                   const hasPrev = playlistIndex > 0;
                   return (
-                    <div className="fixed bottom-28 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 bg-stone-900/95 border border-stone-850 rounded-full px-4 py-2 shadow-2xl backdrop-blur">
+                    <div className="fixed bottom-28 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 bg-stone-900/95 border border-stone-800 rounded-full px-4 py-2 shadow-2xl backdrop-blur">
                       <button
                         onClick={handlePrevSong}
                         disabled={!hasPrev}
@@ -1347,7 +1347,7 @@ export default function App() {
                 <div className="animate-fade-in flex flex-col gap-6">
                   {isLoadingSongs ? (
                     <div className="text-center py-20 bg-white border border-stone-200/80 rounded-xl shadow-sm max-w-xl mx-auto mt-8 select-none animate-fade-in">
-                      <div className="w-10 h-10 border-4 border-red-655/20 border-t-red-600 rounded-full animate-spin mx-auto mb-4"></div>
+                      <div className="w-10 h-10 border-4 border-red-700/20 border-t-red-600 rounded-full animate-spin mx-auto mb-4"></div>
                       <h3 className="text-xs font-bold text-stone-600">Đang tải thư viện bài hát...</h3>
                     </div>
                   ) : fetchSongsError ? (
@@ -1373,10 +1373,10 @@ export default function App() {
                         <h3 className="text-lg font-bold text-stone-900 font-display">Campfire Chords</h3>
                         {songs.length > 0 ? (
                           <>
-                            <p className="text-sm font-bold text-stone-750 mt-2">
+                            <p className="text-sm font-bold text-stone-700 mt-2">
                               Thư viện hiện có <span className="text-red-600 font-black">{songs.length}</span> bài hát
                             </p>
-                            <p className="text-xs text-stone-550 mt-1.5 max-w-xs mx-auto leading-relaxed">
+                            <p className="text-xs text-stone-500 mt-1.5 max-w-xs mx-auto leading-relaxed">
                               Nhập tên bài hát, ca sĩ, tác giả hoặc lời nhạc vào thanh tìm kiếm ở trên để tìm hợp âm.
                             </p>
                           </>
@@ -1397,7 +1397,7 @@ export default function App() {
 
                       {currentUser && userFavoritesList.length > 0 && (
                         <div className="mt-4 text-left animate-fade-in">
-                          <h3 className="text-xs uppercase font-bold tracking-widest text-stone-550 mb-3 flex items-center gap-1.5 font-sans">
+                          <h3 className="text-xs uppercase font-bold tracking-widest text-stone-500 mb-3 flex items-center gap-1.5 font-sans">
                             <Heart className="w-3.5 h-3.5 fill-red-600 text-red-600 animate-pulse" />
                             Bài hát yêu thích / Favorites ({userFavoritesList.length})
                           </h3>
@@ -1406,7 +1406,7 @@ export default function App() {
                               <div 
                                 key={song.id}
                                 onClick={() => setActiveSongId(song.id)}
-                                className="bg-white border border-stone-200/80 hover:border-red-605/30 rounded-lg p-4 cursor-pointer transition-all hover:-translate-y-0.5 shadow-sm hover:shadow flex items-center justify-between"
+                                className="bg-white border border-stone-200/80 hover:border-red-600/30 rounded-lg p-4 cursor-pointer transition-all hover:-translate-y-0.5 shadow-sm hover:shadow flex items-center justify-between"
                               >
                                 <div className="truncate pr-4">
                                   <div className="flex items-center gap-1.5">
@@ -1448,7 +1448,7 @@ export default function App() {
                           <div 
                             key={song.id}
                             onClick={() => setActiveSongId(song.id)}
-                            className="bg-white border border-stone-200/80 hover:border-red-605/30 rounded-lg p-4 cursor-pointer transition-all hover:-translate-y-0.5 shadow-sm hover:shadow flex items-center justify-between"
+                            className="bg-white border border-stone-200/80 hover:border-red-600/30 rounded-lg p-4 cursor-pointer transition-all hover:-translate-y-0.5 shadow-sm hover:shadow flex items-center justify-between"
                           >
                             <div className="truncate pr-4">
                               <div className="flex items-center gap-1.5">
@@ -1639,7 +1639,7 @@ export default function App() {
                 </form>
 
                 {scrapeError && (
-                  <p className="text-xs text-red-655 mt-2 font-semibold">{scrapeError}</p>
+                  <p className="text-xs text-red-700 mt-2 font-semibold">{scrapeError}</p>
                 )}
                 {scrapeSuccess && (
                   <p className="text-xs text-green-600 mt-2 font-semibold">Song imported successfully!</p>
@@ -1706,7 +1706,7 @@ export default function App() {
                         id="directImportCheck"
                         checked={directImport}
                         onChange={(e) => setDirectImport(e.target.checked)}
-                        className="w-4 h-4 text-red-655 border-stone-300 rounded focus:ring-red-500/20"
+                        className="w-4 h-4 text-red-700 border-stone-300 rounded focus:ring-red-500/20"
                       />
                       <label htmlFor="directImportCheck" className="text-xs font-semibold text-stone-700 select-none cursor-pointer">
                         Directly import to local app database (CORS upload to http://localhost:3000)
@@ -1756,9 +1756,9 @@ export default function App() {
                         title=""
                       />
                       <div className="p-3 bg-white rounded-full shadow-sm border border-stone-200/60 mb-3 group-hover:scale-105 transition-transform">
-                        <Upload className="w-6 h-6 text-stone-500 group-hover:text-red-650 transition-colors" />
+                        <Upload className="w-6 h-6 text-stone-500 group-hover:text-red-600 transition-colors" />
                       </div>
-                      <span className="text-sm font-semibold text-stone-850 group-hover:text-red-655 transition-colors">
+                      <span className="text-sm font-semibold text-stone-800 group-hover:text-red-700 transition-colors">
                         {isImportingFile ? 'Uploading & Parsing...' : 'Select JSON File'}
                       </span>
                       <span className="text-[11px] text-stone-400 mt-1 select-none">
@@ -1863,7 +1863,7 @@ Ta đi tìm bóng mát"
                       rows="8"
                       value={newPasteText}
                       onChange={(e) => setNewPasteText(e.target.value)}
-                      className="px-3 py-2 bg-white border border-stone-200 rounded text-sm font-mono placeholder-stone-400 leading-relaxed focus:border-red-650 shadow-sm"
+                      className="px-3 py-2 bg-white border border-stone-200 rounded text-sm font-mono placeholder-stone-400 leading-relaxed focus:border-red-600 shadow-sm"
                     ></textarea>
                   </div>
 
@@ -1892,7 +1892,7 @@ Ta đi tìm bóng mát"
             <div className="animate-fade-in flex flex-col gap-6 max-w-4xl mx-auto w-full">
               <div className="border-b border-stone-200 pb-4">
                 <h2 className="text-lg font-bold text-stone-900 font-display flex items-center gap-2">
-                  <ListMusic className="w-5 h-5 text-red-650" />
+                  <ListMusic className="w-5 h-5 text-red-700" />
                   Lịch sử chơi nhạc / Play History
                 </h2>
                 <p className="text-xs text-stone-500">Các bài hát bạn đã chơi gần đây, được sắp xếp theo số lần chơi.</p>
@@ -1900,11 +1900,11 @@ Ta đi tìm bóng mát"
 
               {playHistory.length === 0 ? (
                 <div className="text-center py-20 bg-white border border-stone-200/80 rounded-xl shadow-sm select-none animate-fade-in">
-                  <div className="w-16 h-16 bg-red-655/5 border border-red-655/10 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
-                    <Flame className="w-8 h-8 text-red-655 fill-red-655" />
+                  <div className="w-16 h-16 bg-red-700/5 border border-red-700/10 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+                    <Flame className="w-8 h-8 text-red-700 fill-red-700" />
                   </div>
                   <h3 className="text-sm font-bold text-stone-900 font-sans">Lịch sử chơi nhạc trống</h3>
-                  <p className="text-xs text-stone-550 mt-2 max-w-xs mx-auto leading-relaxed">
+                  <p className="text-xs text-stone-500 mt-2 max-w-xs mx-auto leading-relaxed">
                     Bạn chưa chơi bài hát nào khi đăng nhập. Hãy mở các bài hát từ thư viện để theo dõi lịch sử và xếp hạng số lần chơi!
                   </p>
                 </div>
@@ -1922,12 +1922,12 @@ Ta đi tìm bóng mát"
                         <div className="flex items-center gap-3 truncate">
                           <span className="font-mono text-xs font-bold text-stone-400 w-5">{idx + 1}.</span>
                           <div className="truncate">
-                            <h3 className="font-bold text-sm text-stone-900 group-hover:text-red-655 transition-colors truncate">{song.title}</h3>
+                            <h3 className="font-bold text-sm text-stone-900 group-hover:text-red-700 transition-colors truncate">{song.title}</h3>
                             <p className="text-xs text-stone-500 truncate">{song.artist}{song.composer ? ` • ${song.composer}` : ''}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-3 shrink-0">
-                          <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-red-50 text-red-655 border border-red-100">
+                          <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-100">
                             Đã chơi {item.playCount} lần
                           </span>
                           <span className="font-mono text-xs font-semibold text-stone-500">{song.key}</span>
@@ -2151,16 +2151,16 @@ Ta đi tìm bóng mát"
             <div className="flex flex-col gap-3 bg-stone-50 border border-stone-200/80 rounded-xl p-4 my-4 font-sans text-xs">
               <div className="flex justify-between">
                 <span className="text-stone-500 font-medium">Tổng số bài hát ban đầu:</span>
-                <span className="font-bold text-stone-850">{cleanupResult.totalBefore}</span>
+                <span className="font-bold text-stone-800">{cleanupResult.totalBefore}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-stone-500 font-medium">Tổng số bài hát hiện tại:</span>
-                <span className="font-bold text-stone-850">{cleanupResult.totalAfter}</span>
+                <span className="font-bold text-stone-800">{cleanupResult.totalAfter}</span>
               </div>
               <div className="h-px bg-stone-200 my-1"></div>
               <div className="flex justify-between">
                 <span className="text-stone-500 font-medium">Đã xóa trùng lặp:</span>
-                <span className="font-bold text-red-650">-{cleanupResult.duplicatesRemoved} bài hát</span>
+                <span className="font-bold text-red-700">-{cleanupResult.duplicatesRemoved} bài hát</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-stone-500 font-medium">Đã tự động căn chỉnh key/hợp âm:</span>
@@ -2414,14 +2414,14 @@ Ta đi tìm bóng mát"
                 </div>
 
                 {authError && (
-                  <div className="p-3 bg-red-50 border border-red-200 text-red-755 text-xs rounded-xl font-medium animate-fade-in font-sans">
+                  <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl font-medium animate-fade-in font-sans">
                     {authError}
                   </div>
                 )}
 
                 <div className="bg-stone-50 border border-stone-200 rounded-xl p-4 font-sans text-xs">
                   <span className="text-stone-400 font-bold block uppercase tracking-wider text-[9px] mb-1">Security Question:</span>
-                  <span className="font-bold text-stone-850 text-sm">
+                  <span className="font-bold text-stone-800 text-sm">
                     {recoveredQuestionText === 'What is your favorite instrument?' ? 'Nhạc cụ yêu thích của bạn là gì?' :
                      recoveredQuestionText === 'What is your birth city?' ? 'Thành phố nơi bạn sinh ra?' :
                      recoveredQuestionText === 'What is your pet name?' ? 'Tên thú cưng đầu tiên của bạn?' :

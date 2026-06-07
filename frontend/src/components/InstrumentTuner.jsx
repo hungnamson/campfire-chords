@@ -21,6 +21,15 @@ const INSTRUMENT_TUNINGS = {
       { name: 'C', note: 'C4', freq: 261.63, index: 3 },
       { name: 'g', note: 'G4', freq: 392.00, index: 4 },
     ]
+  },
+  ukulele_low_d: {
+    name: 'Ukulele (Low D)',
+    strings: [
+      { name: 'E', note: 'E4', freq: 329.63, index: 1 },
+      { name: 'B', note: 'B3', freq: 246.94, index: 2 },
+      { name: 'G', note: 'G3', freq: 196.00, index: 3 },
+      { name: 'D', note: 'D3', freq: 146.83, index: 4 },
+    ]
   }
 };
 
@@ -103,6 +112,13 @@ function autoCorrelate(buffer, sampleRate, rms) {
   return sampleRate / T0;
 }
 
+function getMedian(arr) {
+  if (!arr || arr.length === 0) return 0;
+  const sorted = [...arr].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
 export default function InstrumentTuner({ isOpen, onClose }) {
   const [selectedInst, setSelectedInst] = useState('guitar');
   const [tunerMode, setTunerMode] = useState('auto'); // 'auto' or 'manual'
@@ -117,6 +133,7 @@ export default function InstrumentTuner({ isOpen, onClose }) {
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [consoleErrors, setConsoleErrors] = useState([]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [tunerSensitivity, setTunerSensitivity] = useState('smooth');
 
   useEffect(() => {
     const handleError = (event) => {
@@ -147,8 +164,12 @@ export default function InstrumentTuner({ isOpen, onClose }) {
   const selectedInstRef = useRef(selectedInst);
   const tunerModeRef = useRef(tunerMode);
   const selectedStringRef = useRef(selectedString);
+  const tunerSensitivityRef = useRef(tunerSensitivity);
 
   // Stability & smoothing refs for tuner needle and note display
+  const pitchHistoryRef = useRef([]);
+  const centsHistoryRef = useRef([]);
+  const settlingFramesRef = useRef(0);
   const framesWithoutPitchRef = useRef(0);
   const smoothedFreqRef = useRef(0);
   const smoothedCentsRef = useRef(0);
@@ -169,6 +190,10 @@ export default function InstrumentTuner({ isOpen, onClose }) {
   useEffect(() => {
     selectedStringRef.current = selectedString;
   }, [selectedString]);
+
+  useEffect(() => {
+    tunerSensitivityRef.current = tunerSensitivity;
+  }, [tunerSensitivity]);
 
   // Sync selected instrument with default string
   useEffect(() => {
@@ -461,7 +486,8 @@ export default function InstrumentTuner({ isOpen, onClose }) {
 
           // Apply instrument-specific frequency range filtering to reject out-of-range noise
           const isGuitar = selectedInstRef.current === 'guitar';
-          const minAllowedFreq = isGuitar ? 70 : 200;
+          const isLowDUke = selectedInstRef.current === 'ukulele_low_d';
+          const minAllowedFreq = isGuitar ? 70 : isLowDUke ? 120 : 200;
           const maxAllowedFreq = isGuitar ? 380 : 500;
 
           // Target-Anchored Noise Filtering: Discard pitch detection if it lies too far from expected string frequencies
@@ -494,13 +520,45 @@ export default function InstrumentTuner({ isOpen, onClose }) {
             // Reset no-pitch frames count
             framesWithoutPitchRef.current = 0;
 
-            // Apply exponential moving average to frequency (alpha = 0.85 for stable Hz readings)
-            if (smoothedFreqRef.current === 0) {
-              smoothedFreqRef.current = detectedFreq;
-            } else {
-              smoothedFreqRef.current = smoothedFreqRef.current * 0.85 + detectedFreq * 0.15;
+            // Determine parameters based on sensitivity
+            const sensitivity = tunerSensitivityRef.current || 'smooth';
+            let maxHistory = 6;
+            let settlingThreshold = 3;
+            let alpha = 0.10;
+            if (sensitivity === 'smooth') {
+              maxHistory = 12;
+              settlingThreshold = 6;
+              alpha = 0.04;
+            } else if (sensitivity === 'fast') {
+              maxHistory = 2;
+              settlingThreshold = 0;
+              alpha = 0.25;
             }
-            setFrequency(smoothedFreqRef.current);
+
+            // Push to history buffers
+            pitchHistoryRef.current.push(detectedFreq);
+            if (pitchHistoryRef.current.length > maxHistory) {
+              pitchHistoryRef.current.shift();
+            }
+
+            // Calculate median filtered frequency
+            const filteredFreq = getMedian(pitchHistoryRef.current);
+
+            // Increment settling frames
+            settlingFramesRef.current += 1;
+
+            // Only update active frequency if we have passed the transient settling gate
+            if (settlingFramesRef.current > settlingThreshold) {
+              if (smoothedFreqRef.current === 0) {
+                smoothedFreqRef.current = filteredFreq;
+              } else {
+                smoothedFreqRef.current = smoothedFreqRef.current * (1 - alpha) + filteredFreq * alpha;
+              }
+              setFrequency(smoothedFreqRef.current);
+            } else {
+              // During settling gate, keep history updated but hold off updating state to avoid jumpiness
+              smoothedFreqRef.current = filteredFreq;
+            }
 
             let target = null;
             if (tunerModeRef.current === 'manual') {
@@ -545,6 +603,10 @@ export default function InstrumentTuner({ isOpen, onClose }) {
                   target = closest;
                   stringChangeCandidateRef.current = null;
                   stringChangeConfirmCountRef.current = 0;
+                  // Clear history on string change to avoid leakages
+                  pitchHistoryRef.current = [];
+                  centsHistoryRef.current = [];
+                  settlingFramesRef.current = 0;
                 } else {
                   // Keep last target string until confirmed
                   target = lastTargetStringRef.current;
@@ -552,7 +614,7 @@ export default function InstrumentTuner({ isOpen, onClose }) {
               }
             }
 
-            if (target) {
+            if (target && settlingFramesRef.current > settlingThreshold) {
               let centsDev = 1200 * Math.log2(smoothedFreqRef.current / target.freq);
               
               // Apply a dead-zone lock-in: if extremely close (within 1.5 cents), snap to 0
@@ -560,11 +622,16 @@ export default function InstrumentTuner({ isOpen, onClose }) {
                 centsDev = 0;
               }
 
-              // Apply stronger exponential smoothing for cents needle (alpha = 0.85)
+              centsHistoryRef.current.push(centsDev);
+              if (centsHistoryRef.current.length > maxHistory) {
+                centsHistoryRef.current.shift();
+              }
+              const filteredCents = getMedian(centsHistoryRef.current);
+
               if (smoothedCentsRef.current === 0) {
-                smoothedCentsRef.current = centsDev;
+                smoothedCentsRef.current = filteredCents;
               } else {
-                smoothedCentsRef.current = smoothedCentsRef.current * 0.85 + centsDev * 0.15;
+                smoothedCentsRef.current = smoothedCentsRef.current * (1 - alpha) + filteredCents * alpha;
               }
               setCents(smoothedCentsRef.current);
             }
@@ -592,6 +659,10 @@ export default function InstrumentTuner({ isOpen, onClose }) {
               smoothedFreqRef.current = 0;
               smoothedCentsRef.current = 0;
               lastTextUpdateTimeRef.current = 0;
+              // Reset history buffers
+              pitchHistoryRef.current = [];
+              centsHistoryRef.current = [];
+              settlingFramesRef.current = 0;
             }
           }
         } catch (err) {
@@ -641,6 +712,9 @@ export default function InstrumentTuner({ isOpen, onClose }) {
     stringChangeCandidateRef.current = null;
     stringChangeConfirmCountRef.current = 0;
     lastTextUpdateTimeRef.current = 0;
+    pitchHistoryRef.current = [];
+    centsHistoryRef.current = [];
+    settlingFramesRef.current = 0;
     // Reset debug panel labels
     if (debugStateRef.current) debugStateRef.current.innerText = '-';
     if (debugTrackRef.current) debugTrackRef.current.innerText = '-';
@@ -690,20 +764,20 @@ export default function InstrumentTuner({ isOpen, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/60 backdrop-blur-sm animate-fade-in" onClick={handleClose}>
-      <div className="bg-[#18181a] border border-stone-850 rounded-[28px] max-w-sm w-full p-6 shadow-2xl relative select-none flex flex-col" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-[#18181a] border border-stone-800 rounded-[28px] max-w-sm w-full p-6 shadow-2xl relative select-none flex flex-col" onClick={(e) => e.stopPropagation()}>
         {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-stone-850 pb-3.5 mb-4 select-none">
+        <div className="flex items-center justify-between border-b border-stone-800 pb-3.5 mb-4 select-none">
           <div className="relative">
             <button 
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
               className="flex items-center gap-1.5 font-black text-stone-100 hover:text-white transition text-[15px] cursor-pointer"
             >
               <Mic className="w-4.5 h-4.5 text-amber-500" />
-              <span>{selectedInst === 'guitar' ? 'Guitar (6-string)' : 'Ukulele (4-string)'}</span>
+              <span>{selectedInst === 'guitar' ? 'Guitar (6-string)' : selectedInst === 'ukulele_low_d' ? 'Ukulele (Low D)' : 'Ukulele (Standard)'}</span>
               <span className="text-[10px] text-stone-500">▼</span>
             </button>
             <div className="text-[9px] text-stone-500 font-extrabold uppercase tracking-wider pl-6.5">
-              Standard Tuning
+              {selectedInst === 'ukulele_low_d' ? 'Low D / Baritone' : 'Standard Tuning'}
             </div>
             
             {/* Dropdown Options */}
@@ -715,7 +789,7 @@ export default function InstrumentTuner({ isOpen, onClose }) {
                     setIsDropdownOpen(false);
                   }}
                   className={`w-full text-left px-4 py-2.5 text-xs font-bold transition flex items-center justify-between cursor-pointer ${
-                    selectedInst === 'guitar' ? 'bg-stone-850 text-amber-500' : 'text-stone-300 hover:bg-stone-850'
+                    selectedInst === 'guitar' ? 'bg-stone-800 text-amber-500' : 'text-stone-300 hover:bg-stone-800'
                   }`}
                 >
                   <span>Guitar (Standard)</span>
@@ -727,17 +801,29 @@ export default function InstrumentTuner({ isOpen, onClose }) {
                     setIsDropdownOpen(false);
                   }}
                   className={`w-full text-left px-4 py-2.5 text-xs font-bold transition flex items-center justify-between cursor-pointer ${
-                    selectedInst === 'ukulele' ? 'bg-stone-850 text-amber-500' : 'text-stone-300 hover:bg-stone-850'
+                    selectedInst === 'ukulele' ? 'bg-stone-800 text-amber-500' : 'text-stone-300 hover:bg-stone-800'
                   }`}
                 >
                   <span>Ukulele (Standard)</span>
                   {selectedInst === 'ukulele' && <span className="text-amber-500 text-[10px]">●</span>}
                 </button>
+                <button
+                  onClick={() => {
+                    setSelectedInst('ukulele_low_d');
+                    setIsDropdownOpen(false);
+                  }}
+                  className={`w-full text-left px-4 py-2.5 text-xs font-bold transition flex items-center justify-between cursor-pointer ${
+                    selectedInst === 'ukulele_low_d' ? 'bg-stone-800 text-amber-500' : 'text-stone-300 hover:bg-stone-800'
+                  }`}
+                >
+                  <span>Ukulele (Low D)</span>
+                  {selectedInst === 'ukulele_low_d' && <span className="text-amber-500 text-[10px]">●</span>}
+                </button>
               </div>
             )}
           </div>
           
-          <button onClick={handleClose} className="p-1.5 rounded-full hover:bg-stone-850 text-stone-400 hover:text-stone-200 transition">
+          <button onClick={handleClose} className="p-1.5 rounded-full hover:bg-stone-800 text-stone-400 hover:text-stone-200 transition">
             <X className="w-4.5 h-4.5" />
           </button>
         </div>
@@ -746,7 +832,7 @@ export default function InstrumentTuner({ isOpen, onClose }) {
         <div className="flex-grow flex flex-col space-y-4">
           
           {/* 1. Horizontal sliding dial gauge */}
-          <div className="flex flex-col items-center justify-center relative w-full h-24 bg-stone-900/40 rounded-2xl border border-stone-850/80 overflow-hidden tuner-grid-bg">
+          <div className="flex flex-col items-center justify-center relative w-full h-24 bg-stone-900/40 rounded-2xl border border-stone-800/80 overflow-hidden tuner-grid-bg">
             {/* Center Vertical Marker Line */}
             <div className={`absolute top-0 bottom-0 left-1/2 w-0.5 z-0 ${displayInTune ? 'bg-green-500/60 shadow-lg shadow-green-500/50' : 'bg-stone-800'}`}></div>
             
@@ -791,7 +877,7 @@ export default function InstrumentTuner({ isOpen, onClose }) {
             {/* Signal strength / VU meter in background at top */}
             {isListening && (
               <div className="absolute top-0 left-0 right-0 h-1 bg-stone-950/30 overflow-hidden">
-                <div ref={volumeBarRef} className="h-full bg-stone-850 transition-all duration-75" style={{ width: '0%' }}></div>
+                <div ref={volumeBarRef} className="h-full bg-stone-800 transition-all duration-75" style={{ width: '0%' }}></div>
               </div>
             )}
           </div>
@@ -810,17 +896,22 @@ export default function InstrumentTuner({ isOpen, onClose }) {
                 <span className="font-mono text-xs text-stone-500 font-bold">
                   {displayFrequency ? `${displayFrequency.toFixed(1)} Hz` : '-- Hz'}
                 </span>
-                <span className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded leading-none ${
+                <span className={`text-xs font-black px-2.5 py-1 rounded-full leading-none border transition-colors ${
                   displayInTune 
-                    ? 'bg-green-950/80 text-green-400 border border-green-900' 
-                    : displayCents < 0 ? 'bg-orange-950/80 text-orange-400 border border-orange-900' : 'bg-red-950/80 text-red-400 border border-red-900'
+                    ? 'bg-green-950/80 text-green-400 border-green-900' 
+                    : displayCents < 0 ? 'bg-amber-950/80 text-amber-400 border-amber-900' : 'bg-red-950/80 text-red-400 border-red-900'
                 }`}>
                   {displayInTune 
-                    ? 'In Tune' 
+                    ? 'Chuẩn nốt / In Tune! ✓' 
                     : displayCents < 0 
-                      ? `${Math.round(displayCents)} cents (Flat)` 
-                      : `+${Math.round(displayCents)} cents (Sharp)`}
+                      ? 'Căng lên / TIGHTEN ⬆' 
+                      : 'Trùng xuống / LOOSEN ⬇'}
                 </span>
+                {!displayInTune && (
+                  <span className="font-mono text-[10px] text-stone-500 font-bold">
+                    {displayCents < 0 ? `${Math.round(displayCents)}` : `+${Math.round(displayCents)}`}
+                  </span>
+                )}
               </div>
             ) : (
               <div className="text-[10px] font-bold text-stone-500">Tuner is stopped</div>
@@ -828,7 +919,7 @@ export default function InstrumentTuner({ isOpen, onClose }) {
           </div>
 
           {/* 3. Interactive SVG Headstock Visualizer */}
-          <div className="relative flex items-center justify-between h-[280px] w-full bg-stone-900/10 rounded-3xl border border-stone-850 p-4 overflow-hidden select-none">
+          <div className="relative flex items-center justify-between h-[280px] w-full bg-stone-900/10 rounded-3xl border border-stone-800 p-4 overflow-hidden select-none">
             
             {/* Peg Buttons Column on the Left */}
             <div className="flex flex-col justify-between h-full w-[45px] z-10">
@@ -1024,10 +1115,10 @@ export default function InstrumentTuner({ isOpen, onClose }) {
 
                   {/* Strings */}
                   {[
-                    { xNut: 64, pegX: 46, pegY: 190, idx: 4, t: 1.5 }, // string 4 (g4)
-                    { xNut: 74, pegX: 46, pegY: 120, idx: 3, t: 1.9 }, // string 3 (C4)
-                    { xNut: 84, pegX: 114, pegY: 120, idx: 2, t: 1.7 }, // string 2 (E4)
-                    { xNut: 94, pegX: 114, pegY: 190, idx: 1, t: 1.3 }  // string 1 (A4)
+                    { xNut: 64, pegX: 46, pegY: 190, idx: 4, t: selectedInst === 'ukulele_low_d' ? 2.1 : 1.5 }, // string 4
+                    { xNut: 74, pegX: 46, pegY: 120, idx: 3, t: selectedInst === 'ukulele_low_d' ? 1.8 : 1.9 }, // string 3
+                    { xNut: 84, pegX: 114, pegY: 120, idx: 2, t: selectedInst === 'ukulele_low_d' ? 1.5 : 1.7 }, // string 2
+                    { xNut: 94, pegX: 114, pegY: 190, idx: 1, t: selectedInst === 'ukulele_low_d' ? 1.1 : 1.3 }  // string 1
                   ].map((str) => {
                     const isStrActive = activeTarget?.index === str.idx;
                     const vibrateClass = isStrActive && isListening && frequency ? 'animate-string-vibrate' : '';
@@ -1061,7 +1152,7 @@ export default function InstrumentTuner({ isOpen, onClose }) {
                 className={`px-4 py-1.5 rounded-full border transition-all cursor-pointer ${
                   tunerMode === 'auto'
                     ? 'bg-blue-950/60 border-blue-800 text-blue-400 font-extrabold shadow-sm shadow-blue-500/10'
-                    : 'bg-stone-900/40 border-stone-850 text-stone-500 hover:text-stone-400'
+                    : 'bg-stone-900/40 border-stone-800 text-stone-500 hover:text-stone-400'
                 }`}
               >
                 Auto
@@ -1071,11 +1162,48 @@ export default function InstrumentTuner({ isOpen, onClose }) {
                 className={`px-4 py-1.5 rounded-full border transition-all cursor-pointer ${
                   tunerMode === 'manual'
                     ? 'bg-amber-950/60 border-amber-800 text-amber-400 font-extrabold shadow-sm shadow-amber-500/10'
-                    : 'bg-stone-900/40 border-stone-850 text-stone-500 hover:text-stone-400'
+                    : 'bg-stone-900/40 border-stone-800 text-stone-500 hover:text-stone-400'
                 }`}
               >
                 Manual
               </button>
+            </div>
+
+            {/* Tuning Sensitivity Selector */}
+            <div className="flex flex-col items-center space-y-1.5 pt-1.5 border-t border-stone-800/60">
+              <span className="text-[9px] uppercase font-black tracking-wider text-stone-500">Độ phản hồi / Response</span>
+              <div className="flex justify-center gap-2 text-[9px] uppercase font-black tracking-widest text-center select-none">
+                <button
+                  onClick={() => setTunerSensitivity('smooth')}
+                  className={`px-3.5 py-1.5 rounded-full border transition-all cursor-pointer ${
+                    tunerSensitivity === 'smooth'
+                      ? 'bg-emerald-950/60 border-emerald-800 text-emerald-400 font-extrabold shadow-sm shadow-emerald-500/10'
+                      : 'bg-stone-900/40 border-stone-800 text-stone-500 hover:text-stone-400'
+                  }`}
+                >
+                  Mượt (Low)
+                </button>
+                <button
+                  onClick={() => setTunerSensitivity('medium')}
+                  className={`px-3.5 py-1.5 rounded-full border transition-all cursor-pointer ${
+                    tunerSensitivity === 'medium'
+                      ? 'bg-blue-950/60 border-blue-800 text-blue-400 font-extrabold shadow-sm shadow-blue-500/10'
+                      : 'bg-stone-900/40 border-stone-800 text-stone-500 hover:text-stone-400'
+                  }`}
+                >
+                  Vừa (Medium)
+                </button>
+                <button
+                  onClick={() => setTunerSensitivity('fast')}
+                  className={`px-3.5 py-1.5 rounded-full border transition-all cursor-pointer ${
+                    tunerSensitivity === 'fast'
+                      ? 'bg-amber-950/60 border-amber-800 text-amber-400 font-extrabold shadow-sm shadow-amber-500/10'
+                      : 'bg-stone-900/40 border-stone-800 text-stone-500 hover:text-stone-400'
+                  }`}
+                >
+                  Nhanh (High)
+                </button>
+              </div>
             </div>
 
             {/* Mic Activation Trigger */}
@@ -1101,8 +1229,8 @@ export default function InstrumentTuner({ isOpen, onClose }) {
 
             {/* Diagnostics panel */}
             {showDiagnostics && (
-              <div className="bg-stone-950/80 border border-stone-850 text-stone-400 p-3 rounded-2xl text-[9px] font-mono space-y-1.5 shadow-inner">
-                <div className="font-extrabold border-b border-stone-850 pb-1 mb-1 text-stone-500 text-center uppercase tracking-wider">Thông số chẩn đoán</div>
+              <div className="bg-stone-950/80 border border-stone-800 text-stone-400 p-3 rounded-2xl text-[9px] font-mono space-y-1.5 shadow-inner">
+                <div className="font-extrabold border-b border-stone-800 pb-1 mb-1 text-stone-500 text-center uppercase tracking-wider">Thông số chẩn đoán</div>
                 <div className="flex justify-between"><span>Secure Context:</span> <span className="text-stone-200">{window.isSecureContext ? 'Yes' : 'No'}</span></div>
                 <div className="flex justify-between"><span>Audio Context:</span> <span ref={debugStateRef} className="text-stone-200">-</span></div>
                 <div className="flex justify-between"><span>Mic Track state:</span> <span ref={debugTrackRef} className="text-stone-200">-</span></div>
@@ -1110,7 +1238,7 @@ export default function InstrumentTuner({ isOpen, onClose }) {
                 <div className="flex justify-between"><span>Sample Rate:</span> <span className="text-stone-200">{tunerAudioCtxRef.current?.sampleRate || '0'} Hz</span></div>
                 
                 {consoleErrors.length > 0 && (
-                  <div className="border-t border-stone-850 pt-1.5 mt-1.5">
+                  <div className="border-t border-stone-800 pt-1.5 mt-1.5">
                     <div className="text-red-500 font-bold mb-1 uppercase">ERRORS CONSOLE:</div>
                     <div className="space-y-1 text-red-400 text-[8px] leading-tight">
                       {consoleErrors.map((err, idx) => (
