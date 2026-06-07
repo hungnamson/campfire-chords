@@ -812,7 +812,7 @@ export default function InstrumentTuner({ isOpen, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/60 backdrop-blur-sm animate-fade-in" onClick={handleClose}>
-      <div className="bg-[#18181a] border border-stone-800 rounded-[28px] max-w-sm w-full p-6 shadow-2xl relative select-none flex flex-col" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-[#18181a] border border-stone-800 rounded-xl max-w-sm w-full p-6 shadow-2xl relative select-none flex flex-col" onClick={(e) => e.stopPropagation()}>
         {/* Modal Header */}
         <div className="flex items-center justify-between border-b border-stone-800 pb-3 mb-3 select-none">
           <div className="flex items-center gap-2 font-black text-stone-100 text-[15px]">
@@ -825,10 +825,10 @@ export default function InstrumentTuner({ isOpen, onClose }) {
         </div>
 
         {/* On-Screen Segmented Quick Select Tabs */}
-        <div className="flex bg-stone-900/50 p-1 rounded-2xl border border-stone-800/80 mb-1.5 select-none">
+        <div className="flex bg-stone-900/50 p-1 rounded-lg border border-stone-800/80 mb-1.5 select-none">
           <button
             onClick={() => setSelectedInst('guitar')}
-            className={`flex-1 py-2 text-xs font-black rounded-xl transition-all cursor-pointer text-center ${
+            className={`flex-1 py-2 text-xs font-black rounded-md transition-all cursor-pointer text-center ${
               selectedInst === 'guitar'
                 ? 'bg-amber-950/60 border border-amber-800/80 text-amber-400 shadow-sm'
                 : 'text-stone-500 hover:text-stone-400 border border-transparent'
@@ -838,7 +838,7 @@ export default function InstrumentTuner({ isOpen, onClose }) {
           </button>
           <button
             onClick={() => setSelectedInst('ukulele')}
-            className={`flex-1 py-2 text-xs font-black rounded-xl transition-all cursor-pointer text-center ${
+            className={`flex-1 py-2 text-xs font-black rounded-md transition-all cursor-pointer text-center ${
               selectedInst === 'ukulele'
                 ? 'bg-blue-950/60 border border-blue-800/80 text-blue-400 shadow-sm'
                 : 'text-stone-500 hover:text-stone-400 border border-transparent'
@@ -848,7 +848,7 @@ export default function InstrumentTuner({ isOpen, onClose }) {
           </button>
           <button
             onClick={() => setSelectedInst('ukulele_low_g')}
-            className={`flex-1 py-2 text-xs font-black rounded-xl transition-all cursor-pointer text-center ${
+            className={`flex-1 py-2 text-xs font-black rounded-md transition-all cursor-pointer text-center ${
               selectedInst === 'ukulele_low_g'
                 ? 'bg-emerald-950/60 border border-emerald-800/80 text-emerald-400 shadow-sm'
                 : 'text-stone-500 hover:text-stone-400 border border-transparent'
@@ -865,7 +865,7 @@ export default function InstrumentTuner({ isOpen, onClose }) {
         <div className="flex-grow flex flex-col space-y-4">
           
           {/* 1. Horizontal sliding dial gauge */}
-          <div className="flex flex-col items-center justify-center relative w-full h-24 bg-stone-900/40 rounded-2xl border border-stone-800/80 overflow-hidden tuner-grid-bg">
+          <div className="flex flex-col items-center justify-center relative w-full h-24 bg-stone-900/40 rounded-lg border border-stone-800/80 overflow-hidden tuner-grid-bg">
             {/* Center Thick Target Marker Zone (±12 cents = 68px width) */}
             <div 
               className={`absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-[68px] z-0 transition-colors duration-150 ${
@@ -960,7 +960,7 @@ export default function InstrumentTuner({ isOpen, onClose }) {
           </div>
 
           {/* 3. Interactive SVG Headstock Visualizer */}
-          <div className="relative flex items-center justify-between h-[280px] w-full bg-stone-900/10 rounded-3xl border border-stone-800 p-4 overflow-hidden select-none">
+          <div className="relative flex items-center justify-between h-[280px] w-full bg-stone-900/10 rounded-lg border border-stone-800 p-4 overflow-hidden select-none">
             
             {/* Peg Buttons Column on the Left */}
             <div className="flex flex-col justify-between h-full w-[45px] z-10">
@@ -1469,7 +1469,7 @@ export default function InstrumentTuner({ isOpen, onClose }) {
             {/* Mic Activation Trigger */}
             <button
               onClick={toggleListening}
-              className={`w-full py-10 mb-4 rounded-2xl text-base font-black transition-all active:scale-[0.98] flex items-center justify-center gap-3 cursor-pointer shadow-md ${
+              className={`w-full py-10 mb-4 rounded-lg text-base font-black transition-all active:scale-[0.98] flex items-center justify-center gap-3 cursor-pointer shadow-md ${
                 isListening
                   ? 'bg-red-950/80 border border-red-800 text-red-200 hover:bg-red-900'
                   : 'bg-stone-100 hover:bg-white text-stone-900'
@@ -1483,8 +1483,8 @@ export default function InstrumentTuner({ isOpen, onClose }) {
 
         {/* Success Overlay Dialog Box */}
         {showAllTunedMessage && (
-          <div className="absolute inset-0 z-30 flex items-center justify-center p-4 bg-stone-950/80 backdrop-blur-md rounded-[28px] animate-fade-in">
-            <div className="bg-[#18181a] border border-emerald-500/30 p-6 rounded-3xl max-w-[260px] w-full flex flex-col items-center justify-center text-center shadow-2xl animate-scale-up" onClick={(e) => e.stopPropagation()}>
+          <div className="absolute inset-0 z-30 flex items-center justify-center p-4 bg-stone-950/80 backdrop-blur-md rounded-xl animate-fade-in" onClick={() => setShowAllTunedMessage(false)}>
+            <div className="bg-[#18181a] border border-emerald-500/30 p-6 rounded-xl max-w-[260px] w-full flex flex-col items-center justify-center text-center shadow-2xl animate-scale-up" onClick={(e) => e.stopPropagation()}>
               <div className="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mb-4 text-emerald-400 animate-bounce">
                 <Check className="w-7 h-7" />
               </div>
@@ -1499,7 +1499,7 @@ export default function InstrumentTuner({ isOpen, onClose }) {
               </p>
               <button
                 onClick={() => setShowAllTunedMessage(false)}
-                className="mt-5 px-6 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 active:scale-[0.98] text-stone-950 font-black text-[10px] uppercase tracking-wider transition-all cursor-pointer shadow-md shadow-emerald-500/20"
+                className="mt-5 px-6 py-2 rounded-md bg-emerald-500 hover:bg-emerald-600 active:scale-[0.98] text-stone-950 font-black text-[10px] uppercase tracking-wider transition-all cursor-pointer shadow-md shadow-emerald-500/20"
               >
                 Đồng ý / Close
               </button>

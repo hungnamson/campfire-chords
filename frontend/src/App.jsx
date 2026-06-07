@@ -1107,7 +1107,7 @@ export default function App() {
             {showSettingsMenu && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setShowSettingsMenu(false)}></div>
-                <div className="absolute right-0 top-full mt-2.5 w-64 max-h-[calc(100vh-140px)] md:max-h-[calc(100vh-90px)] overflow-y-auto no-scrollbar bg-white border border-stone-200/80 rounded-2xl shadow-xl z-50 p-2 text-left animate-fade-in select-none flex flex-col gap-1.5">
+                <div className="absolute right-0 top-full mt-2.5 w-64 max-h-[calc(100vh-140px)] md:max-h-[calc(100vh-90px)] overflow-y-auto no-scrollbar bg-white border border-stone-200/80 rounded-xl shadow-xl z-50 p-2 text-left animate-fade-in select-none flex flex-col gap-1.5">
                   {/* User profile / Auth panel */}
                   {currentUser ? (
                     <div className="px-4 py-3 border-b border-stone-100 mb-1.5 flex flex-col gap-1.5">
@@ -1292,7 +1292,13 @@ export default function App() {
         }`}>
           
           {activeSong ? (
-            <div className="relative flex-grow flex flex-col">
+            <div 
+              className="relative flex-grow flex flex-col bg-stone-100/40 cursor-pointer"
+              onClick={() => {
+                setActiveSongId(null);
+                setActivePlaylistSongs([]);
+              }}
+            >
               <SongViewer 
                 song={{ ...activeSong, isFavorite: isSongFavorited(activeSong) }} 
                 transposeOffset={transposeOffset}
@@ -2013,7 +2019,7 @@ Ta đi tìm bóng mát"
                     <div className="fixed inset-0 z-40" onClick={() => setShowKeySelector(false)}></div>
                       
                       {/* Grid Selector Popover */}
-                      <div className="absolute bottom-full left-4 right-4 sm:left-1/2 sm:-translate-x-1/2 sm:w-[325px] sm:max-w-sm mb-3.5 bg-white border border-stone-200 rounded-2xl shadow-2xl p-4 z-50 animate-fade-in text-center select-none max-h-[82vh] overflow-y-auto no-scrollbar">
+                      <div className="absolute bottom-full left-4 right-4 sm:left-1/2 sm:-translate-x-1/2 sm:w-[325px] sm:max-w-sm mb-3.5 bg-white border border-stone-200 rounded-xl shadow-2xl p-4 z-50 animate-fade-in text-center select-none max-h-[82vh] overflow-y-auto no-scrollbar">
                         <div className="flex items-center justify-between border-b border-stone-100 pb-2 mb-3">
                           <span className="text-[10px] uppercase font-extrabold tracking-widest text-stone-400">Quick Key Selection</span>
                           <button
@@ -2037,7 +2043,7 @@ Ta đi tìm bóng mát"
                                   handleSelectKey(ref.original);
                                   setShowKeySelector(false);
                                 }}
-                                className="flex flex-col items-center justify-center py-3.5 sm:py-5 bg-[#fdfbf7] hover:bg-[#f8f5ee] active:scale-95 transition-all rounded-2xl border border-amber-250/75 cursor-pointer shadow-xs"
+                                className="flex flex-col items-center justify-center py-3.5 sm:py-5 bg-[#fdfbf7] hover:bg-[#f8f5ee] active:scale-95 transition-all rounded-xl border border-amber-250/75 cursor-pointer shadow-xs"
                               >
                                 <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-amber-800 font-extrabold mb-1.5">Tone Gốc</span>
                                 <span className="font-mono font-black text-amber-900 text-[15px] sm:text-lg leading-none">{ref.original}</span>
@@ -2047,7 +2053,7 @@ Ta đi tìm bóng mát"
                                   handleSelectKey(ref.male);
                                   setShowKeySelector(false);
                                 }}
-                                className="flex flex-col items-center justify-center py-3.5 sm:py-5 bg-blue-50/45 hover:bg-blue-50/90 active:scale-95 transition-all rounded-2xl border border-blue-200/80 cursor-pointer shadow-xs"
+                                className="flex flex-col items-center justify-center py-3.5 sm:py-5 bg-blue-50/45 hover:bg-blue-50/90 active:scale-95 transition-all rounded-xl border border-blue-200/80 cursor-pointer shadow-xs"
                               >
                                 <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-blue-750 font-extrabold mb-1.5">Tone Nam</span>
                                 <span className="font-mono font-black text-blue-900 text-[15px] sm:text-lg leading-none">{ref.male}</span>
@@ -2057,7 +2063,7 @@ Ta đi tìm bóng mát"
                                   handleSelectKey(ref.female);
                                   setShowKeySelector(false);
                                 }}
-                                className="flex flex-col items-center justify-center py-3.5 sm:py-5 bg-rose-50/35 hover:bg-rose-50/80 active:scale-95 transition-all rounded-2xl border border-rose-200/70 cursor-pointer shadow-xs"
+                                className="flex flex-col items-center justify-center py-3.5 sm:py-5 bg-rose-50/35 hover:bg-rose-50/80 active:scale-95 transition-all rounded-xl border border-rose-200/70 cursor-pointer shadow-xs"
                               >
                                 <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-rose-750 font-extrabold mb-1.5">Tone Nữ</span>
                                 <span className="font-mono font-black text-rose-900 text-[15px] sm:text-lg leading-none">{ref.female}</span>
@@ -2129,8 +2135,8 @@ Ta đi tìm bóng mát"
       )}
 
       {cleanupResult && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/60 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="bg-white border border-stone-200 rounded-2xl max-w-md w-full shadow-2xl p-6 relative select-none">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/60 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setCleanupResult(null)}>
+          <div className="bg-white border border-stone-200 rounded-xl max-w-md w-full shadow-2xl p-6 relative select-none" onClick={(e) => e.stopPropagation()}>
             <button
               onClick={() => setCleanupResult(null)}
               className="absolute right-4 top-4 p-1 hover:bg-stone-100 rounded-full text-stone-400 hover:text-stone-700 transition cursor-pointer"
@@ -2183,8 +2189,8 @@ Ta đi tìm bóng mát"
       )}
 
       {showAuthModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/60 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="bg-white border border-stone-200 rounded-2xl max-w-md w-full shadow-2xl p-6 relative select-none">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/60 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setShowAuthModal(false)}>
+          <div className="bg-white border border-stone-200 rounded-xl max-w-md w-full shadow-2xl p-6 relative select-none" onClick={(e) => e.stopPropagation()}>
             <button
               onClick={() => setShowAuthModal(false)}
               className="absolute right-4 top-4 p-1 hover:bg-stone-100 rounded-full text-stone-400 hover:text-stone-700 transition cursor-pointer"
