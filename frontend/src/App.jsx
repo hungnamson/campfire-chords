@@ -51,6 +51,8 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const searchInputRef = useRef(null);
+  const settingsContainerRef = useRef(null);
+  const keySelectorContainerRef = useRef(null);
 
   const suggestions = useMemo(() => {
     if (!searchInput.trim()) return [];
@@ -185,6 +187,24 @@ export default function App() {
       setPlayHistory([]);
     }
   }, [currentUser]);
+
+  // Close settings menu and key selector when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showSettingsMenu && settingsContainerRef.current && !settingsContainerRef.current.contains(event.target)) {
+        setShowSettingsMenu(false);
+      }
+      if (showKeySelector && keySelectorContainerRef.current && !keySelectorContainerRef.current.contains(event.target)) {
+        setShowKeySelector(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside, { passive: true });
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [showSettingsMenu, showKeySelector]);
 
   // Automatically record song play events when a song details sheet is opened
   useEffect(() => {
@@ -1088,7 +1108,7 @@ export default function App() {
           </div>
 
           {/* Right Section: Settings Dropdown */}
-          <div className="relative flex items-center gap-2 shrink-0">
+          <div ref={settingsContainerRef} className="relative flex items-center gap-2 shrink-0">
             {/* Transitioning button wrapper */}
             <div className={`transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap ${
               isSearchFocused 
@@ -1992,7 +2012,7 @@ Ta đi tìm bóng mát"
               <div className="hidden xs:block h-6 w-px bg-stone-200"></div>
 
               {/* Transpose Key Control Group (Dynamic size to prevent clipping) */}
-              <div className="flex items-center gap-1 sm:gap-1.5 bg-white border border-stone-200 rounded-lg p-0.5 shadow-sm shrink-0">
+              <div ref={keySelectorContainerRef} className="flex items-center gap-1 sm:gap-1.5 bg-white border border-stone-200 rounded-lg p-0.5 shadow-sm shrink-0">
                 <button
                   onClick={() => setTransposeOffset(prev => prev - 1)}
                   className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center text-base sm:text-lg font-black text-stone-600 hover:bg-stone-55 rounded-md active:scale-90 transition"
