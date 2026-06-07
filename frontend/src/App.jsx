@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   Music, 
   Search, 
@@ -31,6 +31,16 @@ import { transposeChord, NOTE_TO_SEMITONE } from './utils/transposer';
 
 const API_BASE = '/api';
 
+const removeAccents = (str) => {
+  if (!str) return '';
+  return str
+    .toString()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[đĐ]/g, 'd');
+};
+
 export default function App() {
   const [songs, setSongs] = useState([]);
   const [playlists, setPlaylists] = useState([]);
@@ -40,6 +50,36 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('library'); // library, setlists, add
   const [searchQuery, setSearchQuery] = useState('');
   const [searchInput, setSearchInput] = useState('');
+  const searchInputRef = useRef(null);
+
+  const suggestions = useMemo(() => {
+    if (!searchInput.trim()) return [];
+    const query = removeAccents(searchInput).trim();
+    if (!query) return [];
+    
+    return songs
+      .map(song => {
+        const cleanTitle = removeAccents(song.title);
+        const cleanArtist = removeAccents(song.artist);
+        
+        let score = 0;
+        if (cleanTitle.startsWith(query)) {
+          score += 100;
+        } else if (cleanTitle.includes(query)) {
+          score += 50;
+        }
+        if (cleanArtist.includes(query)) {
+          score += 10;
+        }
+        
+        return score > 0 ? { song, score } : null;
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.score - a.score)
+      .map(item => item.song)
+      .slice(0, 8);
+  }, [searchInput, songs]);
+
   const [transposeOffset, setTransposeOffset] = useState(0);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [fontSize, setFontSize] = useState(() => {
@@ -869,16 +909,6 @@ export default function App() {
     setTransposeOffset(diff);
   };
 
-  const removeAccents = (str) => {
-    if (!str) return '';
-    return str
-      .toString()
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[đĐ]/g, 'd');
-  };
-
   const filteredSongs = (() => {
     if (!searchQuery.trim()) return [];
 
@@ -981,6 +1011,7 @@ export default function App() {
           }`}>
             <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400 pointer-events-none transition-all duration-200" />
             <input
+              ref={searchInputRef}
               type="text"
               placeholder={isSearchFocused ? "" : "Search songs, artists, or lyrics... (Press Enter)"}
               value={searchInput}
@@ -996,6 +1027,10 @@ export default function App() {
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   setSearchQuery(searchInput);
+                  setIsSearchFocused(false);
+                  if (searchInputRef.current) {
+                    searchInputRef.current.blur();
+                  }
                 }
               }}
               className="w-full pl-4 pr-20 h-[38px] bg-white border border-stone-200 rounded-lg text-base placeholder-stone-400 focus:border-red-600 focus:ring-1 focus:ring-red-600/20 shadow-sm transition-all duration-200"
@@ -1015,6 +1050,40 @@ export default function App() {
               >
                 <X className="w-4 h-4" />
               </button>
+            )}
+            {isSearchFocused && suggestions.length > 0 && (
+              <div className="absolute left-0 right-0 top-full mt-2 bg-white/90 backdrop-blur-md border border-stone-200/80 rounded-xl shadow-xl z-50 overflow-hidden select-none max-h-72 overflow-y-auto no-scrollbar py-1 text-left animate-fade-in">
+                {suggestions.map((song) => (
+                  <div
+                    key={song.id}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      setActiveSongId(song.id);
+                      setSearchInput('');
+                      setSearchQuery('');
+                      setIsSearchFocused(false);
+                      if (searchInputRef.current) {
+                        searchInputRef.current.blur();
+                      }
+                    }}
+                    className="px-4 py-2.5 hover:bg-stone-50 active:bg-stone-100 flex items-center justify-between border-b border-stone-100 last:border-0 cursor-pointer group transition-colors"
+                  >
+                    <div className="min-w-0 flex-grow pr-3">
+                      <div className="font-bold text-sm text-stone-900 group-hover:text-red-750 transition-colors truncate">
+                        {song.title}
+                      </div>
+                      <div className="text-xs text-stone-500 truncate mt-0.5 font-medium">
+                        {song.artist} {song.genre ? `• ${song.genre}` : ''}
+                      </div>
+                    </div>
+                    {song.key && (
+                      <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded border bg-stone-50 border-stone-200 text-stone-600 shrink-0 font-mono">
+                        {song.key}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
             )}
           </div>
 
@@ -1775,7 +1844,7 @@ export default function App() {
                         onChange={(e) => setNewKey(e.target.value)}
                         className="px-3 py-2.5 bg-white border border-stone-200 rounded text-sm shadow-sm"
                       >
-                        {['C','C#','Db','D','D#','Eb','E','F','F#','Gb','G','G#','Ab','A','A#','Bb','B','Am','A#m','Bbm','Bm','Cm','C#m','Dm','D#m','Em','Fm','F#m','Gm','G#m'].map(k => (
+                        {['C','C#','Db','D','Eb','E','F','F#','Gb','G','Ab','A','Bb','B','Am','Bbm','Bm','Cm','C#m','Dm','Ebm','Em','Fm','F#m','Gm','G#m'].map(k => (
                           <option key={k} value={k}>{k}</option>
                         ))}
                       </select>
