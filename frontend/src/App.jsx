@@ -54,6 +54,7 @@ export default function App() {
   const [isSearchingOnline, setIsSearchingOnline] = useState(false);
   const [onlineSong, setOnlineSong] = useState(null);
   const [isSavingToLibrary, setIsSavingToLibrary] = useState(false);
+  const [forceOnlineSearch, setForceOnlineSearch] = useState(false);
   const searchInputRef = useRef(null);
   const settingsContainerRef = useRef(null);
   const keySelectorContainerRef = useRef(null);
@@ -355,6 +356,8 @@ export default function App() {
       if (selectedPlaylistId !== null) {
         setSelectedPlaylistId(null);
       }
+    } else {
+      setForceOnlineSearch(false);
     }
   }, [searchQuery]);
 
@@ -374,7 +377,7 @@ export default function App() {
       return;
     }
 
-    if (filteredSongs.length > 0) {
+    if (!forceOnlineSearch && filteredSongs.length > 0) {
       setOnlineResults([]);
       setIsSearchingOnline(false);
       return;
@@ -405,7 +408,7 @@ export default function App() {
     return () => {
       active = false;
     };
-  }, [searchQuery, filteredSongs.length]);
+  }, [searchQuery, filteredSongs.length, forceOnlineSearch]);
 
   const handleOpenOnlineSong = async (url) => {
     setIsSearchingOnline(true);
@@ -1217,6 +1220,7 @@ export default function App() {
                   <div
                     onMouseDown={(e) => {
                       e.preventDefault();
+                      setForceOnlineSearch(true);
                       setSearchQuery(searchInput);
                       setIsSearchFocused(false);
                       if (searchInputRef.current) {
@@ -1588,13 +1592,25 @@ export default function App() {
                         </div>
                       )}
                     </div>
-                  ) : filteredSongs.length === 0 ? (
+                  ) : (filteredSongs.length === 0 || forceOnlineSearch) ? (
                     <div className="flex flex-col gap-6 max-w-xl mx-auto mt-8">
-                      <div className="text-center py-10 bg-white border border-stone-200 rounded-xl shadow-sm px-6">
-                        <Search className="w-10 h-10 text-stone-300 mx-auto mb-3" />
-                        <p className="text-stone-800 font-bold">Không tìm thấy "{searchQuery}" trong thư viện</p>
-                        <p className="text-xs text-stone-500 mt-1 max-w-xs mx-auto">Hệ thống đang tự động tìm kiếm trực tuyến...</p>
-                      </div>
+                      {filteredSongs.length > 0 && (
+                        <button
+                          onClick={() => setForceOnlineSearch(false)}
+                          className="self-start px-3 py-1.5 bg-stone-100 hover:bg-stone-200 border border-stone-200 rounded-lg text-xs font-bold text-stone-700 transition flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95 animate-fade-in"
+                        >
+                          <ChevronLeft className="w-4 h-4 text-stone-600" />
+                          Xem kết quả trong thư viện ({filteredSongs.length})
+                        </button>
+                      )}
+
+                      {filteredSongs.length === 0 && (
+                        <div className="text-center py-10 bg-white border border-stone-200 rounded-xl shadow-sm px-6">
+                          <Search className="w-10 h-10 text-stone-300 mx-auto mb-3" />
+                          <p className="text-stone-800 font-bold">Không tìm thấy "{searchQuery}" trong thư viện</p>
+                          <p className="text-xs text-stone-500 mt-1 max-w-xs mx-auto">Hệ thống đang tự động tìm kiếm trực tuyến...</p>
+                        </div>
+                      )}
 
                       {isSearchingOnline && (
                         <div className="flex flex-col items-center justify-center py-12 bg-white border border-stone-200 rounded-xl shadow-sm px-6">
@@ -1613,7 +1629,7 @@ export default function App() {
                               <Globe className="w-3.5 h-3.5" /> Hợp âm từ hopamchuan.com
                             </h2>
                             <span className="text-[10px] bg-blue-50 text-blue-700 font-semibold px-2 py-0.5 rounded-full">
-                              Tự động tìm kiếm
+                              {filteredSongs.length === 0 ? "Tự động tìm kiếm" : "Tìm kiếm thủ công"}
                             </span>
                           </div>
                           
@@ -1681,6 +1697,21 @@ export default function App() {
                             </div>
                           </div>
                         ))}
+                      </div>
+
+                      {/* Search Online Banner at the bottom of local results */}
+                      <div className="mt-8 border border-blue-100 bg-blue-50/35 rounded-xl p-5 text-center max-w-xl mx-auto shadow-sm select-none animate-fade-in">
+                        <Globe className="w-8 h-8 text-blue-600 mx-auto mb-2.5 animate-pulse" />
+                        <h4 className="text-sm font-bold text-stone-900 font-display">Bạn muốn tìm bản nhạc khác?</h4>
+                        <p className="text-xs text-stone-500 mt-1 max-w-xs mx-auto leading-relaxed">
+                          Tìm kiếm các phiên bản hợp âm đầy đủ khác trực tuyến trên hopamchuan.com.
+                        </p>
+                        <button
+                          onClick={() => setForceOnlineSearch(true)}
+                          className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition shadow-md cursor-pointer active:scale-95 flex items-center gap-1.5 mx-auto"
+                        >
+                          <Globe className="w-3.5 h-3.5" /> Tìm trực tuyến cho "{searchQuery}"
+                        </button>
                       </div>
                     </div>
                   )}
