@@ -1184,37 +1184,41 @@ export default function App() {
               </button>
             )}
             {isSearchFocused && (suggestions.length > 0 || searchInput.trim().length > 0) && (
-              <div className="absolute left-0 right-0 top-full mt-2 bg-white/90 backdrop-blur-md border border-stone-200/80 rounded-xl shadow-xl z-50 overflow-hidden select-none max-h-72 overflow-y-auto no-scrollbar py-1 text-left animate-fade-in">
-                {suggestions.map((song) => (
-                  <div
-                    key={song.id}
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      setActiveSongId(song.id);
-                      setSearchInput('');
-                      setSearchQuery('');
-                      setIsSearchFocused(false);
-                      if (searchInputRef.current) {
-                        searchInputRef.current.blur();
-                      }
-                    }}
-                    className="px-4 py-2.5 hover:bg-stone-50 active:bg-stone-100 flex items-center justify-between border-b border-stone-100 last:border-0 cursor-pointer group transition-colors"
-                  >
-                    <div className="min-w-0 flex-grow pr-3">
-                      <div className="font-bold text-sm text-stone-900 group-hover:text-red-750 transition-colors truncate">
-                        {song.title}
+              <div className="absolute left-0 right-0 top-full mt-2 bg-white/90 backdrop-blur-md border border-stone-200/80 rounded-xl shadow-xl z-50 overflow-hidden select-none max-h-72 flex flex-col text-left animate-fade-in">
+                {suggestions.length > 0 && (
+                  <div className="overflow-y-auto flex-grow no-scrollbar py-1">
+                    {suggestions.map((song) => (
+                      <div
+                        key={song.id}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          setActiveSongId(song.id);
+                          setSearchInput('');
+                          setSearchQuery('');
+                          setIsSearchFocused(false);
+                          if (searchInputRef.current) {
+                            searchInputRef.current.blur();
+                          }
+                        }}
+                        className="px-4 py-2.5 hover:bg-stone-50 active:bg-stone-100 flex items-center justify-between border-b border-stone-100 last:border-0 cursor-pointer group transition-colors"
+                      >
+                        <div className="min-w-0 flex-grow pr-3">
+                          <div className="font-bold text-sm text-stone-900 group-hover:text-red-750 transition-colors truncate">
+                            {song.title}
+                          </div>
+                          <div className="text-xs text-stone-500 truncate mt-0.5 font-medium">
+                            {song.artist} {song.genre ? `• ${song.genre}` : ''}
+                          </div>
+                        </div>
+                        {song.key && (
+                          <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded border bg-stone-50 border-stone-200 text-stone-600 shrink-0 font-mono">
+                            {song.key}
+                          </span>
+                        )}
                       </div>
-                      <div className="text-xs text-stone-500 truncate mt-0.5 font-medium">
-                        {song.artist} {song.genre ? `• ${song.genre}` : ''}
-                      </div>
-                    </div>
-                    {song.key && (
-                      <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded border bg-stone-50 border-stone-200 text-stone-600 shrink-0 font-mono">
-                        {song.key}
-                      </span>
-                    )}
+                    ))}
                   </div>
-                ))}
+                )}
 
                 {searchInput.trim().length > 0 && (
                   <div
@@ -1227,7 +1231,7 @@ export default function App() {
                         searchInputRef.current.blur();
                       }
                     }}
-                    className="px-5 py-4 hover:bg-blue-50 active:bg-blue-100 flex items-center gap-3 border-t border-stone-100 cursor-pointer text-blue-700 transition-colors font-bold text-sm min-h-[48px]"
+                    className="px-5 py-4 hover:bg-blue-50 active:bg-blue-100 flex items-center gap-3 border-t border-stone-100 cursor-pointer text-blue-700 transition-colors font-bold text-sm min-h-[48px] shrink-0"
                   >
                     <Globe className="w-5 h-5 text-blue-600 animate-pulse shrink-0" />
                     <span>Tìm trực tuyến cho "{searchInput}"...</span>
