@@ -1227,9 +1227,9 @@ export default function App() {
                         searchInputRef.current.blur();
                       }
                     }}
-                    className="px-4 py-3 hover:bg-blue-50 active:bg-blue-100 flex items-center gap-2 border-t border-stone-100 cursor-pointer text-blue-700 transition-colors font-semibold text-xs"
+                    className="px-5 py-4 hover:bg-blue-50 active:bg-blue-100 flex items-center gap-3 border-t border-stone-100 cursor-pointer text-blue-700 transition-colors font-bold text-sm min-h-[48px]"
                   >
-                    <Globe className="w-3.5 h-3.5 text-blue-600 animate-pulse" />
+                    <Globe className="w-5 h-5 text-blue-600 animate-pulse shrink-0" />
                     <span>Tìm trực tuyến cho "{searchInput}"...</span>
                   </div>
                 )}
@@ -1708,9 +1708,9 @@ export default function App() {
                         </p>
                         <button
                           onClick={() => setForceOnlineSearch(true)}
-                          className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition shadow-md cursor-pointer active:scale-95 flex items-center gap-1.5 mx-auto"
+                          className="mt-4 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl transition shadow-md cursor-pointer active:scale-95 flex items-center gap-2 mx-auto min-h-[44px]"
                         >
-                          <Globe className="w-3.5 h-3.5" /> Tìm trực tuyến cho "{searchQuery}"
+                          <Globe className="w-4.5 h-4.5 shrink-0" /> Tìm trực tuyến cho "{searchQuery}"
                         </button>
                       </div>
                     </div>
