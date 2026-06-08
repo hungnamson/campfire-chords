@@ -368,7 +368,7 @@ export default function App() {
     }
   }, [activeSongId]);
 
-  // Automatically search hopamchuan.com online if no local matches are found
+  // Automatically search online if no local matches are found
   useEffect(() => {
     const trimmed = searchQuery.trim();
     if (!trimmed) {
@@ -2030,7 +2030,7 @@ export default function App() {
                   <FileText className="w-5 h-5 text-red-600" /> Copy-Paste / Manual Chords Importer
                 </h2>
                 <p className="text-xs text-stone-500 mb-4 leading-relaxed">
-                  Use this to copy-paste songs from <b>hopamviet.vn</b> (or other chord sheets). Paste the block containing the text and chords. Our intelligent system automatically converts standard "chords-above-lyrics" lines into unified ChordPro brackets format!
+                  Use this to copy-paste songs from online chord sheets. Paste the block containing the text and chords. Our intelligent system automatically converts standard "chords-above-lyrics" lines into unified ChordPro brackets format!
                 </p>
 
                 <form onSubmit={handlePasteImport} className="flex flex-col gap-4">
