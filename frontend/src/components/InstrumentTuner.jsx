@@ -35,7 +35,7 @@ const INSTRUMENT_TUNINGS = {
 
 // Optimized autocorrelation algorithm for pitch detection with parabolic interpolation refinement
 function autoCorrelate(buffer, sampleRate, rms) {
-  if (rms < 0.012) return -1; // Raised threshold from 0.003 to 0.012 to reject background/ambient noise
+  if (rms < 0.003) return -1; // Lowered threshold to 0.003 to detect E4/A4 strings easily while retaining noise rejection
 
   const SIZE = buffer.length;
   // We only search for frequencies between 70Hz and 600Hz.
@@ -61,14 +61,21 @@ function autoCorrelate(buffer, sampleRate, rms) {
 
   // 1. Find the absolute maximum peak in the allowed lag range
   let maxval = -1;
+  let maxpos_temp = -1;
   for (let i = Math.max(d, minLag); i < maxLag; i++) {
     if (c[i] > maxval) {
       maxval = c[i];
+      maxpos_temp = i;
     }
   }
 
-  // If no peak found or correlation is too weak (below 55% of energy at lag 0)
-  if (maxval < 0.55 * c[0]) {
+  // Determine threshold ratio dynamically: higher frequencies (above 220Hz) use 0.35,
+  // lower frequencies use 0.50. This is highly effective because high strings decay faster
+  // and have lower amplitude peaks, while our target-anchored noise gate filters out any false positives.
+  const estimatedFreq = maxpos_temp > 0 ? sampleRate / maxpos_temp : 0;
+  const thresholdRatio = estimatedFreq > 220 ? 0.35 : 0.50;
+
+  if (maxval < thresholdRatio * c[0]) {
     return -1;
   }
 
@@ -540,7 +547,7 @@ export default function InstrumentTuner({ isOpen, onClose }) {
           const isGuitar = selectedInstRef.current === 'guitar';
           const isLowGUke = selectedInstRef.current === 'ukulele_low_g';
           const minAllowedFreq = isGuitar ? 70 : isLowGUke ? 170 : 200;
-          const maxAllowedFreq = isGuitar ? 380 : 600;
+          const maxAllowedFreq = isGuitar ? 480 : 600;
 
           // Target-Anchored Noise Filtering: Discard pitch detection if it lies too far from expected string frequencies
           let passesNoiseGate = false;
@@ -572,10 +579,10 @@ export default function InstrumentTuner({ isOpen, onClose }) {
             // Reset no-pitch frames count
             framesWithoutPitchRef.current = 0;
 
-            // Determine parameters (fixed to 'smooth' preset internally)
-            const maxHistory = 12;
-            const settlingThreshold = 6;
-            const alpha = 0.04;
+            // Determine parameters (optimized dynamically for responsive high-pitch strings)
+            const maxHistory = 10;
+            const settlingThreshold = detectedFreq > 220 ? 1 : 3; // Lower settling threshold for high strings
+            const alpha = detectedFreq > 220 ? 0.18 : 0.10; // Faster tracking for high strings that decay quickly
 
             // Push to history buffers
             pitchHistoryRef.current.push(detectedFreq);
@@ -589,7 +596,8 @@ export default function InstrumentTuner({ isOpen, onClose }) {
               const recentF = pitchHistoryRef.current.slice(-4);
               const minF = Math.min(...recentF);
               const maxF = Math.max(...recentF);
-              if (minF > 0 && maxF / minF > 1.018) {
+              const maxRatio = detectedFreq > 220 ? 1.03 : 1.018; // More lenient for high strings which slide/decay faster
+              if (minF > 0 && maxF / minF > maxRatio) {
                 isPitchStable = false;
               }
             }
@@ -631,7 +639,7 @@ export default function InstrumentTuner({ isOpen, onClose }) {
                   }
                 }
 
-                // Apply string switching debouncing
+                // Apply string switching debouncing (faster confirmation for high strings)
                 if (!lastTargetStringRef.current) {
                   lastTargetStringRef.current = closest;
                   setDetectedString(closest);
@@ -650,7 +658,8 @@ export default function InstrumentTuner({ isOpen, onClose }) {
                     stringChangeConfirmCountRef.current = 1;
                   }
 
-                  if (stringChangeConfirmCountRef.current >= 5) {
+                  const requiredConfirms = closest.freq > 220 ? 3 : 5;
+                  if (stringChangeConfirmCountRef.current >= requiredConfirms) {
                     // Stable new string switch!
                     lastTargetStringRef.current = closest;
                     setDetectedString(closest);
@@ -960,480 +969,442 @@ export default function InstrumentTuner({ isOpen, onClose }) {
           </div>
 
           {/* 3. Interactive SVG Headstock Visualizer */}
-          <div className="relative flex items-center justify-between h-[280px] w-full bg-stone-900/10 rounded-lg border border-stone-800 p-4 overflow-hidden select-none">
-            
-            {/* Peg Buttons Column on the Left */}
-            <div className="flex flex-col justify-between h-full w-[45px] z-10">
-              {currentStrings.map((stringObj) => {
-                const isSelected = activeTarget?.index === stringObj.index;
-                const isTuned = tunedStrings.includes(stringObj.index) && (!isSelected || !isListening || displayInTune);
-                return (
-                  <button
-                    key={stringObj.index}
-                    onClick={() => {
-                      if (tunerMode === 'manual') {
-                        setSelectedString(stringObj);
-                      }
-                      playReferenceTone(stringObj.freq);
-                    }}
-                    className={`w-9 h-9 rounded-full flex flex-col items-center justify-center border transition-all active:scale-[0.98] cursor-pointer ${
-                      isSelected
-                        ? displayInTune && isListening
-                          ? 'bg-green-900 border-green-500 text-green-300 shadow-md shadow-green-500/20 font-black animate-pulse'
-                          : isTuned
-                            ? 'bg-green-950/80 border-green-700 text-green-400 font-black'
-                            : 'bg-blue-900 border-blue-500 text-blue-300 shadow-md shadow-blue-500/20 font-black'
-                        : isTuned
-                          ? 'bg-green-950/40 border-green-900/60 text-green-500/90 font-bold'
-                          : 'bg-stone-900/80 border-stone-800 text-stone-400 hover:bg-stone-800 hover:text-stone-200'
-                    }`}
-                  >
-                    <span className="font-mono text-sm font-black leading-none uppercase">
-                      {stringObj.name}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-            
-            {/* Headstock SVG on the Right */}
-            <div className="absolute right-0 top-0 bottom-0 w-[260px] flex items-center justify-center">
-              {selectedInst === 'guitar' ? (
-                /* Fender-style 6-in-line Guitar Headstock SVG */
-                <svg viewBox="0 0 160 300" className="h-[270px] w-[145px] drop-shadow-[0_12px_20px_rgba(0,0,0,0.6)]">
-                  <defs>
-                    {/* Radial gradient representing a warm amber-to-dark sunburst wood finish */}
-                    <radialGradient id="sunburst" cx="50%" cy="40%" r="65%" fx="45%" fy="35%">
-                      <stop offset="0%" stopColor="#f59e0b" />
-                      <stop offset="35%" stopColor="#d97706" />
-                      <stop offset="65%" stopColor="#78350f" />
-                      <stop offset="90%" stopColor="#291305" />
-                      <stop offset="100%" stopColor="#0f0500" />
-                    </radialGradient>
-                    
-                    {/* Highly reflective polished chrome */}
-                    <linearGradient id="chromeShiny" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0%" stopColor="#f3f4f6" />
-                      <stop offset="20%" stopColor="#e5e7eb" />
-                      <stop offset="40%" stopColor="#9ca3af" />
-                      <stop offset="45%" stopColor="#4b5563" />
-                      <stop offset="50%" stopColor="#1f2937" />
-                      <stop offset="55%" stopColor="#9ca3af" />
-                      <stop offset="80%" stopColor="#e5e7eb" />
-                      <stop offset="100%" stopColor="#374151" />
-                    </linearGradient>
-
-                    {/* Green chrome for tuned pegs */}
-                    <linearGradient id="chromeTuned" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0%" stopColor="#e8f5e9" />
-                      <stop offset="20%" stopColor="#a5d6a7" />
-                      <stop offset="40%" stopColor="#66bb6a" />
-                      <stop offset="50%" stopColor="#2e7d32" />
-                      <stop offset="60%" stopColor="#1b5e20" />
-                      <stop offset="80%" stopColor="#a5d6a7" />
-                      <stop offset="100%" stopColor="#1b5e20" />
-                    </linearGradient>
-
-                    {/* Golden brass gradient */}
-                    <linearGradient id="brass" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0%" stopColor="#fef08a" />
-                      <stop offset="25%" stopColor="#eab308" />
-                      <stop offset="50%" stopColor="#ca8a04" />
-                      <stop offset="75%" stopColor="#a16207" />
-                      <stop offset="100%" stopColor="#78350f" />
-                    </linearGradient>
-
-                    {/* Lacquer varnish gloss reflection */}
-                    <linearGradient id="glossReflection" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0%" stopColor="#ffffff" stopOpacity="0.25" />
-                      <stop offset="30%" stopColor="#ffffff" stopOpacity="0.08" />
-                      <stop offset="31%" stopColor="#ffffff" stopOpacity="0" />
-                      <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
-                    </linearGradient>
-
-                    {/* Clip path for the headstock wood */}
-                    <clipPath id="guitarHeadstockClip">
-                      <path d="M 58 242 C 45 235, 33 215, 33 205 L 33 45 C 33 25, 78 12, 95 22 C 112 32, 112 95, 102 150 C 96 185, 102 230, 102 242 Z" />
-                    </clipPath>
-                  </defs>
-
-                  {/* Fretboard Mahogany Neck */}
-                  <rect x="58" y="245" width="44" height="55" fill="#3c1505" />
-                  <rect x="58" y="245" width="44" height="55" fill="url(#chromeShiny)" opacity="0.08" />
+          <div className="relative flex items-center justify-center h-[280px] w-full bg-stone-900/10 rounded-lg border border-stone-800 p-4 overflow-hidden select-none">
+            {selectedInst === 'guitar' ? (
+              /* Symmetrical 3+3 Guitar Headstock SVG */
+              <svg viewBox="0 0 200 300" className="h-[270px] w-[180px] drop-shadow-[0_12px_20px_rgba(0,0,0,0.6)]">
+                <defs>
+                  {/* Radial gradient representing a warm amber-to-dark sunburst wood finish */}
+                  <radialGradient id="sunburst" cx="50%" cy="40%" r="65%" fx="45%" fy="35%">
+                    <stop offset="0%" stopColor="#f59e0b" />
+                    <stop offset="35%" stopColor="#d97706" />
+                    <stop offset="65%" stopColor="#78350f" />
+                    <stop offset="90%" stopColor="#291305" />
+                    <stop offset="100%" stopColor="#0f0500" />
+                  </radialGradient>
                   
-                  {/* Fretboard dark rosewood */}
-                  <rect x="58" y="245" width="44" height="55" fill="#1c1917" rx="1" />
-                  
-                  {/* Fret silver lines */}
-                  <line x1="58" y1="275" x2="102" y2="275" stroke="#d1d5db" strokeWidth="1.2" />
-                  
-                  {/* Fret Bone Nut */}
-                  <rect x="58" y="242" width="44" height="4.5" fill="#f5f5f4" rx="1" />
-                  
-                  {/* Nut slots details */}
-                  <line x1="62" y1="242" x2="62" y2="246.5" stroke="#a8a29e" strokeWidth="0.8" />
-                  <line x1="69" y1="242" x2="69" y2="246.5" stroke="#a8a29e" strokeWidth="0.8" />
-                  <line x1="76" y1="242" x2="76" y2="246.5" stroke="#a8a29e" strokeWidth="0.8" />
-                  <line x1="83" y1="242" x2="83" y2="246.5" stroke="#a8a29e" strokeWidth="0.8" />
-                  <line x1="90" y1="242" x2="90" y2="246.5" stroke="#a8a29e" strokeWidth="0.8" />
-                  <line x1="97" y1="242" x2="97" y2="246.5" stroke="#a8a29e" strokeWidth="0.8" />
+                  {/* Highly reflective polished chrome */}
+                  <linearGradient id="chromeShiny" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="#f3f4f6" />
+                    <stop offset="20%" stopColor="#e5e7eb" />
+                    <stop offset="40%" stopColor="#9ca3af" />
+                    <stop offset="45%" stopColor="#4b5563" />
+                    <stop offset="50%" stopColor="#1f2937" />
+                    <stop offset="55%" stopColor="#9ca3af" />
+                    <stop offset="80%" stopColor="#e5e7eb" />
+                    <stop offset="100%" stopColor="#374151" />
+                  </linearGradient>
 
-                  {/* Guitar Wood Headstock with grains & reflections */}
-                  <g clipPath="url(#guitarHeadstockClip)">
-                    <path 
-                      d="M 58 242 C 45 235, 33 215, 33 205 L 33 45 C 33 25, 78 12, 95 22 C 112 32, 112 95, 102 150 C 96 185, 102 230, 102 242 Z" 
-                      fill="url(#sunburst)" 
-                    />
-                    
-                    {/* Simulated wood grain curves */}
-                    <path d="M 40 40 Q 60 45, 80 50 T 100 120" stroke="#451a03" strokeWidth="0.5" opacity="0.25" fill="none" />
-                    <path d="M 45 35 Q 65 40, 85 45 T 105 130" stroke="#451a03" strokeWidth="0.4" opacity="0.2" fill="none" />
-                    <path d="M 35 60 Q 55 65, 75 70 T 95 160" stroke="#451a03" strokeWidth="0.6" opacity="0.28" fill="none" />
-                    <path d="M 38 80 Q 58 85, 78 90 T 98 180" stroke="#451a03" strokeWidth="0.5" opacity="0.22" fill="none" />
-                    <path d="M 36 100 Q 56 105, 76 110 T 96 200" stroke="#451a03" strokeWidth="0.4" opacity="0.25" fill="none" />
-                    <path d="M 34 130 Q 54 135, 74 140 T 94 220" stroke="#451a03" strokeWidth="0.5" opacity="0.18" fill="none" />
-                    <path d="M 34 160 Q 54 165, 74 170 T 94 235" stroke="#451a03" strokeWidth="0.6" opacity="0.2" fill="none" />
+                  {/* Green chrome for tuned pegs */}
+                  <linearGradient id="chromeTuned" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="#e8f5e9" />
+                    <stop offset="20%" stopColor="#a5d6a7" />
+                    <stop offset="40%" stopColor="#66bb6a" />
+                    <stop offset="50%" stopColor="#2e7d32" />
+                    <stop offset="60%" stopColor="#1b5e20" />
+                    <stop offset="80%" stopColor="#a5d6a7" />
+                    <stop offset="100%" stopColor="#1b5e20" />
+                  </linearGradient>
 
-                    {/* 3D Bevel Highlight */}
-                    <path 
-                      d="M 57 240 C 46 233, 35 214, 35 204 L 35 47 C 35 28, 77 15, 93 24 C 109 34, 109 94, 100 148 C 94 183, 100 228, 100 240" 
-                      fill="none" 
-                      stroke="#fef08a" 
-                      strokeWidth="0.6" 
-                      opacity="0.15" 
-                    />
-                    
-                    {/* Gloss Lacquer varnish reflection */}
-                    <path 
-                      d="M 33 30 Q 80 80, 112 180 L 112 30 Z" 
-                      fill="url(#glossReflection)" 
-                      opacity="0.22" 
-                      pointerEvents="none" 
-                    />
-                  </g>
-                  
-                  {/* Outer edge stroke */}
+                  {/* Glowing blue chrome for active peg */}
+                  <linearGradient id="chromeActive" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="#dbeafe" />
+                    <stop offset="20%" stopColor="#bfdbfe" />
+                    <stop offset="40%" stopColor="#60a5fa" />
+                    <stop offset="50%" stopColor="#2563eb" />
+                    <stop offset="60%" stopColor="#1d4ed8" />
+                    <stop offset="80%" stopColor="#60a5fa" />
+                    <stop offset="100%" stopColor="#1e40af" />
+                  </linearGradient>
+
+                  {/* Golden brass gradient */}
+                  <linearGradient id="brass" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="#fef08a" />
+                    <stop offset="25%" stopColor="#eab308" />
+                    <stop offset="50%" stopColor="#ca8a04" />
+                    <stop offset="75%" stopColor="#a16207" />
+                    <stop offset="100%" stopColor="#78350f" />
+                  </linearGradient>
+
+                  {/* Lacquer varnish gloss reflection */}
+                  <linearGradient id="glossReflection" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="#ffffff" stopOpacity="0.25" />
+                    <stop offset="30%" stopColor="#ffffff" stopOpacity="0.08" />
+                    <stop offset="31%" stopColor="#ffffff" stopOpacity="0" />
+                    <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+                  </linearGradient>
+
+                  {/* Clip path for the headstock wood */}
+                  <clipPath id="guitarHeadstockClip">
+                    <path d="M 80 230 C 68 220, 58 190, 58 170 L 58 45 C 58 32, 75 25, 100 35 C 125 25, 142 32, 142 45 L 142 170 C 142 190, 132 220, 120 230 Z" />
+                  </clipPath>
+                </defs>
+
+                {/* Fretboard Mahogany Neck */}
+                <rect x="80" y="235" width="40" height="65" fill="#3c1505" />
+                <rect x="80" y="235" width="40" height="65" fill="url(#chromeShiny)" opacity="0.08" />
+                
+                {/* Fretboard dark rosewood */}
+                <rect x="80" y="235" width="40" height="65" fill="#1c1917" rx="1" />
+                
+                {/* Bone Nut */}
+                <rect x="80" y="230" width="40" height="6" fill="#f5f5f4" rx="1" />
+                
+                {/* Nut slots details */}
+                <line x1="83.3" y1="230" x2="83.3" y2="236" stroke="#a8a29e" strokeWidth="0.8" />
+                <line x1="90.0" y1="230" x2="90.0" y2="236" stroke="#a8a29e" strokeWidth="0.8" />
+                <line x1="96.7" y1="230" x2="96.7" y2="236" stroke="#a8a29e" strokeWidth="0.8" />
+                <line x1="103.3" y1="230" x2="103.3" y2="236" stroke="#a8a29e" strokeWidth="0.8" />
+                <line x1="110.0" y1="230" x2="110.0" y2="236" stroke="#a8a29e" strokeWidth="0.8" />
+                <line x1="116.7" y1="230" x2="116.7" y2="236" stroke="#a8a29e" strokeWidth="0.8" />
+
+                {/* Guitar Wood Headstock with grains & reflections */}
+                <g clipPath="url(#guitarHeadstockClip)">
                   <path 
-                    d="M 58 242 C 45 235, 33 215, 33 205 L 33 45 C 33 25, 78 12, 95 22 C 112 32, 112 95, 102 150 C 96 185, 102 230, 102 242 Z" 
-                    fill="none" 
-                    stroke="#220b02" 
-                    strokeWidth="1.2" 
+                    d="M 80 230 C 68 220, 58 190, 58 170 L 58 45 C 58 32, 75 25, 100 35 C 125 25, 142 32, 142 45 L 142 170 C 142 190, 132 220, 120 230 Z" 
+                    fill="url(#sunburst)" 
                   />
-
-                  {/* 6 Tuning Pegs with detailed base plates, brass gears, and string winds */}
-                  {[
-                    { y: 215, idx: 6, strThick: '2.4' }, // E2
-                    { y: 181, idx: 5, strThick: '2.0' }, // A2
-                    { y: 147, idx: 4, strThick: '1.7' }, // D3
-                    { y: 113, idx: 3, strThick: '1.4' }, // G3
-                    { y: 79,  idx: 2, strThick: '1.1' }, // B3
-                    { y: 45,  idx: 1, strThick: '0.8' }  // E4
-                  ].map((peg) => {
-                    const isPegActive = activeTarget?.index === peg.idx;
-                    const isPegTuned = tunedStrings.includes(peg.idx) && (!isPegActive || !isListening || displayInTune);
-                    return (
-                      <g key={peg.idx}>
-                        {/* Chrome Tuning Key base plate */}
-                        <rect x="36" y={peg.y - 8} width="14" height="16" rx="2" fill="url(#chromeShiny)" stroke="#1c1917" strokeWidth="0.5" />
-                        <circle cx="43" cy={peg.y - 5.5} r="0.8" fill="#374151" stroke="#1f2937" strokeWidth="0.2" />
-                        <circle cx="43" cy={peg.y + 5.5} r="0.8" fill="#374151" stroke="#1f2937" strokeWidth="0.2" />
-
-                        {/* Golden Brass Gear */}
-                        <circle cx="43" cy={peg.y} r="4.5" fill="url(#brass)" stroke="#7c2d12" strokeWidth="0.4" />
-                        <circle cx="43" cy={peg.y} r="4.5" fill="none" stroke="#fef08a" strokeWidth="0.6" strokeDasharray="0.8,0.8" />
-                        <circle cx="43" cy={peg.y} r="1.2" fill="#374151" stroke="#1f2937" strokeWidth="0.3" />
-                        <line x1="42.2" y1={peg.y} x2="43.8" y2={peg.y} stroke="#f3f4f6" strokeWidth="0.3" />
-
-                        {/* Chrome shaft and casing */}
-                        <rect x="39" y={peg.y - 1.2} width="8" height="2.4" fill="url(#chromeShiny)" rx="0.4" stroke="#1c1917" strokeWidth="0.3" />
-                        <rect x="23" y={peg.y - 1} width="16" height="2" fill="url(#chromeShiny)" stroke="#111827" strokeWidth="0.4" />
-
-                        {/* Chrome Tuning Key handle contoured */}
-                        <path 
-                          d={`M 13 ${peg.y} C 10 ${peg.y - 5.5}, 16 ${peg.y - 6}, 23 ${peg.y - 2.5} L 23 ${peg.y + 2.5} C 16 ${peg.y + 6}, 10 ${peg.y + 5.5}, 13 ${peg.y}`} 
-                          fill={isPegTuned ? "url(#chromeTuned)" : "url(#chromeShiny)"} 
-                          stroke={isPegTuned ? "#047857" : "#111827"} 
-                          strokeWidth="0.6" 
-                        />
-                        <path 
-                          d={`M 14.5 ${peg.y} C 12.5 ${peg.y - 3.5}, 17 ${peg.y - 4}, 21 ${peg.y - 1.5}`} 
-                          fill="none" 
-                          stroke="#ffffff" 
-                          strokeWidth="0.4" 
-                          opacity="0.5" 
-                        />
-
-                        {/* Chrome Post Washer and Cylinder */}
-                        <ellipse cx="43" cy={peg.y} rx="4.0" ry="2.5" fill="url(#chromeShiny)" stroke="#111827" strokeWidth="0.4" />
-                        <rect x="41.5" y={peg.y - 6} width="3" height="7" fill="url(#chromeShiny)" rx="0.5" stroke="#1f2937" strokeWidth="0.4" />
-
-                        {/* String coils wound on post */}
-                        <ellipse cx="43" cy={peg.y + 0.5} rx="2.8" ry="1.2" fill="#9ca3af" stroke="#374151" strokeWidth="0.25" />
-                        <ellipse cx="43" cy={peg.y - 0.5} rx="2.8" ry="1.2" fill="#d1d5db" stroke="#374151" strokeWidth="0.25" />
-                        <ellipse cx="43" cy={peg.y - 1.5} rx="2.8" ry="1.2" fill="#e5e7eb" stroke="#374151" strokeWidth="0.25" />
-
-                        {/* Cut string end sticking out */}
-                        <path d={`M 45.8 ${peg.y - 2.5} Q 49 ${peg.y - 4.5}, 47.5 ${peg.y - 7.5}`} fill="none" stroke="#9ca3af" strokeWidth="0.75" />
-
-                        {isPegActive && (
-                          <ellipse cx="43" cy={peg.y} rx="7.5" ry="5.5" fill="none" stroke={displayInTune ? "#10b981" : "#3b82f6"} strokeWidth="1" className="animate-ping" />
-                        )}
-                      </g>
-                    );
-                  })}
-
-                  {/* Steel Strings */}
-                  {[
-                    { xNut: 62, pegY: 215, idx: 6, t: 2.3 }, // String 6 (E2)
-                    { xNut: 69, pegY: 181, idx: 5, t: 1.9 }, // String 5 (A2)
-                    { xNut: 76, pegY: 147, idx: 4, t: 1.6 }, // String 4 (D3)
-                    { xNut: 83, pegY: 113, idx: 3, t: 1.3 }, // String 3 (G3)
-                    { xNut: 90, pegY: 79,  idx: 2, t: 1.0 }, // String 2 (B3)
-                    { xNut: 97, pegY: 45,  idx: 1, t: 0.7 }  // String 1 (E4)
-                  ].map((str) => {
-                    const isStrActive = activeTarget?.index === str.idx;
-                    const isStrTuned = tunedStrings.includes(str.idx) && (!isStrActive || !isListening || displayInTune);
-                    const vibrateClass = isStrActive && isListening && frequency ? 'animate-string-vibrate' : '';
-                    return (
-                      <path
-                        key={str.idx}
-                        d={`M ${str.xNut} 300 L ${str.xNut} 242 L 43 ${str.pegY}`}
-                        fill="none"
-                        stroke={isStrActive && isListening && frequency ? (displayInTune ? '#10b981' : '#60a5fa') : isStrTuned ? '#10b981' : '#9ca3af'}
-                        strokeWidth={str.t}
-                        opacity={isStrActive && isListening && frequency ? 1.0 : isStrTuned ? 0.9 : 0.45}
-                        className={vibrateClass}
-                      />
-                    );
-                  })}
-                </svg>
-              ) : (
-                /* Ukulele Symmetrical 2+2 Headstock SVG */
-                <svg viewBox="0 0 160 300" className="h-[270px] w-[145px] drop-shadow-[0_12px_20px_rgba(0,0,0,0.6)]">
-                  <defs>
-                    {/* Radial gradient representing warm koa wood finish */}
-                    <radialGradient id="ukeKoaWood" cx="50%" cy="50%" r="70%" fx="45%" fy="45%">
-                      <stop offset="0%" stopColor="#ea580c" />
-                      <stop offset="35%" stopColor="#b45309" />
-                      <stop offset="70%" stopColor="#78350f" />
-                      <stop offset="100%" stopColor="#3c1505" />
-                    </radialGradient>
-
-                    {/* Highly reflective polished chrome */}
-                    <linearGradient id="chromeShinyUke" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0%" stopColor="#f3f4f6" />
-                      <stop offset="20%" stopColor="#e5e7eb" />
-                      <stop offset="40%" stopColor="#9ca3af" />
-                      <stop offset="45%" stopColor="#4b5563" />
-                      <stop offset="50%" stopColor="#1f2937" />
-                      <stop offset="55%" stopColor="#9ca3af" />
-                      <stop offset="80%" stopColor="#e5e7eb" />
-                      <stop offset="100%" stopColor="#374151" />
-                    </linearGradient>
-
-                    {/* Green chrome for tuned pegs */}
-                    <linearGradient id="chromeTunedUke" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0%" stopColor="#e8f5e9" />
-                      <stop offset="20%" stopColor="#a5d6a7" />
-                      <stop offset="40%" stopColor="#66bb6a" />
-                      <stop offset="50%" stopColor="#2e7d32" />
-                      <stop offset="60%" stopColor="#1b5e20" />
-                      <stop offset="80%" stopColor="#a5d6a7" />
-                      <stop offset="100%" stopColor="#1b5e20" />
-                    </linearGradient>
-
-                    {/* Golden brass gradient */}
-                    <linearGradient id="brassUke" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0%" stopColor="#fef08a" />
-                      <stop offset="25%" stopColor="#eab308" />
-                      <stop offset="50%" stopColor="#ca8a04" />
-                      <stop offset="75%" stopColor="#a16207" />
-                      <stop offset="100%" stopColor="#78350f" />
-                    </linearGradient>
-
-                    {/* Lacquer varnish gloss reflection */}
-                    <linearGradient id="glossReflectionUke" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0%" stopColor="#ffffff" stopOpacity="0.25" />
-                      <stop offset="30%" stopColor="#ffffff" stopOpacity="0.08" />
-                      <stop offset="31%" stopColor="#ffffff" stopOpacity="0" />
-                      <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
-                    </linearGradient>
-
-                    {/* Pearlescent tuner key button */}
-                    <radialGradient id="pearloidKey" cx="40%" cy="40%" r="60%">
-                      <stop offset="0%" stopColor="#ffffff" />
-                      <stop offset="40%" stopColor="#f3f4f6" />
-                      <stop offset="80%" stopColor="#e5e7eb" />
-                      <stop offset="100%" stopColor="#9ca3af" />
-                    </radialGradient>
-
-                    {/* Pearlescent tuner key button when tuned */}
-                    <radialGradient id="pearloidTuned" cx="40%" cy="40%" r="60%">
-                      <stop offset="0%" stopColor="#e8f5e9" />
-                      <stop offset="40%" stopColor="#a5d6a7" />
-                      <stop offset="80%" stopColor="#81c784" />
-                      <stop offset="100%" stopColor="#2e7d32" />
-                    </radialGradient>
-
-                    {/* Clip path for the headstock wood */}
-                    <clipPath id="ukeleleHeadstockClip">
-                      <path d="M 58 242 C 48 235, 38 215, 38 180 C 38 120, 48 60, 80 60 C 112 60, 122 120, 122 180 C 122 215, 112 235, 102 242 Z" />
-                    </clipPath>
-                  </defs>
-
-                  {/* Fretboard dark mahogany neck */}
-                  <rect x="58" y="245" width="44" height="55" fill="#3c1505" />
-                  <rect x="58" y="245" width="44" height="55" fill="url(#chromeShinyUke)" opacity="0.08" />
                   
-                  {/* Fretboard ebony */}
-                  <rect x="58" y="245" width="44" height="55" fill="#1c1917" rx="1" />
-                  
-                  {/* Fret lines */}
-                  <line x1="58" y1="275" x2="102" y2="275" stroke="#d1d5db" strokeWidth="1.2" />
-                  
-                  {/* Bone Nut */}
-                  <rect x="58" y="242" width="44" height="4.5" fill="#f5f5f4" rx="1" />
-                  
-                  {/* Nut slots details */}
-                  <line x1="64" y1="242" x2="64" y2="246.5" stroke="#a8a29e" strokeWidth="0.8" />
-                  <line x1="74" y1="242" x2="74" y2="246.5" stroke="#a8a29e" strokeWidth="0.8" />
-                  <line x1="84" y1="242" x2="84" y2="246.5" stroke="#a8a29e" strokeWidth="0.8" />
-                  <line x1="94" y1="242" x2="94" y2="246.5" stroke="#a8a29e" strokeWidth="0.8" />
+                  {/* Simulated wood grain curves */}
+                  <path d="M 65 60 Q 80 65, 95 70 T 115 150" stroke="#451a03" strokeWidth="0.5" opacity="0.25" fill="none" />
+                  <path d="M 70 55 Q 85 60, 100 65 T 120 160" stroke="#451a03" strokeWidth="0.4" opacity="0.2" fill="none" />
+                  <path d="M 60 80 Q 75 85, 90 90 T 110 190" stroke="#451a03" strokeWidth="0.6" opacity="0.28" fill="none" />
+                  <path d="M 63 100 Q 78 105, 93 110 T 113 210" stroke="#451a03" strokeWidth="0.5" opacity="0.22" fill="none" />
 
-                  {/* Symmetrical Ukelele Wood Headstock */}
-                  <g clipPath="url(#ukeleleHeadstockClip)">
-                    <path 
-                      d="M 58 242 C 48 235, 38 215, 38 180 C 38 120, 48 60, 80 60 C 112 60, 122 120, 122 180 C 122 215, 112 235, 102 242 Z" 
-                      fill="url(#ukeKoaWood)" 
-                    />
-                    
-                    {/* Flame Koa grain stripes */}
-                    <path d="M 40 80 Q 80 85, 120 80" stroke="#3c1505" strokeWidth="3.0" opacity="0.32" fill="none" />
-                    <path d="M 38 98 Q 80 104, 122 98" stroke="#3c1505" strokeWidth="3.5" opacity="0.35" fill="none" />
-                    <path d="M 38 118 Q 80 125, 122 118" stroke="#3c1505" strokeWidth="2.5" opacity="0.32" fill="none" />
-                    <path d="M 38 138 Q 80 146, 122 138" stroke="#3c1505" strokeWidth="3.5" opacity="0.38" fill="none" />
-                    <path d="M 38 158 Q 80 166, 122 158" stroke="#3c1505" strokeWidth="3.0" opacity="0.30" fill="none" />
-                    <path d="M 38 178 Q 80 187, 122 178" stroke="#3c1505" strokeWidth="4.0" opacity="0.36" fill="none" />
-                    <path d="M 40 198 Q 80 206, 120 198" stroke="#3c1505" strokeWidth="2.5" opacity="0.31" fill="none" />
-                    <path d="M 44 218 Q 80 225, 116 218" stroke="#3c1505" strokeWidth="3.5" opacity="0.34" fill="none" />
-
-                    {/* Bevel highlight */}
-                    <path 
-                      d="M 57 240 C 49 233, 40 214, 40 180 C 40 122, 49 63, 80 63 C 111 63, 120 122, 120 180 C 120 214, 111 233, 103 240" 
-                      fill="none" 
-                      stroke="#fed7aa" 
-                      strokeWidth="0.6" 
-                      opacity="0.15" 
-                    />
-                    
-                    {/* Gloss Lacquer varnish reflection */}
-                    <path 
-                      d="M 38 65 Q 80 95, 122 170 L 122 60 Z" 
-                      fill="url(#glossReflectionUke)" 
-                      opacity="0.22" 
-                      pointerEvents="none" 
-                    />
-                  </g>
-                  
-                  {/* Outer edge stroke */}
+                  {/* 3D Bevel Highlight */}
                   <path 
-                    d="M 58 242 C 48 235, 38 215, 38 180 C 38 120, 48 60, 80 60 C 112 60, 122 120, 122 180 C 122 215, 112 235, 102 242 Z" 
+                    d="M 79 228 C 69 218, 60 188, 60 168 L 60 47 C 60 35, 76 28, 100 37 C 124 28, 140 35, 140 47 L 140 168 C 140 188, 131 218, 121 228" 
                     fill="none" 
-                    stroke="#220b02" 
-                    strokeWidth="1.2" 
+                    stroke="#fef08a" 
+                    strokeWidth="0.6" 
+                    opacity="0.15" 
                   />
+                  
+                  {/* Gloss Lacquer varnish reflection */}
+                  <path 
+                    d="M 58 45 Q 100 90, 142 190 L 142 45 Z" 
+                    fill="url(#glossReflection)" 
+                    opacity="0.22" 
+                    pointerEvents="none" 
+                  />
+                </g>
+                
+                {/* Outer edge stroke */}
+                <path 
+                  d="M 80 230 C 68 220, 58 190, 58 170 L 58 45 C 58 32, 75 25, 100 35 C 125 25, 142 32, 142 45 L 142 170 C 142 190, 132 220, 120 230 Z" 
+                  fill="none" 
+                  stroke="#220b02" 
+                  strokeWidth="1.5" 
+                />
 
-                  {/* 4 Symmetrical Tuning Pegs with detailed base plates, brass gears, and pearloid keys */}
-                  {[
-                    // Left pegs
-                    { y: 190, x: 46, keyX: 18, isLeft: true, idx: 4 },  // string 4 (g4)
-                    { y: 120, x: 46, keyX: 18, isLeft: true, idx: 3 },  // string 3 (C4)
-                    // Right pegs
-                    { y: 120, x: 114, keyX: 142, isLeft: false, idx: 2 }, // string 2 (E4)
-                    { y: 190, x: 114, keyX: 142, isLeft: false, idx: 1 }  // string 1 (A4)
-                  ].map((peg) => {
-                    const isPegActive = activeTarget?.index === peg.idx;
-                    const isPegTuned = tunedStrings.includes(peg.idx) && (!isPegActive || !isListening || displayInTune);
-                    return (
-                      <g key={peg.idx}>
-                        {/* Pearloid button and shadow */}
-                        {peg.isLeft ? (
-                          <g>
-                            <ellipse cx="14.5" cy={peg.y + 0.8} rx="4.5" ry="5.8" fill="#000000" opacity="0.4" />
-                            <ellipse cx="14" cy={peg.y} rx="4" ry="5.5" fill={isPegTuned ? "url(#pearloidTuned)" : "url(#pearloidKey)"} stroke={isPegTuned ? "#047857" : "#4b5563"} strokeWidth="0.3" />
-                            <rect x="18" y={peg.y - 0.8} width="3" height="1.6" fill="url(#chromeShinyUke)" stroke="#111827" strokeWidth="0.25" />
-                          </g>
-                        ) : (
-                          <g>
-                            <ellipse cx="145.5" cy={peg.y + 0.8} rx="4.5" ry="5.8" fill="#000000" opacity="0.4" />
-                            <ellipse cx="146" cy={peg.y} rx="4" ry="5.5" fill={isPegTuned ? "url(#pearloidTuned)" : "url(#pearloidKey)"} stroke={isPegTuned ? "#047857" : "#4b5563"} strokeWidth="0.3" />
-                            <rect x="139" y={peg.y - 0.8} width="3" height="1.6" fill="url(#chromeShinyUke)" stroke="#111827" strokeWidth="0.25" />
-                          </g>
-                        )}
-                        <line x1={peg.isLeft ? 21 : 114} x2={peg.isLeft ? 46 : 139} y1={peg.y} y2={peg.y} stroke="url(#chromeShinyUke)" strokeWidth="1.8" />
-                        
-                        {/* Chrome base plate */}
-                        <polygon 
-                          points={peg.isLeft 
-                            ? `${46 - 4},${peg.y - 5} ${46 + 4},${peg.y - 5} ${46 + 5},${peg.y} ${46 + 4},${peg.y + 5} ${46 - 4},${peg.y + 5} ${46 - 5},${peg.y}`
-                            : `${114 - 4},${peg.y - 5} ${114 + 4},${peg.y - 5} ${114 + 5},${peg.y} ${114 + 4},${peg.y + 5} ${114 - 4},${peg.y + 5} ${114 - 5},${peg.y}`
-                          } 
-                          fill="url(#chromeShinyUke)" 
-                          stroke="#1f2937" 
-                          strokeWidth="0.3" 
-                        />
+                {/* 6 Tuning Pegs in 3+3 Symmetrical Layout */}
+                {[
+                  { y: 195, idx: 6, name: 'E', isLeft: true, freq: 82.41 }, // E2
+                  { y: 135, idx: 5, name: 'A', isLeft: true, freq: 110.00 }, // A2
+                  { y: 75,  idx: 4, name: 'D', isLeft: true, freq: 146.83 }, // D3
+                  { y: 75,  idx: 3, name: 'G', isLeft: false, freq: 196.00 }, // G3
+                  { y: 135, idx: 2, name: 'B', isLeft: false, freq: 246.94 }, // B3
+                  { y: 195, idx: 1, name: 'e', isLeft: false, freq: 329.63 }  // E4
+                ].map((peg) => {
+                  const isPegActive = activeTarget?.index === peg.idx;
+                  const isPegTuned = tunedStrings.includes(peg.idx) && (!isPegActive || !isListening || displayInTune);
+                  return (
+                    <g key={peg.idx}>
+                      {peg.isLeft ? (
+                        <g>
+                          {/* Shaft and Base parts */}
+                          <line x1="21" y1={peg.y} x2="68" y2={peg.y} stroke="url(#chromeShiny)" strokeWidth="1.8" />
+                          <rect x="52" y={peg.y - 8} width="10" height="16" rx="1" fill="url(#chromeShiny)" stroke="#111827" strokeWidth="0.4" />
+                          <circle cx="57" cy={peg.y} r="3.5" fill="url(#brass)" stroke="#7c2d12" strokeWidth="0.3" />
+                          <circle cx="68" cy={peg.y} r="3" fill="url(#chromeShiny)" stroke="#1f2937" strokeWidth="0.4" />
+                          <ellipse cx="68" cy={peg.y + 0.5} rx="2.2" ry="0.9" fill="#9ca3af" stroke="#374151" strokeWidth="0.2" />
+                          <ellipse cx="68" cy={peg.y - 0.5} rx="2.2" ry="0.9" fill="#d1d5db" stroke="#374151" strokeWidth="0.2" />
+                          
+                          {/* Active Pulsing Halo */}
+                          {isPegActive && (
+                            <circle cx="21" cy={peg.y} r="13" fill="none" stroke={displayInTune ? "#10b981" : "#3b82f6"} strokeWidth="2" className="animate-pulse" />
+                          )}
+                          {/* Tuning Key Handle (Interactive Button) */}
+                          <rect x="12" y={peg.y - 7} width="18" height="14" rx="4" fill={isPegTuned ? "url(#chromeTuned)" : isPegActive ? "url(#chromeActive)" : "url(#chromeShiny)"} stroke={isPegTuned ? "#047857" : isPegActive ? "#2563eb" : "#1f2937"} strokeWidth="0.8" />
+                          <text x="21" y={peg.y + 3.5} fill={isPegActive ? "#ffffff" : isPegTuned ? "#065f46" : "#374151"} fontSize="10" fontFamily="monospace" fontWeight="black" textAnchor="middle">{peg.name}</text>
+                          <circle cx="21" cy={peg.y} r="18" fill="transparent" className="cursor-pointer pointer-events-auto" onClick={() => {
+                            if (tunerMode === 'manual') {
+                              const matched = currentStrings.find(s => s.index === peg.idx);
+                              if (matched) setSelectedString(matched);
+                            }
+                            playReferenceTone(peg.freq);
+                          }} />
+                        </g>
+                      ) : (
+                        <g>
+                          {/* Shaft and Base parts */}
+                          <line x1="132" y1={peg.y} x2="179" y2={peg.y} stroke="url(#chromeShiny)" strokeWidth="1.8" />
+                          <rect x="138" y={peg.y - 8} width="10" height="16" rx="1" fill="url(#chromeShiny)" stroke="#111827" strokeWidth="0.4" />
+                          <circle cx="143" cy={peg.y} r="3.5" fill="url(#brass)" stroke="#7c2d12" strokeWidth="0.3" />
+                          <circle cx="132" cy={peg.y} r="3" fill="url(#chromeShiny)" stroke="#1f2937" strokeWidth="0.4" />
+                          <ellipse cx="132" cy={peg.y + 0.5} rx="2.2" ry="0.9" fill="#9ca3af" stroke="#374151" strokeWidth="0.2" />
+                          <ellipse cx="132" cy={peg.y - 0.5} rx="2.2" ry="0.9" fill="#d1d5db" stroke="#374151" strokeWidth="0.2" />
+                          
+                          {/* Active Pulsing Halo */}
+                          {isPegActive && (
+                            <circle cx="179" cy={peg.y} r="13" fill="none" stroke={displayInTune ? "#10b981" : "#3b82f6"} strokeWidth="2" className="animate-pulse" />
+                          )}
+                          {/* Tuning Key Handle (Interactive Button) */}
+                          <rect x="170" y={peg.y - 7} width="18" height="14" rx="4" fill={isPegTuned ? "url(#chromeTuned)" : isPegActive ? "url(#chromeActive)" : "url(#chromeShiny)"} stroke={isPegTuned ? "#047857" : isPegActive ? "#2563eb" : "#1f2937"} strokeWidth="0.8" />
+                          <text x="179" y={peg.y + 3.5} fill={isPegActive ? "#ffffff" : isPegTuned ? "#065f46" : "#374151"} fontSize="10" fontFamily="monospace" fontWeight="black" textAnchor="middle">{peg.name}</text>
+                          <circle cx="179" cy={peg.y} r="18" fill="transparent" className="cursor-pointer pointer-events-auto" onClick={() => {
+                            if (tunerMode === 'manual') {
+                              const matched = currentStrings.find(s => s.index === peg.idx);
+                              if (matched) setSelectedString(matched);
+                            }
+                            playReferenceTone(peg.freq);
+                          }} />
+                        </g>
+                      )}
+                    </g>
+                  );
+                })}
 
-                        {/* Gold Gear */}
-                        <circle cx={peg.x} cy={peg.y} r="3.2" fill="url(#brassUke)" stroke="#7c2d12" strokeWidth="0.25" />
-                        <circle cx={peg.x} cy={peg.y} r="3.2" fill="none" stroke="#fef08a" strokeWidth="0.3" strokeDasharray="0.6,0.6" />
-                        <circle cx={peg.x} cy={peg.y} r="1.0" fill="#374151" stroke="#1f2937" strokeWidth="0.25" />
+                {/* Steel Strings */}
+                {[
+                  { xNut: 83.3,  postX: 68,  pegY: 195, idx: 6, t: 2.6 }, // String 6 (E2)
+                  { xNut: 90.0,  postX: 68,  pegY: 135, idx: 5, t: 2.2 }, // String 5 (A2)
+                  { xNut: 96.7,  postX: 68,  pegY: 75,  idx: 4, t: 1.8 }, // String 4 (D3)
+                  { xNut: 103.3, postX: 132, pegY: 75,  idx: 3, t: 1.5 }, // String 3 (G3)
+                  { xNut: 110.0, postX: 132, pegY: 135, idx: 2, t: 1.2 }, // String 2 (B3)
+                  { xNut: 116.7, postX: 132, pegY: 195, idx: 1, t: 1.0 }  // String 1 (E4)
+                ].map((str) => {
+                  const isStrActive = activeTarget?.index === str.idx;
+                  const isStrTuned = tunedStrings.includes(str.idx) && (!isStrActive || !isListening || displayInTune);
+                  const vibrateClass = isStrActive && isListening && frequency ? 'animate-string-vibrate' : '';
+                  return (
+                    <path
+                      key={str.idx}
+                      d={`M ${str.xNut} 300 L ${str.xNut} 230 L ${str.postX} ${str.pegY}`}
+                      fill="none"
+                      stroke={isStrActive && isListening && frequency ? (displayInTune ? '#10b981' : '#60a5fa') : isStrTuned ? '#10b981' : '#9ca3af'}
+                      strokeWidth={str.t}
+                      opacity={isStrActive && isListening && frequency ? 1.0 : isStrTuned ? 0.9 : 0.45}
+                      className={vibrateClass}
+                    />
+                  );
+                })}
+              </svg>
+            ) : (
+              /* Symmetrical 2+2 Ukulele Headstock SVG (No branding) */
+              <svg viewBox="0 0 200 300" className="h-[270px] w-[180px] drop-shadow-[0_12px_20px_rgba(0,0,0,0.6)]">
+                <defs>
+                  {/* Radial gradient representing warm koa wood finish */}
+                  <radialGradient id="ukeKoaWood" cx="50%" cy="50%" r="70%" fx="45%" fy="45%">
+                    <stop offset="0%" stopColor="#ea580c" />
+                    <stop offset="35%" stopColor="#b45309" />
+                    <stop offset="70%" stopColor="#78350f" />
+                    <stop offset="100%" stopColor="#3c1505" />
+                  </radialGradient>
 
-                        {/* Post Washer on face */}
-                        <ellipse cx={peg.x} cy={peg.y} rx="3.2" ry="2.0" fill="url(#chromeShinyUke)" stroke="#111827" strokeWidth="0.3" />
+                  {/* Highly reflective polished chrome */}
+                  <linearGradient id="chromeShinyUke" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="#f3f4f6" />
+                    <stop offset="20%" stopColor="#e5e7eb" />
+                    <stop offset="40%" stopColor="#9ca3af" />
+                    <stop offset="45%" stopColor="#4b5563" />
+                    <stop offset="50%" stopColor="#1f2937" />
+                    <stop offset="55%" stopColor="#9ca3af" />
+                    <stop offset="80%" stopColor="#e5e7eb" />
+                    <stop offset="100%" stopColor="#374151" />
+                  </linearGradient>
 
-                        {/* Vertical post cylinder */}
-                        <rect x={peg.x - 1.2} y={peg.y - 4.5} width="2.4" height="5.5" fill="url(#chromeShinyUke)" rx="0.3" stroke="#1f2937" strokeWidth="0.25" />
+                  {/* Green chrome for tuned pegs */}
+                  <linearGradient id="chromeTunedUke" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="#e8f5e9" />
+                    <stop offset="20%" stopColor="#a5d6a7" />
+                    <stop offset="40%" stopColor="#66bb6a" />
+                    <stop offset="50%" stopColor="#2e7d32" />
+                    <stop offset="60%" stopColor="#1b5e20" />
+                    <stop offset="80%" stopColor="#a5d6a7" />
+                    <stop offset="100%" stopColor="#1b5e20" />
+                  </linearGradient>
 
-                        {/* String winding coils */}
-                        <ellipse cx={peg.x} cy={peg.y + 0.3} rx="2.0" ry="0.8" fill="#9ca3af" stroke="#374151" strokeWidth="0.2" />
-                        <ellipse cx={peg.x} cy={peg.y - 0.3} rx="2.0" ry="0.8" fill="#d1d5db" stroke="#374151" strokeWidth="0.2" />
-                        <ellipse cx={peg.x} cy={peg.y - 0.9} rx="2.0" ry="0.8" fill="#e5e7eb" stroke="#374151" strokeWidth="0.2" />
-                        
-                        {/* Cut string tip sticking out */}
-                        <path d={peg.isLeft ? `M ${peg.x + 2} ${peg.y - 1.5} Q ${peg.x + 4.5} ${peg.y - 3}, ${peg.x + 3.5} ${peg.y - 5}` : `M ${peg.x - 2} ${peg.y - 1.5} Q ${peg.x - 4.5} ${peg.y - 3}, ${peg.x - 3.5} ${peg.y - 5}`} fill="none" stroke="#9ca3af" strokeWidth="0.55" />
+                  {/* Glowing blue chrome for active peg */}
+                  <linearGradient id="chromeActiveUke" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="#dbeafe" />
+                    <stop offset="20%" stopColor="#bfdbfe" />
+                    <stop offset="40%" stopColor="#60a5fa" />
+                    <stop offset="50%" stopColor="#2563eb" />
+                    <stop offset="60%" stopColor="#1d4ed8" />
+                    <stop offset="80%" stopColor="#60a5fa" />
+                    <stop offset="100%" stopColor="#1e40af" />
+                  </linearGradient>
 
-                        {isPegActive && (
-                          <ellipse cx={peg.x} cy={peg.y} rx="6.5" ry="4.5" fill="none" stroke={displayInTune ? "#10b981" : "#3b82f6"} strokeWidth="1" className="animate-ping" />
-                        )}
-                      </g>
-                    );
-                  })}
+                  {/* Golden brass gradient */}
+                  <linearGradient id="brassUke" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="#fef08a" />
+                    <stop offset="25%" stopColor="#eab308" />
+                    <stop offset="50%" stopColor="#ca8a04" />
+                    <stop offset="75%" stopColor="#a16207" />
+                    <stop offset="100%" stopColor="#78350f" />
+                  </linearGradient>
 
-                  {/* Strings */}
-                  {[
-                    { xNut: 64, pegX: 46, pegY: 190, idx: 4, t: selectedInst === 'ukulele_low_g' ? 1.8 : 1.5 }, // string 4
-                    { xNut: 74, pegX: 46, pegY: 120, idx: 3, t: 1.9 }, // string 3 (C4)
-                    { xNut: 84, pegX: 114, pegY: 120, idx: 2, t: 1.7 }, // string 2 (E4)
-                    { xNut: 94, pegX: 114, pegY: 190, idx: 1, t: 1.3 }  // string 1 (A4)
-                  ].map((str) => {
-                    const isStrActive = activeTarget?.index === str.idx;
-                    const isStrTuned = tunedStrings.includes(str.idx) && (!isStrActive || !isListening || displayInTune);
-                    const vibrateClass = isStrActive && isListening && frequency ? 'animate-string-vibrate' : '';
-                    return (
-                      <path
-                        key={str.idx}
-                        d={`M ${str.xNut} 300 L ${str.xNut} 242 L ${str.pegX} ${str.pegY}`}
-                        fill="none"
-                        stroke={isStrActive && isListening && frequency ? (displayInTune ? '#10b981' : '#60a5fa') : isStrTuned ? '#10b981' : '#d6d3d1'}
-                        strokeWidth={str.t}
-                        opacity={isStrActive && isListening && frequency ? 1.0 : isStrTuned ? 0.9 : 0.55}
-                        className={vibrateClass}
-                      />
-                    );
-                  })}
-                </svg>
-              )}
-            </div>
+                  {/* Lacquer varnish gloss reflection */}
+                  <linearGradient id="glossReflectionUke" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="#ffffff" stopOpacity="0.25" />
+                    <stop offset="30%" stopColor="#ffffff" stopOpacity="0.08" />
+                    <stop offset="31%" stopColor="#ffffff" stopOpacity="0" />
+                    <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+                  </linearGradient>
+
+                  {/* Clip path for the headstock wood */}
+                  <clipPath id="ukeleleHeadstockClip">
+                    <path d="M 80 230 C 68 220, 58 190, 58 170 L 58 60 C 58 45, 75 40, 100 50 C 125 40, 142 45, 142 60 L 142 170 C 142 190, 132 220, 120 230 Z" />
+                  </clipPath>
+                </defs>
+
+                {/* Fretboard dark mahogany neck */}
+                <rect x="80" y="235" width="40" height="65" fill="#3c1505" />
+                <rect x="80" y="235" width="40" height="65" fill="url(#chromeShinyUke)" opacity="0.08" />
+                
+                {/* Fretboard ebony */}
+                <rect x="80" y="235" width="40" height="65" fill="#1c1917" rx="1" />
+                
+                {/* Bone Nut */}
+                <rect x="80" y="230" width="40" height="6" fill="#f5f5f4" rx="1" />
+                
+                {/* Nut slots details */}
+                <line x1="86" y1="230" x2="86" y2="236" stroke="#a8a29e" strokeWidth="0.8" />
+                <line x1="95" y1="230" x2="95" y2="236" stroke="#a8a29e" strokeWidth="0.8" />
+                <line x1="105" y1="230" x2="105" y2="236" stroke="#a8a29e" strokeWidth="0.8" />
+                <line x1="114" y1="230" x2="114" y2="236" stroke="#a8a29e" strokeWidth="0.8" />
+
+                {/* Symmetrical Ukelele Wood Headstock */}
+                <g clipPath="url(#ukeleleHeadstockClip)">
+                  <path 
+                    d="M 80 230 C 68 220, 58 190, 58 170 L 58 60 C 58 45, 75 40, 100 50 C 125 40, 142 45, 142 60 L 142 170 C 142 190, 132 220, 120 230 Z" 
+                    fill="url(#ukeKoaWood)" 
+                  />
+                  
+                  {/* Flame Koa grain stripes */}
+                  <path d="M 60 80 Q 100 85, 140 80" stroke="#3c1505" strokeWidth="3.0" opacity="0.32" fill="none" />
+                  <path d="M 58 105 Q 100 112, 142 105" stroke="#3c1505" strokeWidth="3.5" opacity="0.35" fill="none" />
+                  <path d="M 58 130 Q 100 137, 142 130" stroke="#3c1505" strokeWidth="2.5" opacity="0.32" fill="none" />
+                  <path d="M 58 155 Q 100 162, 142 155" stroke="#3c1505" strokeWidth="3.5" opacity="0.38" fill="none" />
+                  <path d="M 60 180 Q 100 187, 140 180" stroke="#3c1505" strokeWidth="3.0" opacity="0.30" fill="none" />
+
+                  {/* Bevel highlight */}
+                  <path 
+                    d="M 79 228 C 69 218, 60 188, 60 168 L 60 62 C 60 48, 76 43, 100 53 C 124 43, 140 48, 140 62 L 140 168 C 140 188, 131 218, 121 228" 
+                    fill="none" 
+                    stroke="#fed7aa" 
+                    strokeWidth="0.6" 
+                    opacity="0.15" 
+                  />
+                  
+                  {/* Gloss Lacquer varnish reflection */}
+                  <path 
+                    d="M 58 60 Q 100 90, 142 165 L 142 60 Z" 
+                    fill="url(#glossReflectionUke)" 
+                    opacity="0.22" 
+                    pointerEvents="none" 
+                  />
+                </g>
+                
+                {/* Outer edge stroke */}
+                <path 
+                  d="M 80 230 C 68 220, 58 190, 58 170 L 58 60 C 58 45, 75 40, 100 50 C 125 40, 142 45, 142 60 L 142 170 C 142 190, 132 220, 120 230 Z" 
+                  fill="none" 
+                  stroke="#220b02" 
+                  strokeWidth="1.5" 
+                />
+
+                {/* 4 Symmetrical Tuning Pegs (No branding text printed) */}
+                {[
+                  { y: 175, idx: 4, name: 'G', isLeft: true, freq: selectedInst === 'ukulele_low_g' ? 196.00 : 392.00 }, // string 4 (g4/G3)
+                  { y: 115, idx: 3, name: 'C', isLeft: true, freq: 261.63 }, // string 3 (C4)
+                  { y: 115, idx: 2, name: 'E', isLeft: false, freq: 329.63 }, // string 2 (E4)
+                  { y: 175, idx: 1, name: 'A', isLeft: false, freq: 440.00 }  // string 1 (A4)
+                ].map((peg) => {
+                  const isPegActive = activeTarget?.index === peg.idx;
+                  const isPegTuned = tunedStrings.includes(peg.idx) && (!isPegActive || !isListening || displayInTune);
+                  return (
+                    <g key={peg.idx}>
+                      {peg.isLeft ? (
+                        <g>
+                          {/* Shaft and Base parts */}
+                          <line x1="21" y1={peg.y} x2="70" y2={peg.y} stroke="url(#chromeShinyUke)" strokeWidth="1.8" />
+                          <rect x="54" y={peg.y - 7} width="8" height="14" rx="1" fill="url(#chromeShinyUke)" stroke="#111827" strokeWidth="0.3" />
+                          <circle cx="58" cy={peg.y} r="2.8" fill="url(#brassUke)" stroke="#7c2d12" strokeWidth="0.25" />
+                          <circle cx="70" cy={peg.y} r="2.5" fill="url(#chromeShinyUke)" stroke="#1f2937" strokeWidth="0.4" />
+                          <ellipse cx="70" cy={peg.y + 0.3} rx="1.8" ry="0.8" fill="#9ca3af" stroke="#374151" strokeWidth="0.2" />
+                          <ellipse cx="70" cy={peg.y - 0.3} rx="1.8" ry="0.8" fill="#d1d5db" stroke="#374151" strokeWidth="0.2" />
+                          
+                          {/* Active Pulsing Halo */}
+                          {isPegActive && (
+                            <circle cx="21" cy={peg.y} r="13" fill="none" stroke={displayInTune ? "#10b981" : "#3b82f6"} strokeWidth="2" className="animate-pulse" />
+                          )}
+                          {/* Tuning Key Handle (Interactive Button) */}
+                          <rect x="12" y={peg.y - 7} width="18" height="14" rx="4" fill={isPegTuned ? "url(#chromeTunedUke)" : isPegActive ? "url(#chromeActiveUke)" : "url(#chromeShinyUke)"} stroke={isPegTuned ? "#047857" : isPegActive ? "#2563eb" : "#1f2937"} strokeWidth="0.8" />
+                          <text x="21" y={peg.y + 3.5} fill={isPegActive ? "#ffffff" : isPegTuned ? "#065f46" : "#374151"} fontSize="10" fontFamily="monospace" fontWeight="black" textAnchor="middle">{peg.name}</text>
+                          <circle cx="21" cy={peg.y} r="18" fill="transparent" className="cursor-pointer pointer-events-auto" onClick={() => {
+                            if (tunerMode === 'manual') {
+                              const matched = currentStrings.find(s => s.index === peg.idx);
+                              if (matched) setSelectedString(matched);
+                            }
+                            playReferenceTone(peg.freq);
+                          }} />
+                        </g>
+                      ) : (
+                        <g>
+                          {/* Shaft and Base parts */}
+                          <line x1="130" y1={peg.y} x2="179" y2={peg.y} stroke="url(#chromeShinyUke)" strokeWidth="1.8" />
+                          <rect x="138" y={peg.y - 7} width="8" height="14" rx="1" fill="url(#chromeShinyUke)" stroke="#111827" strokeWidth="0.3" />
+                          <circle cx="142" cy={peg.y} r="2.8" fill="url(#brassUke)" stroke="#7c2d12" strokeWidth="0.25" />
+                          <circle cx="130" cy={peg.y} r="2.5" fill="url(#chromeShinyUke)" stroke="#1f2937" strokeWidth="0.4" />
+                          <ellipse cx="130" cy={peg.y + 0.3} rx="1.8" ry="0.8" fill="#9ca3af" stroke="#374151" strokeWidth="0.2" />
+                          <ellipse cx="130" cy={peg.y - 0.3} rx="1.8" ry="0.8" fill="#d1d5db" stroke="#374151" strokeWidth="0.2" />
+                          
+                          {/* Active Pulsing Halo */}
+                          {isPegActive && (
+                            <circle cx="179" cy={peg.y} r="13" fill="none" stroke={displayInTune ? "#10b981" : "#3b82f6"} strokeWidth="2" className="animate-pulse" />
+                          )}
+                          {/* Tuning Key Handle (Interactive Button) */}
+                          <rect x="170" y={peg.y - 7} width="18" height="14" rx="4" fill={isPegTuned ? "url(#chromeTunedUke)" : isPegActive ? "url(#chromeActiveUke)" : "url(#chromeShinyUke)"} stroke={isPegTuned ? "#047857" : isPegActive ? "#2563eb" : "#1f2937"} strokeWidth="0.8" />
+                          <text x="179" y={peg.y + 3.5} fill={isPegActive ? "#ffffff" : isPegTuned ? "#065f46" : "#374151"} fontSize="10" fontFamily="monospace" fontWeight="black" textAnchor="middle">{peg.name}</text>
+                          <circle cx="179" cy={peg.y} r="18" fill="transparent" className="cursor-pointer pointer-events-auto" onClick={() => {
+                            if (tunerMode === 'manual') {
+                              const matched = currentStrings.find(s => s.index === peg.idx);
+                              if (matched) setSelectedString(matched);
+                            }
+                            playReferenceTone(peg.freq);
+                          }} />
+                        </g>
+                      )}
+                    </g>
+                  );
+                })}
+
+                {/* Nylon Strings */}
+                {[
+                  { xNut: 86,  postX: 70,  pegY: 175, idx: 4, t: selectedInst === 'ukulele_low_g' ? 1.8 : 1.5 }, // string 4
+                  { xNut: 95,  postX: 70,  pegY: 115, idx: 3, t: 1.9 }, // string 3 (C4)
+                  { xNut: 105, postX: 130, pegY: 115, idx: 2, t: 1.7 }, // string 2 (E4)
+                  { xNut: 114, postX: 130, pegY: 175, idx: 1, t: 1.3 }  // string 1 (A4)
+                ].map((str) => {
+                  const isStrActive = activeTarget?.index === str.idx;
+                  const isStrTuned = tunedStrings.includes(str.idx) && (!isStrActive || !isListening || displayInTune);
+                  const vibrateClass = isStrActive && isListening && frequency ? 'animate-string-vibrate' : '';
+                  return (
+                    <path
+                      key={str.idx}
+                      d={`M ${str.xNut} 300 L ${str.xNut} 230 L ${str.postX} ${str.pegY}`}
+                      fill="none"
+                      stroke={isStrActive && isListening && frequency ? (displayInTune ? '#10b981' : '#60a5fa') : isStrTuned ? '#10b981' : '#d6d3d1'}
+                      strokeWidth={str.t}
+                      opacity={isStrActive && isListening && frequency ? 1.0 : isStrTuned ? 0.9 : 0.55}
+                      className={vibrateClass}
+                    />
+                  );
+                })}
+              </svg>
+            )}
           </div>
 
           {/* 4. Bottom controls panel */}

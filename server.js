@@ -193,7 +193,7 @@ app.get('/api/songs/:id', (req, res) => {
 
 // 3. Create Song
 app.post('/api/songs', (req, res) => {
-  const { title, artist, composer, rhythm, key, rawContent } = req.body;
+  const { title, artist, composer, rhythm, key, rawContent, youtubeUrl } = req.body;
   if (!title || !rawContent) {
     return res.status(400).json({ error: 'Title and rawContent are required' });
   }
@@ -205,7 +205,8 @@ app.post('/api/songs', (req, res) => {
     composer,
     rhythm,
     key,
-    chordPro
+    chordPro,
+    youtubeUrl
   });
 
   res.status(201).json(newSong);
@@ -213,7 +214,7 @@ app.post('/api/songs', (req, res) => {
 
 // 4. Update Song
 app.put('/api/songs/:id', (req, res) => {
-  const { title, artist, composer, rhythm, key, rawContent } = req.body;
+  const { title, artist, composer, rhythm, key, rawContent, youtubeUrl } = req.body;
   if (!title || !rawContent) {
     return res.status(400).json({ error: 'Title and rawContent are required' });
   }
@@ -225,12 +226,29 @@ app.put('/api/songs/:id', (req, res) => {
     composer,
     rhythm,
     key,
-    chordPro
+    chordPro,
+    youtubeUrl
   });
 
   if (!updated) {
     return res.status(404).json({ error: 'Song not found' });
   }
+
+  res.json(updated);
+});
+
+// 4b. Update Song YouTube URL
+app.put('/api/songs/:id/youtube', (req, res) => {
+  const { youtubeUrl } = req.body;
+  const song = getSong(req.params.id);
+  if (!song) {
+    return res.status(404).json({ error: 'Song not found' });
+  }
+
+  const updated = updateSong(req.params.id, {
+    ...song,
+    youtubeUrl: youtubeUrl !== undefined ? youtubeUrl : ''
+  });
 
   res.json(updated);
 });
@@ -274,7 +292,8 @@ app.post('/api/songs/scrape', async (req, res) => {
       composer: scrapedData.composer,
       rhythm: scrapedData.rhythm,
       key: scrapedData.key,
-      chordPro: scrapedData.chordPro
+      chordPro: scrapedData.chordPro,
+      youtubeUrl: scrapedData.youtubeUrl || ''
     });
     res.status(201).json(newSong);
   } catch (error) {
@@ -284,7 +303,7 @@ app.post('/api/songs/scrape', async (req, res) => {
 
 // 8. Import Copy-Pasted Text
 app.post('/api/songs/import-paste', (req, res) => {
-  const { title, artist, composer, rhythm, key, pastedText } = req.body;
+  const { title, artist, composer, rhythm, key, pastedText, youtubeUrl } = req.body;
   if (!title || !pastedText) {
     return res.status(400).json({ error: 'Title and pastedText are required' });
   }
@@ -296,7 +315,8 @@ app.post('/api/songs/import-paste', (req, res) => {
     composer,
     rhythm,
     key,
-    chordPro
+    chordPro,
+    youtubeUrl: youtubeUrl || ''
   });
 
   res.status(201).json(newSong);
@@ -320,7 +340,8 @@ app.post('/api/songs/import-batch', (req, res) => {
       composer: song.composer,
       rhythm: song.rhythm,
       key: song.key,
-      chordPro
+      chordPro,
+      youtubeUrl: song.youtubeUrl || ''
     });
     importedSongs.push(newSong);
   }

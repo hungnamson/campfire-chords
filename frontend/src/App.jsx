@@ -356,6 +356,25 @@ export default function App() {
     }
   };
 
+  const handleUpdateSongYoutubeUrl = async (songId, youtubeUrl) => {
+    try {
+      const res = await fetch(`${API_BASE}/songs/${songId}/youtube`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ youtubeUrl })
+      });
+      if (res.ok) {
+        const updatedSong = await res.json();
+        setSongs(prev => prev.map(s => s.id === songId ? { ...s, youtubeUrl: updatedSong.youtubeUrl } : s));
+        return true;
+      }
+      return false;
+    } catch (e) {
+      console.error('Error updating song youtubeUrl:', e);
+      return false;
+    }
+  };
+
   const handleDeleteSong = async (songId, e) => {
     e.stopPropagation();
     if (!window.confirm('Are you sure you want to delete this song from your offline library?')) return;
@@ -1333,6 +1352,7 @@ export default function App() {
                 fontSize={fontSize}
                 isCompact={isCompact}
                 instrument={instrument}
+                onUpdateYoutubeUrl={handleUpdateSongYoutubeUrl}
               />
               
               {activePlaylistSongs.length > 0 && (

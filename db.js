@@ -395,6 +395,7 @@ export function addSong(songData) {
     rhythm: songData.rhythm ? songData.rhythm.trim() : 'Chưa xác định',
     key: songData.key ? detectWrittenKey(songData.chordPro, songData.key.trim()) : detectWrittenKey(songData.chordPro, 'C'),
     chordPro: addSpacesAroundChords(songData.chordPro.trim()),
+    youtubeUrl: songData.youtubeUrl ? songData.youtubeUrl.trim() : '',
     isFavorite: songData.isFavorite || false,
     dateAdded: new Date().toISOString()
   };
@@ -417,7 +418,8 @@ export function updateSong(id, songData) {
     rhythm: songData.rhythm ? songData.rhythm.trim() : 'Chưa xác định',
     key: songData.key ? detectWrittenKey(songData.chordPro, songData.key.trim()) : detectWrittenKey(songData.chordPro, 'C'),
     chordPro: addSpacesAroundChords(songData.chordPro.trim()),
-    isFavorite: songData.isFavorite !== undefined ? songData.isFavorite : songs[index].isFavorite
+    isFavorite: songData.isFavorite !== undefined ? songData.isFavorite : songs[index].isFavorite,
+    youtubeUrl: songData.youtubeUrl !== undefined ? songData.youtubeUrl.trim() : (songs[index].youtubeUrl || '')
   };
 
   saveSongs(songs);
