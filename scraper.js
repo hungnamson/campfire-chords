@@ -277,3 +277,44 @@ export function isHopAmChuanUrl(urlStr) {
   }
 }
 
+/**
+ * Searches hopamchuan.com for songs matching a query
+ * @param {string} query - The search query
+ * @returns {Promise<Array>} List of song search results
+ */
+export async function searchHopAmChuan(query) {
+  try {
+    const url = `https://hopamchuan.com/search?q=${encodeURIComponent(query)}`;
+    const response = await gotScraping(url);
+    const $ = cheerio.load(response.body);
+    const results = [];
+
+    $('.song-item').each((i, el) => {
+      const titleLink = $(el).find('.song-title');
+      const title = titleLink.text().trim();
+      let href = titleLink.attr('href') || '';
+      
+      if (href && !href.startsWith('http')) {
+        href = `https://hopamchuan.com${href}`;
+      }
+
+      const singers = [];
+      $(el).find('.author-item').each((_, a) => {
+        singers.push($(a).text().trim());
+      });
+      const artist = singers.join(', ') || 'Khuyết Danh';
+
+      results.push({
+        title,
+        artist,
+        url: href
+      });
+    });
+
+    return results.slice(0, 10);
+  } catch (error) {
+    console.error(`Error searching HopAmChuan: ${error.message}`);
+    throw new Error(`Failed to search HopAmChuan: ${error.message}`);
+  }
+}
+

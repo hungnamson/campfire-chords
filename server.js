@@ -22,7 +22,7 @@ import {
   getPlayHistory,
   incrementPlayCount
 } from './db.js';
-import { scrapeUniversal } from './scraper.js';
+import { scrapeUniversal, scrapeHopAmChuan, searchHopAmChuan } from './scraper.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -180,6 +180,37 @@ app.get('/api/songs', (req, res) => {
   });
   
   res.json(filtered);
+});
+
+// 1b. Search HopAmChuan online
+app.get('/api/online-search', async (req, res) => {
+  const { q } = req.query;
+  if (!q) {
+    return res.status(400).json({ error: 'Query parameter "q" is required' });
+  }
+  try {
+    const results = await searchHopAmChuan(q);
+    res.json(results);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 1c. Fetch HopAmChuan song online
+app.get('/api/online-song', async (req, res) => {
+  const { url } = req.query;
+  if (!url) {
+    return res.status(400).json({ error: 'Query parameter "url" is required' });
+  }
+  try {
+    const songData = await scrapeHopAmChuan(url);
+    res.json({
+      ...songData,
+      isOnline: true
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // 2. Get Song Details

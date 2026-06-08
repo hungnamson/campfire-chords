@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
-import { Heart, ArrowLeft, Plus, Check, Minimize2, Maximize2, Info, Tv, Music, Edit2, ExternalLink, X } from 'lucide-react';
+import { Heart, ArrowLeft, Plus, Check, Minimize2, Maximize2, Info, ExternalLink, X } from 'lucide-react';
 import { transposeChord } from '../utils/transposer';
 import ChordDiagram from './ChordDiagram';
 
@@ -32,7 +32,8 @@ export default function SongViewer({
   fontSize,
   isCompact,
   instrument,
-  onUpdateYoutubeUrl
+  onSaveToLibrary,
+  isSavingToLibrary,
 }) {
   const [isScrolling, setIsScrolling] = useState(false);
   const [scrollSpeed, setScrollSpeed] = useState(3); // 1 to 10
@@ -43,11 +44,7 @@ export default function SongViewer({
   const [keepScreenAwake, setKeepScreenAwake] = useState(true);
   const wakeLockRef = useRef(null);
 
-  const [showYoutubePanel, setShowYoutubePanel] = useState(false);
-  const [playerMode, setPlayerMode] = useState('video'); // 'video' | 'audio'
-  const [youtubeUrlInput, setYoutubeUrlInput] = useState('');
-  const [isEditingLink, setIsEditingLink] = useState(false);
-  const [isSavingLink, setIsSavingLink] = useState(false);
+
 
   const scrollIntervalRef = useRef(null);
   const songContainerRef = useRef(null);
@@ -88,19 +85,10 @@ export default function SongViewer({
     setActiveChord(null);
     setShowSongInfo(false);
     setKeepScreenAwake(true);
-    setShowYoutubePanel(false);
-    setPlayerMode('video');
-    setYoutubeUrlInput(song.youtubeUrl || '');
-    setIsEditingLink(false);
+
   }, [song]);
 
-  // Helper to extract YouTube video ID from URL
-  const extractYoutubeId = (url) => {
-    if (!url) return null;
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-    const match = url.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : null;
-  };
+
 
   // Recalculate best fit layout
   const adjustLayout = () => {
@@ -480,9 +468,16 @@ export default function SongViewer({
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div className="min-w-0">
-            <h1 className={`font-bold text-stone-900 truncate max-w-[100px] xs:max-w-[150px] sm:max-w-xs transition-all duration-200 ${
-              localIsCompact ? 'text-sm' : 'text-base'
-            }`}>{song.title}</h1>
+            <div className="flex items-center gap-1.5">
+              <h1 className={`font-bold text-stone-900 truncate max-w-[100px] xs:max-w-[150px] sm:max-w-xs transition-all duration-200 ${
+                localIsCompact ? 'text-sm' : 'text-base'
+              }`}>{song.title}</h1>
+              {song.isOnline && (
+                <span className="shrink-0 px-1.5 py-0.5 bg-blue-50 text-blue-600 border border-blue-200 rounded text-[9px] font-black uppercase tracking-wider select-none animate-pulse">
+                  Online
+                </span>
+              )}
+            </div>
             <p className={`text-stone-500 truncate max-w-[100px] xs:max-w-[150px] sm:max-w-xs transition-all duration-205 ${
               localIsCompact ? 'text-[10px]' : 'text-xs'
             }`}>
@@ -500,23 +495,15 @@ export default function SongViewer({
         )}
 
         <div className="flex items-center gap-2 shrink-0">
-          {/* YouTube Jam Button */}
+          {/* YouTube Search Button */}
           <button
             onClick={() => {
-              setShowYoutubePanel(!showYoutubePanel);
-              if (!showYoutubePanel) {
-                setYoutubeUrlInput(song.youtubeUrl || '');
-                setIsEditingLink(false);
-              }
+              window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(song.title + ' ' + song.artist)}`, '_blank');
             }}
-            className={`p-1.5 rounded-full hover:bg-stone-200 transition-colors ${
-              song.youtubeUrl 
-                ? 'text-red-650 bg-red-50 hover:bg-red-100/80 animate-[pulse-glow_2s_infinite]' 
-                : 'text-stone-400 hover:text-stone-750'
-            }`}
-            title={song.youtubeUrl ? "Jam with YouTube" : "Link YouTube Video"}
+            className="p-1.5 rounded-full hover:bg-red-50 text-stone-400 hover:text-red-600 transition-colors"
+            title="Search on YouTube"
           >
-            <Youtube className="w-4.5 h-4.5" fill={song.youtubeUrl ? "currentColor" : "none"} />
+            <Youtube className="w-4.5 h-4.5" />
           </button>
 
           {/* Song Info Button */}
@@ -529,233 +516,85 @@ export default function SongViewer({
           </button>
 
           {/* Favorite Button */}
-          <button
-            onClick={() => onToggleFavorite(song.id)}
-            className={`p-1.5 rounded-full hover:bg-stone-200 transition-colors ${
-              song.isFavorite ? 'text-red-600' : 'text-stone-400 hover:text-stone-800'
-            }`}
-          >
-            <Heart className="w-4.5 h-4.5" fill={song.isFavorite ? "currentColor" : "none"} />
-          </button>
-
-          {/* Add to Playlist button */}
-          <div className="relative">
+          {!song.isOnline && (
             <button
-              onClick={() => setShowPlaylistMenu(!showPlaylistMenu)}
-              className="px-2.5 py-1.5 bg-stone-200 hover:bg-stone-300 active:scale-95 rounded text-xs font-semibold flex items-center gap-1 transition-all text-stone-700"
+              onClick={() => onToggleFavorite(song.id)}
+              className={`p-1.5 rounded-full hover:bg-stone-200 transition-colors ${
+                song.isFavorite ? 'text-red-600' : 'text-stone-400 hover:text-stone-800'
+              }`}
             >
-              <Plus className="w-3.5 h-3.5" /> Setlist
+              <Heart className="w-4.5 h-4.5" fill={song.isFavorite ? "currentColor" : "none"} />
             </button>
-            
-            {showPlaylistMenu && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setShowPlaylistMenu(false)}></div>
-                <div className="absolute right-0 mt-2 w-48 bg-white border border-stone-200 rounded shadow-2xl z-50 p-2 text-left">
-                  <p className="text-[10px] uppercase font-bold tracking-wider text-stone-400 p-2">Add to setlist</p>
-                  {playlists.length === 0 ? (
-                    <p className="text-xs text-stone-400 p-2 italic">No setlists created</p>
-                  ) : (
-                    playlists.map(pl => {
-                      const hasSong = pl.songIds.includes(song.id);
-                      return (
-                        <button
-                          key={pl.id}
-                          onClick={() => {
-                            onAddSongToPlaylist(pl.id, song.id);
-                            setShowPlaylistMenu(false);
-                          }}
-                          className="w-full flex items-center justify-between p-2 hover:bg-stone-100 text-xs rounded transition-colors text-stone-700"
-                        >
-                          <span>{pl.name}</span>
-                          {hasSong && <Check className="w-3.5 h-3.5 text-green-600" />}
-                        </button>
-                      );
-                    })
-                  )}
-                </div>
-              </>
-            )}
-          </div>
+          )}
+
+          {/* Add to Playlist / Save to Library Button */}
+          {song.isOnline ? (
+            <button
+              onClick={() => onSaveToLibrary(song)}
+              disabled={isSavingToLibrary}
+              className={`px-2.5 py-1.5 rounded text-xs font-bold flex items-center gap-1 transition-all text-white shadow-sm active:scale-95 ${
+                isSavingToLibrary 
+                  ? 'bg-blue-400 cursor-not-allowed' 
+                  : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700'
+              }`}
+            >
+              {isSavingToLibrary ? (
+                <>
+                  <svg className="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Đang lưu...
+                </>
+              ) : (
+                <>
+                  <Plus className="w-3.5 h-3.5" /> Lưu thư viện
+                </>
+              )}
+            </button>
+          ) : (
+            <div className="relative">
+              <button
+                onClick={() => setShowPlaylistMenu(!showPlaylistMenu)}
+                className="px-2.5 py-1.5 bg-stone-200 hover:bg-stone-300 active:scale-95 rounded text-xs font-semibold flex items-center gap-1 transition-all text-stone-700"
+              >
+                <Plus className="w-3.5 h-3.5" /> Setlist
+              </button>
+              
+              {showPlaylistMenu && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowPlaylistMenu(false)}></div>
+                  <div className="absolute right-0 mt-2 w-48 bg-white border border-stone-200 rounded shadow-2xl z-50 p-2 text-left">
+                    <p className="text-[10px] uppercase font-bold tracking-wider text-stone-400 p-2">Add to setlist</p>
+                    {playlists.length === 0 ? (
+                      <p className="text-xs text-stone-400 p-2 italic">No setlists created</p>
+                    ) : (
+                      playlists.map(pl => {
+                        const hasSong = pl.songIds.includes(song.id);
+                        return (
+                          <button
+                            key={pl.id}
+                            onClick={() => {
+                              onAddSongToPlaylist(pl.id, song.id);
+                              setShowPlaylistMenu(false);
+                            }}
+                            className="w-full flex items-center justify-between p-2 hover:bg-stone-100 text-xs rounded transition-colors text-stone-700"
+                          >
+                            <span>{pl.name}</span>
+                            {hasSong && <Check className="w-3.5 h-3.5 text-green-600" />}
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </header>
 
-      {/* YouTube Panel */}
-      {showYoutubePanel && (
-        <div className="bg-stone-900 text-stone-100 border-b border-stone-850 shadow-inner overflow-hidden select-none animate-slide-down">
-          <div className="max-w-4xl mx-auto p-4 flex flex-col gap-3">
-            {/* Header of the panel */}
-            <div className="flex items-center justify-between border-b border-stone-800 pb-2">
-              <div className="flex items-center gap-2">
-                <Youtube className="w-5 h-5 text-red-500 fill-red-500 shrink-0" />
-                <span className="text-xs font-bold uppercase tracking-wider text-stone-400">
-                  YouTube Jam Session
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                {song.youtubeUrl && !isEditingLink && (
-                  <>
-                    {playerMode === 'video' ? (
-                      <button
-                        onClick={() => setPlayerMode('audio')}
-                        className="px-2.5 py-1 bg-stone-800 hover:bg-stone-750 active:scale-95 rounded text-[11px] font-semibold flex items-center gap-1.5 transition text-stone-300"
-                        title="Minimize to background audio"
-                      >
-                        <Music className="w-3.5 h-3.5" /> Ẩn Video
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => setPlayerMode('video')}
-                        className="px-2.5 py-1 bg-stone-800 hover:bg-stone-750 active:scale-95 rounded text-[11px] font-semibold flex items-center gap-1.5 transition text-stone-300"
-                        title="Restore video view"
-                      >
-                        <Tv className="w-3.5 h-3.5" /> Hiện Video
-                      </button>
-                    )}
-                    <button
-                      onClick={() => setIsEditingLink(true)}
-                      className="p-1 hover:bg-stone-800 rounded text-stone-400 hover:text-stone-200 transition"
-                      title="Edit YouTube link"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                  </>
-                )}
-                <button
-                  onClick={() => setShowYoutubePanel(false)}
-                  className="p-1 hover:bg-stone-800 rounded text-stone-400 hover:text-stone-200 transition"
-                  title="Close player"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
 
-            {/* Panel Content */}
-            {!song.youtubeUrl || isEditingLink ? (
-              /* LINKING FORM */
-              <div className="py-1">
-                <p className="text-xs text-stone-400 mb-3 text-left">
-                  Chưa liên kết video YouTube cho bài hát này. Hãy dán link hoặc tìm kiếm trên YouTube để cùng chơi nhạc nhé!
-                </p>
-                <form 
-                  onSubmit={async (e) => {
-                    e.preventDefault();
-                    if (isSavingLink) return;
-                    setIsSavingLink(true);
-                    const success = await onUpdateYoutubeUrl(song.id, youtubeUrlInput);
-                    setIsSavingLink(false);
-                    if (success) {
-                      setIsEditingLink(false);
-                    } else {
-                      alert('Không thể lưu link. Vui lòng kiểm tra lại.');
-                    }
-                  }}
-                  className="flex flex-col sm:flex-row gap-2"
-                >
-                  <input
-                    type="url"
-                    required
-                    placeholder="Dán link YouTube (ví dụ: https://www.youtube.com/watch?v=...)"
-                    value={youtubeUrlInput}
-                    onChange={(e) => setYoutubeUrlInput(e.target.value)}
-                    className="flex-grow px-3 py-2 bg-stone-950 border border-stone-800 rounded-lg text-xs text-stone-105 placeholder-stone-600 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500"
-                  />
-                  <div className="flex gap-2 justify-end">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(song.title + ' ' + song.artist)}`, '_blank');
-                      }}
-                      className="px-3.5 py-2 bg-stone-800 hover:bg-stone-750 text-stone-200 text-xs font-semibold rounded-lg transition shrink-0 flex items-center gap-1.5"
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" /> Tìm YouTube
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={isSavingLink}
-                      className="px-4 py-2 bg-red-650 hover:bg-red-600 text-white text-xs font-bold rounded-lg transition disabled:bg-stone-700 shrink-0"
-                    >
-                      {isSavingLink ? 'Đang lưu...' : 'Lưu Link'}
-                    </button>
-                    {isEditingLink && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsEditingLink(false);
-                          setYoutubeUrlInput(song.youtubeUrl || '');
-                        }}
-                        className="px-3 py-2 bg-stone-800 hover:bg-stone-750 text-stone-300 text-xs font-semibold rounded-lg transition shrink-0"
-                      >
-                        Hủy
-                      </button>
-                    )}
-                  </div>
-                </form>
-              </div>
-            ) : (
-              /* IFRAME EMBED PLAYER */
-              (() => {
-                const videoId = extractYoutubeId(song.youtubeUrl);
-                if (!videoId) {
-                  return (
-                    <div className="py-4 text-center">
-                      <p className="text-xs text-red-400 mb-2">Đường dẫn YouTube không hợp lệ.</p>
-                      <button
-                        onClick={() => setIsEditingLink(true)}
-                        className="px-3 py-1.5 bg-stone-850 hover:bg-stone-800 text-xs font-bold rounded text-stone-200 transition"
-                      >
-                        Đổi link
-                      </button>
-                    </div>
-                  );
-                }
-
-                return (
-                  <div className="flex flex-col items-center justify-center py-1">
-                    {/* VIDEO CONTAINER */}
-                    <div className={`w-full max-w-xl aspect-video rounded-lg overflow-hidden shadow-2xl bg-black border border-stone-800 transition-all duration-300 ${
-                      playerMode === 'audio' ? 'youtube-iframe-hidden' : 'block'
-                    }`}>
-                      <iframe
-                        src={`https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=0`}
-                        title={`YouTube video player for ${song.title}`}
-                        frameBorder="0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                        allowFullScreen
-                        className="w-full h-full"
-                      ></iframe>
-                    </div>
-
-                    {/* AUDIO STATUS BLOCK (Visible only in audio mode) */}
-                    {playerMode === 'audio' && (
-                      <div className="w-full max-w-md bg-stone-950 border border-stone-800 rounded-xl p-3 flex items-center justify-between gap-4 shadow-lg animate-fade-in">
-                        <div className="flex items-center gap-3 min-w-0">
-                          {/* Pulsing visualizer icon */}
-                          <div className="flex items-end gap-[2px] h-3.5 w-4 shrink-0">
-                            <span className="w-[3px] bg-red-500 rounded-t-sm animate-[eq-bar-1_1s_ease-in-out_infinite]"></span>
-                            <span className="w-[3px] bg-red-500 rounded-t-sm animate-[eq-bar-2_0.8s_ease-in-out_infinite]"></span>
-                            <span className="w-[3px] bg-red-500 rounded-t-sm animate-[eq-bar-3_1.2s_ease-in-out_infinite]"></span>
-                          </div>
-                          <div className="min-w-0 text-left">
-                            <p className="text-[10px] text-stone-400 font-medium truncate uppercase tracking-wider">Đang phát nhạc nền...</p>
-                            <p className="text-xs text-stone-200 font-bold truncate">{song.title} - {song.artist}</p>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => setPlayerMode('video')}
-                          className="px-2.5 py-1 bg-stone-800 hover:bg-stone-750 active:scale-95 rounded text-[10px] font-bold text-stone-200 transition shrink-0 uppercase tracking-wider"
-                        >
-                          Xem Video
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })()
-            )}
-          </div>
-        </div>
-      )}
 
       <main className={`flex-grow flex flex-col transition-all duration-200 ${localIsCompact ? 'px-3.5 py-2 md:p-3' : 'px-4.5 py-4 md:p-0 bg-white'}`}>
         <div className={`flex-grow bg-white select-text transition-all duration-200 w-full ${
@@ -923,40 +762,25 @@ export default function SongViewer({
                 </button>
               </div>
 
-              {/* YouTube Link status in Modal */}
+              {/* YouTube Search in Modal */}
               <div className="flex justify-between items-center py-2.5 border-b border-stone-100">
                 <div className="flex flex-col text-left min-w-0 flex-grow pr-2">
                   <span className="font-semibold text-stone-600 flex items-center gap-1.5 text-xs">
                     <Youtube className="w-4 h-4 text-red-500 fill-red-500 shrink-0" />
-                    Video liên kết / Jam Video
+                    YouTube
                   </span>
-                  <span className="text-[10px] text-stone-400 mt-0.5 truncate block w-full max-w-[200px]" title={song.youtubeUrl || 'Chưa liên kết video'}>
-                    {song.youtubeUrl ? song.youtubeUrl : 'Chưa liên kết video'}
+                  <span className="text-[10px] text-stone-400 mt-0.5">
+                    Tìm bài hát trên YouTube
                   </span>
                 </div>
-                {song.youtubeUrl ? (
-                  <button
-                    onClick={() => {
-                      setShowSongInfo(false);
-                      setShowYoutubePanel(true);
-                      setPlayerMode('video');
-                    }}
-                    className="px-2.5 py-1.5 bg-red-50 border border-red-200 text-red-700 text-[10px] font-bold rounded-lg hover:bg-red-100 transition active:scale-95 shrink-0"
-                  >
-                    Mở Player
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => {
-                      setShowSongInfo(false);
-                      setShowYoutubePanel(true);
-                      setIsEditingLink(true);
-                    }}
-                    className="px-2.5 py-1.5 bg-stone-100 border border-stone-200 text-stone-750 text-[10px] font-bold rounded-lg hover:bg-stone-200 transition active:scale-95 shrink-0"
-                  >
-                    Thêm Link
-                  </button>
-                )}
+                <button
+                  onClick={() => {
+                    window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(song.title + ' ' + song.artist)}`, '_blank');
+                  }}
+                  className="px-2.5 py-1.5 bg-red-50 border border-red-200 text-red-700 text-[10px] font-bold rounded-lg hover:bg-red-100 transition active:scale-95 shrink-0 flex items-center gap-1"
+                >
+                  <ExternalLink className="w-3 h-3" /> Tìm YouTube
+                </button>
               </div>
             </div>
 

@@ -50,6 +50,10 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('library'); // library, setlists, add
   const [searchQuery, setSearchQuery] = useState('');
   const [searchInput, setSearchInput] = useState('');
+  const [onlineResults, setOnlineResults] = useState([]);
+  const [isSearchingOnline, setIsSearchingOnline] = useState(false);
+  const [onlineSong, setOnlineSong] = useState(null);
+  const [isSavingToLibrary, setIsSavingToLibrary] = useState(false);
   const searchInputRef = useRef(null);
   const settingsContainerRef = useRef(null);
   const keySelectorContainerRef = useRef(null);
@@ -289,7 +293,7 @@ export default function App() {
   // Auto-navigate to library and close active song if search query becomes populated
   useEffect(() => {
     if (searchQuery.trim().length > 0) {
-      if (activeSongId !== null) {
+      if (activeSongId !== null && activeSongId !== 'online') {
         setActiveSongId(null);
       }
       if (activeTab !== 'library') {
@@ -300,6 +304,106 @@ export default function App() {
       }
     }
   }, [searchQuery]);
+
+  // Clear online song when active song changes away from online
+  useEffect(() => {
+    if (activeSongId !== 'online') {
+      setOnlineSong(null);
+    }
+  }, [activeSongId]);
+
+  // Automatically search hopamchuan.com online if no local matches are found
+  useEffect(() => {
+    const trimmed = searchQuery.trim();
+    if (!trimmed) {
+      setOnlineResults([]);
+      setIsSearchingOnline(false);
+      return;
+    }
+
+    if (filteredSongs.length > 0) {
+      setOnlineResults([]);
+      setIsSearchingOnline(false);
+      return;
+    }
+
+    let active = true;
+    const searchOnline = async () => {
+      setIsSearchingOnline(true);
+      setOnlineResults([]);
+      try {
+        const res = await fetch(`${API_BASE}/online-search?q=${encodeURIComponent(trimmed)}`);
+        if (!res.ok) throw new Error('Search failed');
+        const data = await res.json();
+        if (active) {
+          setOnlineResults(data);
+        }
+      } catch (err) {
+        console.error('Online search error:', err);
+      } finally {
+        if (active) {
+          setIsSearchingOnline(false);
+        }
+      }
+    };
+
+    searchOnline();
+
+    return () => {
+      active = false;
+    };
+  }, [searchQuery, filteredSongs.length]);
+
+  const handleOpenOnlineSong = async (url) => {
+    setIsSearchingOnline(true);
+    try {
+      const res = await fetch(`${API_BASE}/online-song?url=${encodeURIComponent(url)}`);
+      if (!res.ok) {
+        throw new Error('Failed to fetch online song');
+      }
+      const songData = await res.json();
+      setOnlineSong({
+        ...songData,
+        id: 'online',
+        url
+      });
+      setActiveSongId('online');
+    } catch (e) {
+      console.error('Error opening online song:', e);
+      alert('Không thể tải bài hát trực tuyến. Vui lòng thử lại sau.');
+    } finally {
+      setIsSearchingOnline(false);
+    }
+  };
+
+  const handleSaveOnlineSongToLibrary = async (songToSave) => {
+    setIsSavingToLibrary(true);
+    try {
+      const res = await fetch(`${API_BASE}/songs/scrape`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ url: songToSave.url })
+      });
+      
+      if (!res.ok) {
+        throw new Error('Failed to save song to library');
+      }
+      
+      const savedSong = await res.json();
+      await fetchSongs();
+      setOnlineSong(null);
+      setActiveSongId(savedSong.id);
+      setSearchQuery('');
+      setSearchInput('');
+    } catch (e) {
+      console.error('Error saving online song:', e);
+      alert('Không thể lưu bài hát vào thư viện: ' + e.message);
+    } finally {
+      setIsSavingToLibrary(false);
+    }
+  };
 
   const fetchSongs = async () => {
     setIsLoadingSongs(true);
@@ -356,24 +460,7 @@ export default function App() {
     }
   };
 
-  const handleUpdateSongYoutubeUrl = async (songId, youtubeUrl) => {
-    try {
-      const res = await fetch(`${API_BASE}/songs/${songId}/youtube`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ youtubeUrl })
-      });
-      if (res.ok) {
-        const updatedSong = await res.json();
-        setSongs(prev => prev.map(s => s.id === songId ? { ...s, youtubeUrl: updatedSong.youtubeUrl } : s));
-        return true;
-      }
-      return false;
-    } catch (e) {
-      console.error('Error updating song youtubeUrl:', e);
-      return false;
-    }
-  };
+
 
   const handleDeleteSong = async (songId, e) => {
     e.stopPropagation();
@@ -896,6 +983,7 @@ export default function App() {
   };
 
   const activeSong = songs.find(s => s.id === activeSongId);
+  const displaySong = activeSongId === 'online' ? onlineSong : activeSong;
 
   const handleOpenSongFromPlaylist = (songId, playlistSongIds) => {
     const playlistSongsList = playlistSongIds.map(id => songs.find(s => s.id === id)).filter(Boolean);
@@ -932,8 +1020,8 @@ export default function App() {
   };
 
   const handleSelectKey = (targetKey) => {
-    if (!activeSong) return;
-    const { root: originalRoot } = parseKeyRootAndType(activeSong.key);
+    if (!displaySong) return;
+    const { root: originalRoot } = parseKeyRootAndType(displaySong.key);
     const { root: targetRoot } = parseKeyRootAndType(targetKey);
     
     const originalSemi = NOTE_TO_SEMITONE[originalRoot];
@@ -1002,8 +1090,8 @@ export default function App() {
   })();
 
   const getAvailableKeys = () => {
-    if (!activeSong) return [];
-    const { isMinor } = parseKeyRootAndType(activeSong.key);
+    if (!displaySong) return [];
+    const { isMinor } = parseKeyRootAndType(displaySong.key);
     if (isMinor) {
       return [
         'Am', 'Dm', 'Em', 'Bm',
@@ -1325,26 +1413,28 @@ export default function App() {
 
         {/* Content Body */}
         <main className={`flex-grow overflow-y-auto ${
-          activeSong 
+          displaySong 
             ? 'w-full flex flex-col p-0' 
             : 'p-4 md:p-8 max-w-6xl w-full mx-auto'
         }`}>
           
-          {activeSong ? (
+          {displaySong ? (
             <div 
               className="relative flex-grow flex flex-col bg-stone-100/40 cursor-pointer"
               onClick={() => {
                 setActiveSongId(null);
                 setActivePlaylistSongs([]);
+                setOnlineSong(null);
               }}
             >
               <SongViewer 
-                song={{ ...activeSong, isFavorite: isSongFavorited(activeSong) }} 
+                song={displaySong.isOnline ? displaySong : { ...displaySong, isFavorite: isSongFavorited(displaySong) }} 
                 transposeOffset={transposeOffset}
                 setTransposeOffset={setTransposeOffset}
                 onBack={() => {
                   setActiveSongId(null);
                   setActivePlaylistSongs([]);
+                  setOnlineSong(null);
                 }}
                 onToggleFavorite={handleToggleFavorite}
                 playlists={playlists}
@@ -1352,7 +1442,8 @@ export default function App() {
                 fontSize={fontSize}
                 isCompact={isCompact}
                 instrument={instrument}
-                onUpdateYoutubeUrl={handleUpdateSongYoutubeUrl}
+                onSaveToLibrary={handleSaveOnlineSongToLibrary}
+                isSavingToLibrary={isSavingToLibrary}
               />
               
               {activePlaylistSongs.length > 0 && (
@@ -1479,10 +1570,65 @@ export default function App() {
                       )}
                     </div>
                   ) : filteredSongs.length === 0 ? (
-                    <div className="text-center py-16 bg-white border border-stone-200 rounded-lg shadow-sm max-w-xl mx-auto mt-8">
-                      <Search className="w-10 h-10 text-stone-300 mx-auto mb-3" />
-                      <p className="text-stone-800 font-semibold">No matches found for "{searchQuery}"</p>
-                      <p className="text-xs text-stone-500 mt-1 max-w-xs mx-auto">Try searching for Vietnamese songs with or without accents, or songwriter/composer names.</p>
+                    <div className="flex flex-col gap-6 max-w-xl mx-auto mt-8">
+                      <div className="text-center py-10 bg-white border border-stone-200 rounded-xl shadow-sm px-6">
+                        <Search className="w-10 h-10 text-stone-300 mx-auto mb-3" />
+                        <p className="text-stone-800 font-bold">Không tìm thấy "{searchQuery}" trong thư viện</p>
+                        <p className="text-xs text-stone-500 mt-1 max-w-xs mx-auto">Hệ thống đang tự động tìm kiếm trực tuyến...</p>
+                      </div>
+
+                      {isSearchingOnline && (
+                        <div className="flex flex-col items-center justify-center py-12 bg-white border border-stone-200 rounded-xl shadow-sm px-6">
+                          <svg className="animate-spin h-8 w-8 text-blue-600 mb-3" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                          </svg>
+                          <p className="text-stone-600 text-xs font-semibold">Đang tìm hợp âm từ hopamchuan.com...</p>
+                        </div>
+                      )}
+
+                      {!isSearchingOnline && onlineResults.length > 0 && (
+                        <div className="animate-fade-in text-left">
+                          <div className="flex items-center justify-between border-b border-stone-200 pb-2 mb-3">
+                            <h2 className="text-xs uppercase font-extrabold tracking-widest text-blue-600 flex items-center gap-1.5 font-sans">
+                              <Globe className="w-3.5 h-3.5" /> Hợp âm từ hopamchuan.com
+                            </h2>
+                            <span className="text-[10px] bg-blue-50 text-blue-700 font-semibold px-2 py-0.5 rounded-full">
+                              Tự động tìm kiếm
+                            </span>
+                          </div>
+                          
+                          <div className="flex flex-col gap-2">
+                            {onlineResults.map((result, idx) => (
+                              <div 
+                                key={idx}
+                                onClick={() => handleOpenOnlineSong(result.url)}
+                                className="bg-white border border-stone-200/80 hover:border-blue-500/40 hover:bg-blue-50/5 rounded-xl p-4 cursor-pointer transition-all hover:-translate-y-0.5 shadow-sm hover:shadow flex items-center justify-between group"
+                              >
+                                <div className="truncate pr-4">
+                                  <h3 className="font-bold text-sm text-stone-900 group-hover:text-blue-700 transition-colors truncate">
+                                    {result.title}
+                                  </h3>
+                                  <p className="text-xs text-stone-500 truncate mt-0.5">
+                                    {result.artist}
+                                  </p>
+                                </div>
+                                <div className="shrink-0 flex items-center gap-2">
+                                  <span className="text-[10px] uppercase font-bold text-stone-400 group-hover:text-blue-600 transition-colors border border-stone-200 group-hover:border-blue-200 rounded px-2 py-1 bg-stone-50 group-hover:bg-blue-50">
+                                    Xem
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {!isSearchingOnline && onlineResults.length === 0 && (
+                        <div className="text-center py-6 bg-stone-50 border border-stone-200 border-dashed rounded-xl px-6">
+                          <p className="text-xs text-stone-500 font-medium">Không tìm thấy kết quả nào trên hopamchuan.com</p>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div>
@@ -1991,9 +2137,9 @@ Ta đi tìm bóng mát"
       </div>
 
       {/* Bottom controls toolbar (replaces mobile bottom nav) */}
-      {activeSongId !== null && activeSong && (
+      {activeSongId !== null && displaySong && (
         (() => {
-          const currentTransposedKey = transposeChord(activeSong.key, transposeOffset);
+          const currentTransposedKey = transposeChord(displaySong.key, transposeOffset);
           
           const getReferenceKeys = (keyStr) => {
             if (!keyStr) return { original: '', male: '', female: '' };
@@ -2069,13 +2215,13 @@ Ta đi tìm bóng mát"
                             }}
                             className="text-[10px] font-black uppercase text-blue-dark hover:text-blue-950 transition"
                           >
-                            Reset ({activeSong.key})
+                            Reset ({displaySong.key})
                           </button>
                         </div>
 
                         {/* Reference Tones Banner */}
                         {(() => {
-                          const ref = getReferenceKeys(activeSong.key);
+                          const ref = getReferenceKeys(displaySong.key);
                           return (
                             <div className="grid grid-cols-3 gap-2 sm:gap-2.5 mb-2 text-xs text-stone-600">
                               <button
