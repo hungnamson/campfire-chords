@@ -86,6 +86,59 @@ export default function App() {
       .slice(0, 8);
   }, [searchInput, songs]);
 
+  const filteredSongs = (() => {
+    if (!searchQuery.trim()) return [];
+
+    const queryTerms = removeAccents(searchQuery)
+      .split(/[\s\-_,.]+/)
+      .map(t => t.trim())
+      .filter(Boolean);
+
+    if (queryTerms.length === 0) return [];
+
+    return songs
+      .map(song => {
+        const cleanTitle = removeAccents(song.title);
+        const cleanArtist = removeAccents(song.artist);
+        const cleanComposer = removeAccents(song.composer || '');
+        const cleanLyrics = removeAccents(song.chordPro.replace(/\[[^\]]+\]/g, ''));
+
+        let matched = true;
+        let score = 0;
+
+        for (const term of queryTerms) {
+          let termMatched = false;
+          
+          if (cleanTitle.includes(term)) {
+            score += 100;
+            termMatched = true;
+          }
+          if (cleanArtist.includes(term)) {
+            score += 10;
+            termMatched = true;
+          }
+          if (cleanComposer.includes(term)) {
+            score += 5;
+            termMatched = true;
+          }
+          if (cleanLyrics.includes(term)) {
+            score += 1;
+            termMatched = true;
+          }
+
+          if (!termMatched) {
+            matched = false;
+            break;
+          }
+        }
+
+        return matched ? { song, score } : null;
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.score - a.score)
+      .map(item => item.song);
+  })();
+
   const [transposeOffset, setTransposeOffset] = useState(0);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [fontSize, setFontSize] = useState(() => {
@@ -1036,58 +1089,7 @@ export default function App() {
     setTransposeOffset(diff);
   };
 
-  const filteredSongs = (() => {
-    if (!searchQuery.trim()) return [];
 
-    const queryTerms = removeAccents(searchQuery)
-      .split(/[\s\-_,.]+/)
-      .map(t => t.trim())
-      .filter(Boolean);
-
-    if (queryTerms.length === 0) return [];
-
-    return songs
-      .map(song => {
-        const cleanTitle = removeAccents(song.title);
-        const cleanArtist = removeAccents(song.artist);
-        const cleanComposer = removeAccents(song.composer || '');
-        const cleanLyrics = removeAccents(song.chordPro.replace(/\[[^\]]+\]/g, ''));
-
-        let matched = true;
-        let score = 0;
-
-        for (const term of queryTerms) {
-          let termMatched = false;
-          
-          if (cleanTitle.includes(term)) {
-            score += 100;
-            termMatched = true;
-          }
-          if (cleanArtist.includes(term)) {
-            score += 10;
-            termMatched = true;
-          }
-          if (cleanComposer.includes(term)) {
-            score += 5;
-            termMatched = true;
-          }
-          if (cleanLyrics.includes(term)) {
-            score += 1;
-            termMatched = true;
-          }
-
-          if (!termMatched) {
-            matched = false;
-            break;
-          }
-        }
-
-        return matched ? { song, score } : null;
-      })
-      .filter(Boolean)
-      .sort((a, b) => b.score - a.score)
-      .map(item => item.song);
-  })();
 
   const getAvailableKeys = () => {
     if (!displaySong) return [];
