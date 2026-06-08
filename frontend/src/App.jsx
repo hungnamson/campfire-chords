@@ -1618,7 +1618,7 @@ export default function App() {
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                           </svg>
-                          <p className="text-stone-600 text-xs font-semibold">Đang tìm hợp âm từ hopamchuan.com...</p>
+                          <p className="text-stone-600 text-xs font-semibold">Đang tìm hợp âm trực tuyến...</p>
                         </div>
                       )}
 
@@ -1626,7 +1626,7 @@ export default function App() {
                         <div className="animate-fade-in text-left">
                           <div className="flex items-center justify-between border-b border-stone-200 pb-2 mb-3">
                             <h2 className="text-xs uppercase font-extrabold tracking-widest text-blue-600 flex items-center gap-1.5 font-sans">
-                              <Globe className="w-3.5 h-3.5" /> Hợp âm từ hopamchuan.com
+                              <Globe className="w-3.5 h-3.5" /> Hợp âm trực tuyến
                             </h2>
                             <span className="text-[10px] bg-blue-50 text-blue-700 font-semibold px-2 py-0.5 rounded-full">
                               {filteredSongs.length === 0 ? "Tự động tìm kiếm" : "Tìm kiếm thủ công"}
@@ -1661,7 +1661,7 @@ export default function App() {
 
                       {!isSearchingOnline && onlineResults.length === 0 && (
                         <div className="text-center py-6 bg-stone-50 border border-stone-200 border-dashed rounded-xl px-6">
-                          <p className="text-xs text-stone-500 font-medium">Không tìm thấy kết quả nào trên hopamchuan.com</p>
+                          <p className="text-xs text-stone-500 font-medium">Không tìm thấy kết quả trực tuyến nào</p>
                         </div>
                       )}
                     </div>
@@ -1704,7 +1704,7 @@ export default function App() {
                         <Globe className="w-8 h-8 text-blue-600 mx-auto mb-2.5 animate-pulse" />
                         <h4 className="text-sm font-bold text-stone-900 font-display">Bạn muốn tìm bản nhạc khác?</h4>
                         <p className="text-xs text-stone-500 mt-1 max-w-xs mx-auto leading-relaxed">
-                          Tìm kiếm các phiên bản hợp âm đầy đủ khác trực tuyến trên hopamchuan.com.
+                          Tìm kiếm các phiên bản hợp âm đầy đủ khác trực tuyến.
                         </p>
                         <button
                           onClick={() => setForceOnlineSearch(true)}
