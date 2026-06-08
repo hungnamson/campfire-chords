@@ -1180,7 +1180,7 @@ export default function App() {
                 <X className="w-4 h-4" />
               </button>
             )}
-            {isSearchFocused && suggestions.length > 0 && (
+            {isSearchFocused && (suggestions.length > 0 || searchInput.trim().length > 0) && (
               <div className="absolute left-0 right-0 top-full mt-2 bg-white/90 backdrop-blur-md border border-stone-200/80 rounded-xl shadow-xl z-50 overflow-hidden select-none max-h-72 overflow-y-auto no-scrollbar py-1 text-left animate-fade-in">
                 {suggestions.map((song) => (
                   <div
@@ -1212,6 +1212,23 @@ export default function App() {
                     )}
                   </div>
                 ))}
+
+                {searchInput.trim().length > 0 && (
+                  <div
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      setSearchQuery(searchInput);
+                      setIsSearchFocused(false);
+                      if (searchInputRef.current) {
+                        searchInputRef.current.blur();
+                      }
+                    }}
+                    className="px-4 py-3 hover:bg-blue-50 active:bg-blue-100 flex items-center gap-2 border-t border-stone-100 cursor-pointer text-blue-700 transition-colors font-semibold text-xs"
+                  >
+                    <Globe className="w-3.5 h-3.5 text-blue-600 animate-pulse" />
+                    <span>Tìm trực tuyến cho "{searchInput}"...</span>
+                  </div>
+                )}
               </div>
             )}
           </div>
