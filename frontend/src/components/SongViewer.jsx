@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
-import { Heart, ArrowLeft, Plus, Check, Minimize2, Maximize2, Info, ExternalLink, X } from 'lucide-react';
+import { Heart, ArrowLeft, Plus, Check, Minimize2, Maximize2, Info, ExternalLink, X, Share2, Printer, Link } from 'lucide-react';
 import { transposeChord } from '../utils/transposer';
 import ChordDiagram from './ChordDiagram';
 
@@ -39,6 +39,7 @@ export default function SongViewer({
   const [scrollSpeed, setScrollSpeed] = useState(3); // 1 to 10
   const [activeChord, setActiveChord] = useState(null);
   const [showPlaylistMenu, setShowPlaylistMenu] = useState(false);
+  const [showShareMenu, setShowShareMenu] = useState(false);
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
   const [showSongInfo, setShowSongInfo] = useState(false);
   const [keepScreenAwake, setKeepScreenAwake] = useState(true);
@@ -576,6 +577,70 @@ export default function SongViewer({
           >
             <Youtube className="w-4.5 h-4.5" />
           </button>
+
+          {/* Share/Print Menu Trigger */}
+          <div className="relative">
+            <button
+              onClick={() => setShowShareMenu(!showShareMenu)}
+              className="p-1.5 rounded-full hover:bg-stone-200 text-stone-400 hover:text-stone-700 transition-colors"
+              title="Share or Print"
+            >
+              <Share2 className="w-4.5 h-4.5" />
+            </button>
+            {showShareMenu && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowShareMenu(false)}></div>
+                <div className="absolute right-0 mt-2 w-48 bg-white border border-stone-200 rounded-lg shadow-xl z-50 p-1.5 text-left">
+                  {navigator.share && (
+                    <button
+                      onClick={async () => {
+                        setShowShareMenu(false);
+                        try {
+                          await navigator.share({
+                            title: song.title,
+                            text: `Hợp âm bài hát: ${song.title} - ${song.artist || ''}`,
+                            url: window.location.origin + '?song=' + song.id
+                          });
+                        } catch (err) {
+                          console.log('Share canceled/failed:', err);
+                        }
+                      }}
+                      className="w-full flex items-center gap-2 p-2 hover:bg-stone-50 text-xs rounded text-stone-700 transition-colors"
+                    >
+                      <Share2 className="w-3.5 h-3.5 text-stone-500" />
+                      <span>Chia sẻ ứng dụng...</span>
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      setShowShareMenu(false);
+                      window.print();
+                    }}
+                    className="w-full flex items-center gap-2 p-2 hover:bg-stone-50 text-xs rounded text-stone-700 transition-colors"
+                  >
+                    <Printer className="w-3.5 h-3.5 text-stone-500" />
+                    <span>In bản nhạc (Print)</span>
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setShowShareMenu(false);
+                      const shareUrl = window.location.origin + '?song=' + song.id;
+                      try {
+                        await navigator.clipboard.writeText(shareUrl);
+                        alert('Đã sao chép liên kết vào bộ nhớ tạm!');
+                      } catch (err) {
+                        console.error('Failed to copy text: ', err);
+                      }
+                    }}
+                    className="w-full flex items-center gap-2 p-2 hover:bg-stone-50 text-xs rounded text-stone-700 transition-colors"
+                  >
+                    <Link className="w-3.5 h-3.5 text-stone-500" />
+                    <span>Sao chép liên kết</span>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
 
           {/* Song Info Button */}
           <button

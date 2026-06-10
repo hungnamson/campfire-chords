@@ -353,6 +353,20 @@ export default function App() {
     fetchPlaylists();
   }, []);
 
+  // Handle URL song parameter on load
+  useEffect(() => {
+    if (songs.length > 0) {
+      const params = new URLSearchParams(window.location.search);
+      const songId = params.get('song');
+      if (songId) {
+        const found = songs.find(s => s.id === songId);
+        if (found) {
+          setActiveSongId(songId);
+        }
+      }
+    }
+  }, [songs]);
+
   // Load or save song-specific key selection and font size if song is favorited
   useEffect(() => {
     if (activeSongId) {

@@ -334,4 +334,66 @@ input:focus, textarea:focus, select:focus {
   border: 0 !important;
 }
 
+/* Print Stylesheet */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 12pt;
+  }
+  
+  /* Hide all buttons, navigation bars, player controls, sidebars */
+  header, 
+  nav, 
+  button, 
+  .relative, 
+  .fixed, 
+  .absolute, 
+  .song-viewer-container > header,
+  .song-viewer-container > footer,
+  iframe {
+    display: none !important;
+  }
+  
+  /* Clean full-width container without shadows or borders */
+  .song-viewer-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: transparent !important;
+  }
+  
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+  }
+  
+  .song-lyrics-sheet {
+    column-count: 1 !important;
+    font-size: 13pt !important;
+    line-height: 1.6 !important;
+    color: #000000 !important;
+  }
+  
+  .lyric-line-inline {
+    line-height: 1.8 !important;
+    margin-bottom: 0.5rem !important;
+    color: #000000 !important;
+  }
+  
+  .chord-inline {
+    color: #dc2626 !important;
+    font-weight: 700 !important;
+  }
+  
+  .comment-line {
+    color: #b45309 !important;
+    border-bottom: 1px dashed #cccccc !important;
+  }
+}
+
 
