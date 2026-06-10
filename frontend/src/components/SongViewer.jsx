@@ -508,6 +508,8 @@ export default function SongViewer({
     };
   }, []);
 
+  const isMobile = windowSize.width < 768;
+
   return (
     <div className="song-viewer-container flex flex-col min-h-screen text-stone-900 bg-stone-100 md:bg-white pb-28 animate-fade-in w-full md:w-[90vw] md:max-w-[90vw] self-center mx-auto md:shadow-lg md:border-x md:border-stone-200/80 cursor-default" ref={songContainerRef} onClick={(e) => e.stopPropagation()}>
       {/* Sub Header / Action bar */}
@@ -672,20 +674,20 @@ export default function SongViewer({
 
               if (parsed.isComment) {
                 return (
-                  <div key={index} className={`comment-line ${localIsCompact ? 'compact' : ''}`}>
+                  <div key={index} className={`comment-line ${(localIsCompact || isMobile) ? 'compact' : ''}`}>
                     {parsed.text}
                   </div>
                 );
               }
 
               return (
-                <div key={index} className={`lyric-line-inline ${localIsCompact ? 'compact' : ''}`}>
+                <div key={index} className={`lyric-line-inline ${(localIsCompact || isMobile) ? 'compact' : ''}`}>
                   {parsed.chunks.map((chunk, chunkIdx) => (
                     <React.Fragment key={chunkIdx}>
                       {chunk.chord && (
                         <span
                           onClick={(e) => handleChordClick(chunk.chord, e)}
-                          className={`chord-inline ${localIsCompact ? 'compact' : ''}`}
+                          className={`chord-inline ${(localIsCompact || isMobile) ? 'compact' : ''}`}
                         >
                           {chunk.chord}
                         </span>
