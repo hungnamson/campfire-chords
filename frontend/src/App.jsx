@@ -41,6 +41,19 @@ const removeAccents = (str) => {
     .replace(/[đĐ]/g, 'd');
 };
 
+const getSongMetaText = (song) => {
+  if (!song) return '';
+  const artist = (song.artist && song.artist.trim() !== '0-9' && song.artist.toLowerCase().trim() !== 'khuyết danh') ? song.artist.trim() : '';
+  const composer = (song.composer && song.composer.trim() !== '0-9' && song.composer.toLowerCase().trim() !== 'khuyết danh') ? song.composer.trim() : '';
+  if (artist && composer) {
+    if (artist.toLowerCase() === composer.toLowerCase()) {
+      return artist;
+    }
+    return `${artist} • ${composer}`;
+  }
+  return artist || composer || '';
+};
+
 export default function App() {
   const [songs, setSongs] = useState([]);
   const [playlists, setPlaylists] = useState([]);
@@ -1247,7 +1260,7 @@ export default function App() {
                             {song.title}
                           </div>
                           <div className="text-xs text-stone-500 truncate mt-0.5 font-medium">
-                            {song.artist} {song.genre ? `• ${song.genre}` : ''}
+                            {getSongMetaText(song)}{song.genre && getSongMetaText(song) ? ` • ${song.genre}` : song.genre || ''}
                           </div>
                         </div>
                         {song.key && (
@@ -1598,7 +1611,7 @@ export default function App() {
                                     <Heart className="w-3.5 h-3.5 fill-red-600 text-red-600 shrink-0" />
                                     <h3 className="font-bold text-sm text-stone-900 truncate">{song.title}</h3>
                                   </div>
-                                  <p className="text-xs text-stone-500 truncate mt-0.5">{song.artist}{song.composer ? ` • ${song.composer}` : ''}</p>
+                                  <p className="text-xs text-stone-500 truncate mt-0.5">{getSongMetaText(song)}</p>
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <span className="font-mono text-[10px] font-bold text-stone-500 bg-stone-100 px-1.5 py-0.5 rounded">
@@ -1707,7 +1720,7 @@ export default function App() {
                                 {isSongFavorited(song) && <Heart className="w-3.5 h-3.5 fill-red-600 text-red-600 shrink-0" />}
                                 <h3 className="font-bold text-sm text-stone-900 truncate">{song.title}</h3>
                               </div>
-                              <p className="text-xs text-stone-500 truncate mt-0.5">{song.artist}{song.composer ? ` • ${song.composer}` : ''}</p>
+                              <p className="text-xs text-stone-500 truncate mt-0.5">{getSongMetaText(song)}</p>
                             </div>
                             <div className="flex items-center gap-2">
                               <span className="font-mono text-[10px] font-bold text-stone-500 bg-stone-100 px-1.5 py-0.5 rounded">
@@ -1800,7 +1813,7 @@ export default function App() {
                                   <span className="font-mono text-xs font-bold text-stone-400 w-5">{idx + 1}.</span>
                                   <div>
                                     <h3 className="font-bold text-sm text-stone-900 group-hover:text-red-600 transition-colors">{song.title}</h3>
-                                    <p className="text-xs text-stone-500">{song.artist}{song.composer ? ` • ${song.composer}` : ''}</p>
+                                    <p className="text-xs text-stone-500">{getSongMetaText(song)}</p>
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-3">
@@ -1914,7 +1927,7 @@ export default function App() {
                           <span className="font-mono text-xs font-bold text-stone-400 w-5">{idx + 1}.</span>
                           <div className="truncate">
                             <h3 className="font-bold text-sm text-stone-900 group-hover:text-red-700 transition-colors truncate">{song.title}</h3>
-                            <p className="text-xs text-stone-500 truncate">{song.artist}{song.composer ? ` • ${song.composer}` : ''}</p>
+                            <p className="text-xs text-stone-500 truncate">{getSongMetaText(song)}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-3 shrink-0">

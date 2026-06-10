@@ -510,6 +510,19 @@ export default function SongViewer({
 
   const isMobile = windowSize.width < 768;
 
+  const cleanArtist = (song.artist && song.artist.trim() !== '0-9' && song.artist.toLowerCase().trim() !== 'khuyết danh') ? song.artist.trim() : '';
+  const cleanComposer = (song.composer && song.composer.trim() !== '0-9' && song.composer.toLowerCase().trim() !== 'khuyết danh') ? song.composer.trim() : '';
+  
+  const displayMeta = (() => {
+    if (cleanArtist && cleanComposer) {
+      if (cleanArtist.toLowerCase() === cleanComposer.toLowerCase()) {
+        return cleanArtist;
+      }
+      return `${cleanArtist} • Sáng tác: ${cleanComposer}`;
+    }
+    return cleanArtist || cleanComposer || '';
+  })();
+
   return (
     <div className="song-viewer-container flex flex-col min-h-screen text-stone-900 bg-stone-100 md:bg-white pb-28 animate-fade-in w-full md:w-[90vw] md:max-w-[90vw] self-center mx-auto md:shadow-lg md:border-x md:border-stone-200/80 cursor-default" ref={songContainerRef} onClick={(e) => e.stopPropagation()}>
       {/* Sub Header / Action bar */}
@@ -534,11 +547,13 @@ export default function SongViewer({
                 </span>
               )}
             </div>
-            <p className={`text-stone-500 truncate max-w-[100px] xs:max-w-[150px] sm:max-w-xs transition-all duration-205 ${
-              localIsCompact ? 'text-[10px]' : 'text-xs'
-            }`}>
-              {song.artist}{song.composer ? ` • Sáng tác: ${song.composer}` : ''}
-            </p>
+            {displayMeta && (
+              <p className={`text-stone-500 truncate max-w-[100px] xs:max-w-[150px] sm:max-w-xs transition-all duration-205 ${
+                localIsCompact ? 'text-[10px]' : 'text-xs'
+              }`}>
+                {displayMeta}
+              </p>
+            )}
           </div>
         </div>
 
@@ -725,7 +740,7 @@ export default function SongViewer({
             <div className="flex items-start justify-between border-b border-stone-100 pb-3 mb-4">
               <div>
                 <h3 className="font-bold text-stone-900 text-base leading-tight">{song.title}</h3>
-                <p className="text-xs text-stone-500 mt-1">{song.artist}</p>
+                {cleanArtist && <p className="text-xs text-stone-500 mt-1">{cleanArtist}</p>}
               </div>
               <button
                 onClick={() => setShowSongInfo(false)}
@@ -738,10 +753,12 @@ export default function SongViewer({
             {/* Modal Body */}
             <div className="space-y-3.5 text-xs text-stone-700">
               {/* Composer */}
-              <div className="flex justify-between items-center py-1.5 border-b border-stone-100">
-                <span className="font-semibold text-stone-500">Tác giả / Composer</span>
-                <span className="font-bold text-stone-950">{song.composer || 'Khuyết danh'}</span>
-              </div>
+              {cleanComposer && (
+                <div className="flex justify-between items-center py-1.5 border-b border-stone-100">
+                  <span className="font-semibold text-stone-500">Tác giả / Composer</span>
+                  <span className="font-bold text-stone-950">{cleanComposer}</span>
+                </div>
+              )}
 
               {/* Rhythm */}
               <div className="flex justify-between items-center py-1.5 border-b border-stone-100">
