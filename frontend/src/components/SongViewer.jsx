@@ -167,8 +167,7 @@ export default function SongViewer({
     };
 
     if (isMobile) {
-      // Mobile Mode: default to compact view, 1 column, fit to screen size
-      optimalIsCompact = true;
+      // Mobile Mode: 1 column, fit to screen size
       
       const minFontSize = 14.66; // 11 pt in pixels (1pt = 1.333px)
       let height = testLayout(1, fontSize);
@@ -181,7 +180,6 @@ export default function SongViewer({
       }
     } else {
       // Tablet & Desktop: try to fit screen. If too long, use 2 columns or 3 columns. If short, scale up font size
-      optimalIsCompact = false; // Always use regular text mode for desktop/tablet
 
       // First test 1 column at current base fontSize
       let height1 = testLayout(1, fontSize);

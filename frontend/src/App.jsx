@@ -150,7 +150,7 @@ export default function App() {
   const [isCompact, setIsCompact] = useState(() => {
     const saved = localStorage.getItem('campfire_is_compact');
     if (saved !== null) return saved === 'true';
-    return window.innerWidth < 768;
+    return false;
   });
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [instrument, setInstrument] = useState(() => {
