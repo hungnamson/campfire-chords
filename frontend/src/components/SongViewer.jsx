@@ -396,7 +396,12 @@ export default function SongViewer({
 
     // Identify headings, comments, or annotations
     const isComment = (trimmed.startsWith('[') && trimmed.endsWith(']') && !/^[A-G]/i.test(trimmed.slice(1, -1))) ||
-                      (trimmed.endsWith(':') && trimmed.length < 25);
+                      (trimmed.endsWith(':') && trimmed.length < 25) ||
+                      trimmed.toLowerCase().startsWith('intro') ||
+                      trimmed.toLowerCase().startsWith('outro') ||
+                      trimmed.toLowerCase().startsWith('đk') ||
+                      trimmed.toLowerCase().startsWith('chorus') ||
+                      trimmed.toLowerCase().startsWith('capo');
 
     if (isComment) {
       return { isComment: true, text: line };
@@ -404,22 +409,73 @@ export default function SongViewer({
 
     // Split line by chord brackets
     const parts = line.split(/\[([^\]]+)\]/);
+    const hasChords = parts.length > 1;
+
+    // In compact mode, hide lines that contain no chords
+    if (localIsCompact && !hasChords) {
+      return { isEmpty: true };
+    }
+
     const chunks = [];
 
-    // Push preceding text chunk
-    chunks.push({ chord: '', text: parts[0] || '' });
+    if (localIsCompact) {
+      const getLastWord = (text) => {
+        const t = text.trim();
+        if (!t) return '';
+        const words = t.split(/\s+/).filter(Boolean);
+        return words[words.length - 1] || '';
+      };
 
-    for (let j = 1; j < parts.length; j += 2) {
-      const chordVal = parts[j];
-      const textVal = parts[j + 1] || '';
+      const getFirstWord = (text) => {
+        const t = text.trim();
+        if (!t) return '';
+        const words = t.split(/\s+/).filter(Boolean);
+        return words[0] || '';
+      };
 
-      if (!/^[A-G]/i.test(chordVal.trim())) {
-        // Treat as plain text comment if not matching chord pattern
-        chunks.push({ chord: '', text: `[${chordVal}]${textVal}` });
-      } else {
-        // Transpose the chord on the fly
-        const transposed = transposeChord(chordVal.trim(), transposeOffset);
-        chunks.push({ chord: transposed, text: textVal });
+      // Keep only last word of the segment before the first chord
+      const firstText = parts[0] || '';
+      const prevWord = getLastWord(firstText);
+      chunks.push({ chord: '', text: prevWord });
+
+      for (let j = 1; j < parts.length; j += 2) {
+        const chordVal = parts[j];
+        const followingText = parts[j + 1] || '';
+        
+        let textVal = '';
+        if (followingText.trim().length > 0) {
+          const words = followingText.trim().split(/\s+/).filter(Boolean);
+          if (words.length <= 2) {
+            textVal = words.join(' ');
+          } else {
+            const isLastChord = j === parts.length - 2;
+            if (isLastChord) {
+              textVal = words[0];
+            } else {
+              textVal = `${words[0]}...${words[words.length - 1]}`;
+            }
+          }
+        }
+
+        if (!/^[A-G]/i.test(chordVal.trim())) {
+          chunks.push({ chord: '', text: `[${chordVal}]${textVal}` });
+        } else {
+          const transposed = transposeChord(chordVal.trim(), transposeOffset);
+          chunks.push({ chord: transposed, text: textVal });
+        }
+      }
+    } else {
+      // Standard Mode: Keep all text and chords
+      chunks.push({ chord: '', text: parts[0] || '' });
+      for (let j = 1; j < parts.length; j += 2) {
+        const chordVal = parts[j];
+        const textVal = parts[j + 1] || '';
+        if (!/^[A-G]/i.test(chordVal.trim())) {
+          chunks.push({ chord: '', text: `[${chordVal}]${textVal}` });
+        } else {
+          const transposed = transposeChord(chordVal.trim(), transposeOffset);
+          chunks.push({ chord: transposed, text: textVal });
+        }
       }
     }
 
@@ -612,7 +668,8 @@ export default function SongViewer({
               const parsed = parseLine(line);
 
               if (parsed.isEmpty) {
-                return <div key={index} className={localIsCompact ? "h-2" : "h-5"}></div>;
+                if (localIsCompact) return null;
+                return <div key={index} className="h-5"></div>;
               }
 
               if (parsed.isComment) {
