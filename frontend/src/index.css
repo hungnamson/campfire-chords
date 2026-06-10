@@ -158,7 +158,7 @@ input:focus, textarea:focus, select:focus {
   color: var(--text-primary); /* Dark charcoal contrast lyrics */
   margin-bottom: 0.5rem;
   white-space: pre-wrap;     /* Wrap naturally, keeping layout whitespaces */
-  text-align: justify;
+  text-align: left;
 }
 
 .comment-line {

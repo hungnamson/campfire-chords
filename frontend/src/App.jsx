@@ -1132,13 +1132,10 @@ export default function App() {
             <span className="font-bold text-sm tracking-wide font-display text-stone-900 hidden sm:inline">
               Campfire Chords
             </span>
-            <span className="font-bold text-sm tracking-wide font-display text-stone-900 sm:hidden">
-              Campfire Chords
-            </span>
           </div>
 
           {/* Search Box (Center, expands) */}
-          <div className={`relative flex-grow transition-all duration-300 ease-in-out ${
+          <div className={`relative flex-grow min-w-0 transition-all duration-300 ease-in-out ${
             isSearchFocused ? 'max-w-full md:max-w-2xl' : 'max-w-2xl'
           }`}>
             <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400 pointer-events-none transition-all duration-200" />
@@ -1516,8 +1513,10 @@ export default function App() {
                   ) : filteredSongs.length === 0 && !searchQuery.trim() ? (
                     <div className="flex flex-col gap-6 max-w-4xl mx-auto w-full">
                       <div className="text-center py-12 bg-white border border-stone-200/80 rounded-xl shadow-sm select-none animate-fade-in">
-                        <div className="w-16 h-16 bg-red-600/5 border border-red-600/10 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
-                          <Flame className="w-8 h-8 text-red-600 fill-red-600" />
+                        <div className="flex justify-center w-full mb-4">
+                          <div className="w-16 h-16 bg-red-600/5 border border-red-600/10 rounded-full flex items-center justify-center animate-pulse">
+                            <Flame className="w-8 h-8 text-red-600 fill-red-600" />
+                          </div>
                         </div>
                         <h3 className="text-lg font-bold text-stone-900 font-display">Campfire Chords</h3>
                         {songs.length > 0 ? (
@@ -1847,8 +1846,10 @@ export default function App() {
 
               {playHistory.length === 0 ? (
                 <div className="text-center py-20 bg-white border border-stone-200/80 rounded-xl shadow-sm select-none animate-fade-in">
-                  <div className="w-16 h-16 bg-red-700/5 border border-red-700/10 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
-                    <Flame className="w-8 h-8 text-red-700 fill-red-700" />
+                  <div className="flex justify-center w-full mb-4">
+                    <div className="w-16 h-16 bg-red-700/5 border border-red-700/10 rounded-full flex items-center justify-center animate-pulse">
+                      <Flame className="w-8 h-8 text-red-700 fill-red-700" />
+                    </div>
                   </div>
                   <h3 className="text-sm font-bold text-stone-900 font-sans">Lịch sử chơi nhạc trống</h3>
                   <p className="text-xs text-stone-500 mt-2 max-w-xs mx-auto leading-relaxed">
