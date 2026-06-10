@@ -185,16 +185,16 @@ export default function SongViewer({
       let height1 = testLayout(1, fontSize);
 
       if (height1 <= availableHeight) {
-        // Fits in 1 column: scale up to fill screen (up to 26px)
-        optimalFontSize = findOptimalSize(1, fontSize, 26);
+        // Fits in 1 column: scale up to fill screen (up to 50px)
+        optimalFontSize = findOptimalSize(1, fontSize, 50);
         optimalColumns = 1;
       } else {
         // Doesn't fit in 1 column: try 2 columns at base fontSize
         let height2 = testLayout(2, fontSize);
 
         if (height2 <= availableHeight) {
-          // Fits in 2 columns: scale up to fill screen (up to 22px)
-          optimalFontSize = findOptimalSize(2, fontSize, 22);
+          // Fits in 2 columns: scale up to fill screen (up to 36px)
+          optimalFontSize = findOptimalSize(2, fontSize, 36);
           optimalColumns = 2;
         } else {
           // Doesn't fit in 2 columns at base size.
@@ -209,8 +209,8 @@ export default function SongViewer({
             let height3 = testLayout(3, fontSize);
 
             if (height3 <= availableHeight) {
-              // Fits in 3 columns: scale up to fill screen (up to 20px)
-              optimalFontSize = findOptimalSize(3, fontSize, 20);
+              // Fits in 3 columns: scale up to fill screen (up to 28px)
+              optimalFontSize = findOptimalSize(3, fontSize, 28);
               optimalColumns = 3;
             } else {
               // Doesn't fit in 3 columns at base size.
@@ -689,20 +689,20 @@ export default function SongViewer({
 
               if (parsed.isComment) {
                 return (
-                  <div key={index} className={`comment-line ${(localIsCompact || isMobile) ? 'compact' : ''}`}>
+                  <div key={index} className={`comment-line ${isMobile ? 'compact' : ''}`}>
                     {parsed.text}
                   </div>
                 );
               }
 
               return (
-                <div key={index} className={`lyric-line-inline ${(localIsCompact || isMobile) ? 'compact' : ''}`}>
+                <div key={index} className={`lyric-line-inline ${isMobile ? 'compact' : ''}`}>
                   {parsed.chunks.map((chunk, chunkIdx) => (
                     <React.Fragment key={chunkIdx}>
                       {chunk.chord && (
                         <span
                           onClick={(e) => handleChordClick(chunk.chord, e)}
-                          className={`chord-inline ${(localIsCompact || isMobile) ? 'compact' : ''}`}
+                          className={`chord-inline ${isMobile ? 'compact' : ''}`}
                         >
                           {chunk.chord}
                         </span>
