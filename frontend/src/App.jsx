@@ -58,6 +58,7 @@ export default function App() {
   const searchInputRef = useRef(null);
   const settingsContainerRef = useRef(null);
   const keySelectorContainerRef = useRef(null);
+  const lastLoadedSongIdRef = useRef(null);
 
   const suggestions = useMemo(() => {
     if (!searchInput.trim()) return [];
@@ -339,10 +340,52 @@ export default function App() {
     fetchPlaylists();
   }, []);
 
-  // Reset transpose offset when active song changes
+  // Load or save song-specific key selection and font size if song is favorited
   useEffect(() => {
-    setTransposeOffset(0);
-  }, [activeSongId]);
+    if (activeSongId) {
+      const song = songs.find(s => s.id === activeSongId) || onlineSong;
+      const isFav = song ? isSongFavorited(song) : false;
+
+      if (lastLoadedSongIdRef.current !== activeSongId) {
+        // We are opening a new song. Load settings if it is favorited.
+        if (isFav) {
+          const saved = localStorage.getItem(`campfire_song_settings_${activeSongId}`);
+          if (saved) {
+            try {
+              const { transposeOffset: savedOffset, fontSize: savedFontSize } = JSON.parse(saved);
+              setTransposeOffset(savedOffset ?? 0);
+              if (savedFontSize) {
+                setFontSize(savedFontSize);
+                localStorage.setItem('campfire_font_size', savedFontSize);
+              }
+              lastLoadedSongIdRef.current = activeSongId;
+              return;
+            } catch (e) {
+              console.error('Error parsing saved song settings:', e);
+            }
+          }
+        }
+        // Fallback: reset transpose offset to 0
+        setTransposeOffset(0);
+        lastLoadedSongIdRef.current = activeSongId;
+      } else {
+        // Same song is loaded, save any user modifications if the song is favorited
+        if (isFav) {
+          localStorage.setItem(
+            `campfire_song_settings_${activeSongId}`,
+            JSON.stringify({ transposeOffset, fontSize })
+          );
+        } else {
+          // If it's no longer favorited, clean up settings
+          localStorage.removeItem(`campfire_song_settings_${activeSongId}`);
+        }
+      }
+    } else {
+      // Song closed, reset offset and clear tracking ref
+      setTransposeOffset(0);
+      lastLoadedSongIdRef.current = null;
+    }
+  }, [activeSongId, transposeOffset, fontSize, userFavoritesList, songs, onlineSong]);
 
   // Auto-navigate to library and close active song if search query becomes populated
   useEffect(() => {
