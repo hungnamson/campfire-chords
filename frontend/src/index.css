@@ -7,7 +7,7 @@
   --font-mono: "SF Mono", "SFProMono-Regular", Menlo, Monaco, Consolas, "JetBrains Mono", monospace;
   
   --color-blue-dark: #1e3a8a; /* Premium Dark Blue for maximum legibility */
-  --color-chord: #1e3a8a;    /* Dark blue chords */
+  --color-chord: #dc2626;    /* Red chords */
   --bg-chord-pill: rgba(30, 58, 138, 0.06); /* very soft blue backdrop */
 }
 
@@ -148,7 +148,7 @@ input:focus, textarea:focus, select:focus {
 }
 
 .chord-inline:hover {
-  color: #172554;             /* Blue-950 for dark hover */
+  color: #991b1b;             /* Darker red hover */
   text-decoration: underline;
 }
 

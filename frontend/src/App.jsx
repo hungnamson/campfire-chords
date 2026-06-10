@@ -1130,10 +1130,10 @@ export default function App() {
           }`}>
             <Flame className="w-5 h-5 text-red-600 fill-red-600" />
             <span className="font-bold text-sm tracking-wide font-display text-stone-900 hidden sm:inline">
-              Campfire Chords {songs.length > 0 && `(${songs.length} bài hát)`}
+              Campfire Chords
             </span>
             <span className="font-bold text-sm tracking-wide font-display text-stone-900 sm:hidden">
-              Campfire Chords {songs.length > 0 && `(${songs.length})`}
+              Campfire Chords
             </span>
           </div>
 

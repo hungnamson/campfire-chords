@@ -600,7 +600,7 @@ export default function SongViewer({
         <div className={`flex-grow bg-white select-text transition-all duration-200 w-full ${
           localIsCompact 
             ? 'py-3 px-[24px] sm:px-6 w-full md:max-w-full mx-auto border border-stone-200/85 md:border-none rounded-xl md:rounded-none shadow-md md:shadow-none bg-white' 
-            : 'py-6 md:py-8 mx-auto border-none shadow-none rounded-none song-viewer-padding-x'
+            : 'py-6 md:py-8 max-w-5xl w-full mx-auto border-none shadow-none rounded-none song-viewer-padding-x'
         }`}>
           {/* Inline chords song sheet */}
           <div 
@@ -632,7 +632,7 @@ export default function SongViewer({
                           onClick={(e) => handleChordClick(chunk.chord, e)}
                           className={`chord-inline ${localIsCompact ? 'compact' : ''}`}
                         >
-                          {localIsCompact ? chunk.chord : `[${chunk.chord}]`}
+                          {chunk.chord}
                         </span>
                       )}
                       {chunk.text}
