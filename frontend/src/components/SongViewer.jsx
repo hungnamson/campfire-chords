@@ -139,14 +139,13 @@ export default function SongViewer({
     let optimalIsCompact = isCompact;
 
     // Helper to test layouts synchronously and return the actual layout height of the sheet
-    const testLayout = (cols, size) => {
-      if (cols === 1) {
-        sheet.className = 'song-lyrics-sheet select-text';
-      } else if (cols === 2) {
-        sheet.className = 'song-lyrics-sheet select-text song-lyrics-sheet-cols-2';
-      } else if (cols === 3) {
-        sheet.className = 'song-lyrics-sheet select-text song-lyrics-sheet-cols-3';
-      }
+    const testLayout = (cols, size, compact = false) => {
+      let className = 'song-lyrics-sheet select-text max-w-4xl mx-auto w-full';
+      if (cols === 2) className += ' song-lyrics-sheet-cols-2';
+      else if (cols === 3) className += ' song-lyrics-sheet-cols-3';
+      if (compact) className += ' song-lyrics-sheet-compact';
+      
+      sheet.className = className;
       sheet.style.columnCount = cols.toString();
       sheet.style.fontSize = `${size}px`;
       
@@ -155,7 +154,7 @@ export default function SongViewer({
     };
 
     // Helper to binary search for the largest font size (in steps of 0.25px) that fits within availableHeight
-    const findOptimalSize = (cols, minSize, maxSize) => {
+    const findOptimalSize = (cols, minSize, maxSize, compact = false) => {
       let low = Math.round(minSize * 4);
       let high = Math.round(maxSize * 4);
       let optimal = minSize;
@@ -163,7 +162,7 @@ export default function SongViewer({
       while (low <= high) {
         const mid = Math.floor((low + high) / 2);
         const size = mid / 4;
-        const height = testLayout(cols, size);
+        const height = testLayout(cols, size, compact);
 
         if (height <= availableHeight) {
           optimal = size;
@@ -177,60 +176,98 @@ export default function SongViewer({
 
     if (isMobile) {
       // Mobile Mode: 1 column, fit to screen size
-      
       const minFontSize = 14.66; // 11 pt in pixels (1pt = 1.333px)
-      let height = testLayout(1, fontSize);
+      let height = testLayout(1, fontSize, isCompact);
 
       if (height > availableHeight) {
-        // If standard size doesn't fit, search between minFontSize and fontSize
-        optimalFontSize = findOptimalSize(1, minFontSize, fontSize);
+        // If standard spacing doesn't fit, try compact spacing if not already on
+        if (!isCompact) {
+          let compactHeight = testLayout(1, fontSize, true);
+          if (compactHeight <= availableHeight) {
+            optimalFontSize = fontSize;
+            optimalIsCompact = true;
+          } else {
+            optimalFontSize = findOptimalSize(1, minFontSize, fontSize, true);
+            optimalIsCompact = true;
+          }
+        } else {
+          optimalFontSize = findOptimalSize(1, minFontSize, fontSize, true);
+          optimalIsCompact = true;
+        }
       } else {
         optimalFontSize = fontSize;
+        optimalIsCompact = isCompact;
       }
     } else {
       // Tablet & Desktop: try to fit screen. If too long, use 2 columns or 3 columns. If short, scale up font size
 
-      // First test 1 column at current base fontSize
-      let height1 = testLayout(1, fontSize);
+      // First test 1 column at current base fontSize (with standard spacing)
+      let height1 = testLayout(1, fontSize, false);
 
       if (height1 <= availableHeight) {
         // Fits in 1 column: scale up to fill screen (up to 50px)
-        optimalFontSize = findOptimalSize(1, fontSize, 50);
+        optimalFontSize = findOptimalSize(1, fontSize, 50, false);
         optimalColumns = 1;
+        optimalIsCompact = false;
       } else {
-        // Doesn't fit in 1 column: try 2 columns at base fontSize
-        let height2 = testLayout(2, fontSize);
-
-        if (height2 <= availableHeight) {
-          // Fits in 2 columns: scale up to fill screen (up to 36px)
-          optimalFontSize = findOptimalSize(2, fontSize, 36);
-          optimalColumns = 2;
+        // Try 1 column with COMPACT spacing
+        let height1Compact = testLayout(1, fontSize, true);
+        if (height1Compact <= availableHeight) {
+          optimalFontSize = findOptimalSize(1, fontSize, 50, true);
+          optimalColumns = 1;
+          optimalIsCompact = true;
         } else {
-          // Doesn't fit in 2 columns at base size.
-          // Let's try 2 columns at the minimum reasonable size (14px)
-          let heightAt14 = testLayout(2, 14);
-          if (heightAt14 <= availableHeight) {
-            // Fits in 2 columns at a size >= 14px! Find the best size between 14px and base fontSize
-            optimalFontSize = findOptimalSize(2, 14, fontSize);
-            optimalColumns = 2;
-          } else {
-            // Doesn't fit in 2 columns even at 14px: try 3 columns at base fontSize
-            let height3 = testLayout(3, fontSize);
+          // Doesn't fit in 1 column compact: try 2 columns standard spacing
+          let height2 = testLayout(2, fontSize, false);
 
-            if (height3 <= availableHeight) {
-              // Fits in 3 columns: scale up to fill screen (up to 28px)
-              optimalFontSize = findOptimalSize(3, fontSize, 28);
-              optimalColumns = 3;
+          if (height2 <= availableHeight) {
+            // Fits in 2 columns standard: scale up to fill screen (up to 36px)
+            optimalFontSize = findOptimalSize(2, fontSize, 36, false);
+            optimalColumns = 2;
+            optimalIsCompact = false;
+          } else {
+            // Doesn't fit 2 columns standard: try 2 columns COMPACT spacing (prioritize spacing reduction over font-downsizing!)
+            let height2Compact = testLayout(2, fontSize, true);
+            if (height2Compact <= availableHeight) {
+              optimalFontSize = findOptimalSize(2, fontSize, 36, true);
+              optimalColumns = 2;
+              optimalIsCompact = true;
             } else {
-              // Doesn't fit in 3 columns at base size.
-              // Try to scale down in 3 columns from base size down to 12px
-              let heightAt12 = testLayout(3, 12);
-              if (heightAt12 <= availableHeight) {
-                optimalFontSize = findOptimalSize(3, 12, fontSize);
-                optimalColumns = 3;
+              // Doesn't fit 2 columns compact at base size: try 2 columns compact down to 14px
+              let height2CompactAt14 = testLayout(2, 14, true);
+              if (height2CompactAt14 <= availableHeight) {
+                optimalFontSize = findOptimalSize(2, 14, fontSize, true);
+                optimalColumns = 2;
+                optimalIsCompact = true;
               } else {
-                optimalFontSize = 12;
-                optimalColumns = 3;
+                // Try 3 columns standard spacing
+                let height3 = testLayout(3, fontSize, false);
+
+                if (height3 <= availableHeight) {
+                  optimalFontSize = findOptimalSize(3, fontSize, 28, false);
+                  optimalColumns = 3;
+                  optimalIsCompact = false;
+                } else {
+                  // Try 3 columns COMPACT spacing
+                  let height3Compact = testLayout(3, fontSize, true);
+                  if (height3Compact <= availableHeight) {
+                    optimalFontSize = findOptimalSize(3, fontSize, 28, true);
+                    optimalColumns = 3;
+                    optimalIsCompact = true;
+                  } else {
+                    // Try 3 columns compact down to 12px
+                    let height3CompactAt12 = testLayout(3, 12, true);
+                    if (height3CompactAt12 <= availableHeight) {
+                      optimalFontSize = findOptimalSize(3, 12, fontSize, true);
+                      optimalColumns = 3;
+                      optimalIsCompact = true;
+                    } else {
+                      optimalFontSize = 12;
+                      optimalColumns = 3;
+                      optimalIsCompact = true;
+                    }
+                  }
+                }
               }
             }
           }
@@ -752,7 +789,7 @@ export default function SongViewer({
           {/* Inline chords song sheet */}
           <div 
             ref={sheetRef}
-            className={`song-lyrics-sheet select-text max-w-4xl mx-auto w-full ${localColumns === 2 ? 'song-lyrics-sheet-cols-2' : localColumns === 3 ? 'song-lyrics-sheet-cols-3' : ''}`}
+            className={`song-lyrics-sheet select-text max-w-4xl mx-auto w-full ${localIsCompact ? 'song-lyrics-sheet-compact' : ''} ${localColumns === 2 ? 'song-lyrics-sheet-cols-2' : localColumns === 3 ? 'song-lyrics-sheet-cols-3' : ''}`}
             style={{ fontSize: `${localFontSize}px` }}
           >
             {lines.map((line, index) => {

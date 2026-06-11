@@ -188,7 +188,8 @@ input:focus, textarea:focus, select:focus {
 }
 
 /* Compact View Styles */
-.lyric-line-inline.compact {
+.lyric-line-inline.compact,
+.song-lyrics-sheet-compact .lyric-line-inline {
   font-family: "SF Pro Condensed", "SF Pro Text Condensed", -apple-system-condensed, 'Roboto Condensed', 'Arial Narrow', sans-serif-condensed, sans-serif;
   font-stretch: condensed;
   line-height: 1.15;
@@ -196,14 +197,16 @@ input:focus, textarea:focus, select:focus {
   letter-spacing: -0.015em;
 }
 
-.chord-inline.compact {
+.chord-inline.compact,
+.song-lyrics-sheet-compact .chord-inline {
   font-family: "SF Pro Condensed", "SF Pro Text Condensed", -apple-system-condensed, 'Roboto Condensed', 'Arial Narrow', sans-serif-condensed, sans-serif;
   font-stretch: condensed;
   font-weight: 850;
   margin: 0 1px;
 }
 
-.comment-line.compact {
+.comment-line.compact,
+.song-lyrics-sheet-compact .comment-line {
   font-family: "SF Pro Condensed", "SF Pro Text Condensed", -apple-system-condensed, 'Roboto Condensed', 'Arial Narrow', sans-serif-condensed, sans-serif;
   margin-top: 8px;
   margin-bottom: 2px;
