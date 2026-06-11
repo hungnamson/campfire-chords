@@ -1606,7 +1606,9 @@ export default function App() {
                 playlists={playlists}
                 onAddSongToPlaylist={handleAddSongToPlaylist}
                 fontSize={fontSize}
+                setFontSize={setFontSize}
                 isCompact={isCompact}
+                setIsCompact={setIsCompact}
                 instrument={instrument}
                 onSaveToLibrary={handleSaveOnlineSongToLibrary}
                 isSavingToLibrary={isSavingToLibrary}
@@ -2120,7 +2122,7 @@ export default function App() {
       </div>
 
       {/* Bottom controls toolbar (replaces mobile bottom nav) */}
-      {activeSongId !== null && displaySong && (
+      {activeSongId !== null && displaySong && window.innerWidth >= 768 && (
         (() => {
           const currentTransposedKey = transposeChord(displaySong.key, transposeOffset);
           

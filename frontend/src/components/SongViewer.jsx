@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
-import { Heart, ArrowLeft, Plus, Check, Minimize2, Maximize2, Info, ExternalLink, X, Share2, Printer, Link, Play, Square } from 'lucide-react';
-import { transposeChord } from '../utils/transposer';
+import { Heart, ArrowLeft, Plus, Check, Minimize2, Maximize2, Info, ExternalLink, X, Share2, Printer, Link, Play, Square, Search, MoreVertical, ChevronDown, LayoutGrid } from 'lucide-react';
+import { transposeChord, NOTE_TO_SEMITONE } from '../utils/transposer';
 import ChordDiagram from './ChordDiagram';
 import BrandLogo from './BrandLogo';
 
@@ -31,7 +31,9 @@ export default function SongViewer({
   transposeOffset, 
   setTransposeOffset,
   fontSize,
+  setFontSize,
   isCompact,
+  setIsCompact,
   instrument,
   onSaveToLibrary,
   isSavingToLibrary,
@@ -50,6 +52,7 @@ export default function SongViewer({
   };
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
   const [showSongInfo, setShowSongInfo] = useState(false);
+  const [showKeySelector, setShowKeySelector] = useState(false);
   const [keepScreenAwake, setKeepScreenAwake] = useState(true);
   const wakeLockRef = useRef(null);
 
@@ -853,315 +856,484 @@ export default function SongViewer({
       className="song-viewer-container flex flex-col min-h-screen text-stone-900 bg-stone-100 md:bg-white pb-28 animate-fade-in w-full md:max-w-[96vw] self-center mx-auto md:shadow-lg md:border-x md:border-stone-200/80 cursor-default relative" 
       ref={songContainerRef}
     >
-      {/* Sub Header / Action bar */}
-      <header className={`sticky top-0 z-30 bg-[#f5f3ef]/90 backdrop-blur border-b border-stone-200 flex items-center justify-between shadow-sm transition-all duration-200 ${
-        localIsCompact ? 'px-3 py-1' : 'py-2 song-viewer-padding-x'
-      }`}>
-        <div className="flex items-center gap-2">
-          <button 
-            onClick={onBack}
-            className="p-2 hover:bg-stone-200 rounded-full transition-colors text-stone-600 hover:text-stone-900 shrink-0"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5">
-              <h1 className={`font-bold text-stone-900 truncate max-w-[100px] xs:max-w-[150px] sm:max-w-xs transition-all duration-200 ${
-                localIsCompact ? 'text-sm' : 'text-base'
-              }`}>{song.title}</h1>
-              {song.isOnline && (
-                <span className="shrink-0 px-1.5 py-0.5 bg-blue-50 text-blue-600 border border-blue-200 rounded text-[9px] font-black uppercase tracking-wider select-none animate-pulse">
-                  Online
-                </span>
-              )}
-            </div>
-            {displayMeta && (
-              <p className={`text-stone-500 truncate max-w-[100px] xs:max-w-[150px] sm:max-w-xs transition-all duration-205 ${
-                localIsCompact ? 'text-[10px]' : 'text-xs'
-              }`}>
-                {displayMeta}
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Dropdown Rhythm Button and Popover list */}
-        <div className="relative flex items-center justify-center mx-2 shrink-0">
-          <button
-            onClick={() => setShowRhythmMenu(!showRhythmMenu)}
-            className="rhythm-trigger-button px-2.5 py-1.5 bg-stone-200/60 hover:bg-stone-200 border border-stone-300/60 rounded-full text-[10px] font-black text-stone-600 uppercase tracking-wider select-none cursor-pointer flex items-center gap-1 transition-all duration-150 active:scale-95 shadow-sm"
-          >
-            <span>{currentRhythm.trim() || 'SELECT STYLE'}</span>
-            {playingStyle && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>}
-          </button>
-
-           {showRhythmMenu && (
-             <div className="rhythm-menu-container absolute left-1/2 -translate-x-1/2 mt-2 w-80 bg-white border border-stone-200 rounded-xl shadow-2xl z-50 p-2.5 text-left top-full max-h-96 overflow-y-auto">
-               <p className="text-[11px] uppercase font-black tracking-wider text-stone-400 p-2 border-b border-stone-100 flex items-center justify-between">
-                 <span>Drum Styles</span>
-                 {playingStyle && (
-                   <button 
-                     onClick={(e) => { e.stopPropagation(); stopBeat(); }} 
-                     className="text-red-500 hover:text-red-700 font-bold text-xs"
-                   >
-                     Dừng
-                   </button>
-                 )}
-               </p>
-               <div className="space-y-1.5 mt-2">
-                 {DRUM_STYLES.map(style => {
-                   const isStylePlaying = playingStyle === style.name;
-                   return (
-                     <div key={style.name} className="relative">
-                       <div 
-                         onClick={() => {
-                           setCurrentRhythm(style.name);
-                           setShowRhythmMenu(false);
-                           setShowBpmSelector(null);
-                         }}
-                         className={`w-full flex items-center justify-between py-4.5 px-3.5 hover:bg-stone-50 text-sm rounded-lg transition-colors cursor-pointer text-stone-700 ${
-                           currentRhythm === style.name ? 'bg-stone-100/70 font-semibold' : ''
-                         }`}
-                       >
-                         <div className="flex items-center gap-3">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (isStylePlaying) {
-                                  stopBeat();
-                                } else {
-                                  startBeat(style.name);
-                                }
-                              }}
-                              className={`p-3 rounded-full transition-all active:scale-90 ${
-                                isStylePlaying 
-                                  ? 'bg-red-500 text-white shadow-sm' 
-                                  : 'bg-stone-100 hover:bg-stone-200 text-stone-600'
-                              }`}
-                            >
-                              {isStylePlaying ? (
-                                <Square className="w-8 h-8 fill-white" />
-                              ) : (
-                                <Play className="w-8 h-8 fill-stone-600 text-stone-600" />
-                              )}
-                            </button>
-                            <span className="font-semibold text-stone-800 text-base">{style.name}</span>
-                         </div>
-                         
-                         {/* BPM Selector Trigger Badge */}
-                         <button
-                           onClick={(e) => {
-                             e.stopPropagation();
-                             setShowBpmSelector(showBpmSelector === style.name ? null : style.name);
-                           }}
-                           className="font-mono text-xs font-bold text-stone-500 bg-stone-100 hover:bg-stone-200 border border-stone-200/85 px-3 py-1.5 rounded-full transition-colors active:scale-95 shrink-0"
-                         >
-                           {style.bpm} BPM
-                         </button>
-                       </div>
-
-                       {/* Incremental Speed List Popover (Bigger targets) */}
-                       {showBpmSelector === style.name && (
-                         <div className="absolute right-0 top-full mt-1.5 w-32 bg-white border border-stone-200 rounded-lg shadow-xl z-55 max-h-48 overflow-y-auto p-1.5 border border-stone-200/90 divide-y divide-stone-100">
-                           {Array.from({ length: 21 }, (_, idx) => 40 + idx * 5).map(bpmVal => (
-                             <button
-                               key={bpmVal}
-                               onClick={(e) => {
-                                 e.stopPropagation();
-                                 // Update BPM for the selected style
-                                 setDrumStyles(prev => prev.map(s => s.name === style.name ? { ...s, bpm: bpmVal } : s));
-                                 setShowBpmSelector(null);
-                                 
-                                 // Update playing audio speed on the fly if active
-                                 if (isStylePlaying) {
-                                   if (style.audioFile && audioPlayerRef.current) {
-                                     audioPlayerRef.current.playbackRate = bpmVal / style.originalBpm;
-                                   }
-                                 }
-                               }}
-                               className={`w-full text-left px-3.5 py-3 text-xs font-medium hover:bg-stone-100 transition-colors ${
-                                 style.bpm === bpmVal ? 'text-emerald-600 font-bold bg-emerald-50/50' : 'text-stone-700'
-                               }`}
-                             >
-                               {bpmVal} BPM
-                             </button>
-                           ))}
-                         </div>
-                       )}
-                     </div>
-                   );
-                 })}
-               </div>
-             </div>
-           )}
-        </div>
-
-        <div className="flex items-center gap-2 shrink-0">
-          {/* YouTube Search Button */}
-          <button
-            onClick={() => {
-              window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(song.title + ' ' + song.artist)}`, '_blank');
-            }}
-            className="p-1.5 rounded-full hover:bg-red-50 text-stone-400 hover:text-red-600 transition-colors"
-            title="Search on YouTube"
-          >
-            <Youtube className="w-4.5 h-4.5" />
-          </button>
-
-          {/* Share/Print Menu Trigger */}
-          <div className="relative">
-            <button
-              onClick={() => setShowShareMenu(!showShareMenu)}
-              className="p-1.5 rounded-full hover:bg-stone-200 text-stone-400 hover:text-stone-700 transition-colors"
-              title="Share or Print"
+      {/* Header bar */}
+      {isMobile ? (
+        <header className="sticky top-0 z-30 bg-[#FFFBF6]/95 backdrop-blur border-b border-stone-200/60 flex items-center justify-between px-4 py-3 shadow-none">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={onBack}
+              className="p-1.5 hover:bg-stone-200/50 rounded-full transition text-stone-700 active:scale-95 shrink-0 animate-fade-in"
             >
-              <Share2 className="w-4.5 h-4.5" />
+              <ArrowLeft className="w-6 h-6 text-[#4B2E20]" />
             </button>
-            {showShareMenu && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setShowShareMenu(false)}></div>
-                <div className="absolute right-0 mt-2 w-48 bg-white border border-stone-200 rounded-lg shadow-xl z-50 p-1.5 text-left">
-                  {navigator.share && (
+            <h1 className="font-bold text-[#4B2E20] text-lg select-none truncate max-w-[180px] xs:max-w-xs">{song.title}</h1>
+          </div>
+          
+          <div className="flex items-center gap-3 shrink-0">
+            {/* Search Trigger Button */}
+            <button
+              onClick={() => {
+                onBack();
+                // Trigger focus search input
+                setTimeout(() => {
+                  const searchInput = document.querySelector('input[type="text"]') || document.getElementById('search-input');
+                  if (searchInput) searchInput.focus();
+                }, 150);
+              }}
+              className="p-1.5 rounded-full hover:bg-stone-100 text-[#4B2E20] active:scale-95 transition"
+            >
+              <Search className="w-5 h-5" />
+            </button>
+
+            {/* Favorite Button */}
+            {!song.isOnline && (
+              <button
+                onClick={() => onToggleFavorite(song.id)}
+                className={`p-1.5 rounded-full hover:bg-stone-100 transition active:scale-95 ${
+                  song.isFavorite ? 'text-red-500' : 'text-[#4B2E20]'
+                }`}
+              >
+                <Heart className="w-5 h-5" fill={song.isFavorite ? "currentColor" : "none"} />
+              </button>
+            )}
+
+            {/* Setlist Button (Plus) */}
+            {!song.isOnline && (
+              <div className="relative">
+                <button
+                  onClick={() => setShowPlaylistMenu(!showPlaylistMenu)}
+                  className="p-1.5 rounded-full hover:bg-stone-100 text-[#4B2E20] active:scale-95 transition"
+                >
+                  <Plus className="w-5 h-5" />
+                </button>
+                {showPlaylistMenu && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowPlaylistMenu(false)}></div>
+                    <div className="absolute right-0 mt-2 w-48 bg-white border border-stone-200 rounded-xl shadow-2xl z-50 p-2 text-left">
+                      <p className="text-[10px] uppercase font-bold tracking-wider text-stone-400 p-2">Add to setlist</p>
+                      {playlists.length === 0 ? (
+                        <p className="text-xs text-stone-400 p-2 italic">No setlists created</p>
+                      ) : (
+                        playlists.map(pl => {
+                          const hasSong = pl.songIds.includes(song.id);
+                          return (
+                            <button
+                              key={pl.id}
+                              onClick={() => {
+                                onAddSongToPlaylist(pl.id, song.id);
+                                setShowPlaylistMenu(false);
+                              }}
+                              className="w-full flex items-center justify-between p-2.5 hover:bg-stone-50 text-xs rounded-lg transition-colors text-stone-700"
+                            >
+                              <span>{pl.name}</span>
+                              {hasSong && <Check className="w-3.5 h-3.5 text-green-600" />}
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* More Options Button (MoreVertical) */}
+            <div className="relative">
+              <button
+                onClick={() => setShowShareMenu(!showShareMenu)}
+                className="p-1.5 rounded-full hover:bg-stone-100 text-[#4B2E20] active:scale-95 transition"
+              >
+                <MoreVertical className="w-5 h-5" />
+              </button>
+              {showShareMenu && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowShareMenu(false)}></div>
+                  <div className="absolute right-0 mt-2 w-48 bg-white border border-stone-200 rounded-xl shadow-2xl z-50 p-2 text-left">
+                    <button
+                      onClick={() => {
+                        setShowShareMenu(false);
+                        setShowSongInfo(true);
+                      }}
+                      className="w-full flex items-center gap-2.5 p-2.5 hover:bg-stone-50 text-xs rounded-lg text-stone-700 transition-colors"
+                    >
+                      <Info className="w-4 h-4 text-stone-500" />
+                      <span>Thông tin bài hát (Info)</span>
+                    </button>
+                    {navigator.share && (
+                      <button
+                        onClick={async () => {
+                          setShowShareMenu(false);
+                          trackFeatureUse('share');
+                          try {
+                            await navigator.share({
+                              title: song.title,
+                              text: `Hợp âm bài hát: ${song.title} - ${song.artist || ''}`,
+                              url: window.location.origin + '?song=' + song.id
+                            });
+                          } catch (err) {
+                            console.log('Share canceled/failed:', err);
+                          }
+                        }}
+                        className="w-full flex items-center gap-2.5 p-2.5 hover:bg-stone-50 text-xs rounded-lg text-stone-700 transition-colors"
+                      >
+                        <Share2 className="w-4 h-4 text-stone-500" />
+                        <span>Chia sẻ...</span>
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        setShowShareMenu(false);
+                        trackFeatureUse('print');
+                        window.print();
+                      }}
+                      className="w-full flex items-center gap-2.5 p-2.5 hover:bg-stone-50 text-xs rounded-lg text-stone-700 transition-colors"
+                    >
+                      <Printer className="w-4 h-4 text-stone-500" />
+                      <span>In bản nhạc (Print)</span>
+                    </button>
                     <button
                       onClick={async () => {
                         setShowShareMenu(false);
                         trackFeatureUse('share');
+                        const shareUrl = window.location.origin + '?song=' + song.id;
                         try {
-                          await navigator.share({
-                            title: song.title,
-                            text: `Hợp âm bài hát: ${song.title} - ${song.artist || ''}`,
-                            url: window.location.origin + '?song=' + song.id
-                          });
+                          await navigator.clipboard.writeText(shareUrl);
+                          alert('Đã sao chép liên kết vào bộ nhớ tạm!');
                         } catch (err) {
-                          console.log('Share canceled/failed:', err);
+                          console.error('Failed to copy text: ', err);
                         }
                       }}
-                      className="w-full flex items-center gap-2 p-2 hover:bg-stone-50 text-xs rounded text-stone-700 transition-colors"
+                      className="w-full flex items-center gap-2.5 p-2.5 hover:bg-stone-50 text-xs rounded-lg text-stone-700 transition-colors"
                     >
-                      <Share2 className="w-3.5 h-3.5 text-stone-500" />
-                      <span>Chia sẻ ứng dụng...</span>
+                      <Link className="w-4 h-4 text-stone-500" />
+                      <span>Sao chép liên kết</span>
                     </button>
-                  )}
-                  <button
-                    onClick={() => {
-                      setShowShareMenu(false);
-                      trackFeatureUse('print');
-                      window.print();
-                    }}
-                    className="w-full flex items-center gap-2 p-2 hover:bg-stone-50 text-xs rounded text-stone-700 transition-colors"
-                  >
-                    <Printer className="w-3.5 h-3.5 text-stone-500" />
-                    <span>In bản nhạc (Print)</span>
-                  </button>
-                  <button
-                    onClick={async () => {
-                      setShowShareMenu(false);
-                      trackFeatureUse('share');
-                      const shareUrl = window.location.origin + '?song=' + song.id;
-                      try {
-                        await navigator.clipboard.writeText(shareUrl);
-                        alert('Đã sao chép liên kết vào bộ nhớ tạm!');
-                      } catch (err) {
-                        console.error('Failed to copy text: ', err);
-                      }
-                    }}
-                    className="w-full flex items-center gap-2 p-2 hover:bg-stone-50 text-xs rounded text-stone-700 transition-colors"
-                  >
-                    <Link className="w-3.5 h-3.5 text-stone-500" />
-                    <span>Sao chép liên kết</span>
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* Song Info Button */}
-          <button
-            onClick={() => setShowSongInfo(true)}
-            className="p-1.5 rounded-full hover:bg-stone-200 text-stone-400 hover:text-stone-700 transition-colors animate-fade-in"
-            title="Song Info"
-          >
-            <Info className="w-4.5 h-4.5" />
-          </button>
-
-          {/* Favorite Button */}
-          {!song.isOnline && (
-            <button
-              onClick={() => onToggleFavorite(song.id)}
-              className={`p-1.5 rounded-full hover:bg-stone-200 transition-colors ${
-                song.isFavorite ? 'text-red-600' : 'text-stone-400 hover:text-stone-800'
-              }`}
-            >
-              <Heart className="w-4.5 h-4.5" fill={song.isFavorite ? "currentColor" : "none"} />
-            </button>
-          )}
-
-          {/* Add to Playlist / Save to Library Button */}
-          {song.isOnline ? (
-            <button
-              onClick={() => onSaveToLibrary(song)}
-              disabled={isSavingToLibrary}
-              className={`px-2.5 py-1.5 rounded text-xs font-bold flex items-center gap-1 transition-all text-white shadow-sm active:scale-95 ${
-                isSavingToLibrary 
-                  ? 'bg-blue-400 cursor-not-allowed' 
-                  : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700'
-              }`}
-            >
-              {isSavingToLibrary ? (
-                <>
-                  <svg className="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                  Đang lưu...
-                </>
-              ) : (
-                <>
-                  <Plus className="w-3.5 h-3.5" /> Lưu thư viện
-                </>
-              )}
-            </button>
-          ) : (
-            <div className="relative">
-              <button
-                onClick={() => setShowPlaylistMenu(!showPlaylistMenu)}
-                className="px-2.5 py-1.5 bg-stone-200 hover:bg-stone-300 active:scale-95 rounded text-xs font-semibold flex items-center gap-1 transition-all text-stone-700"
-              >
-                <Plus className="w-3.5 h-3.5" /> Setlist
-              </button>
-              
-              {showPlaylistMenu && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setShowPlaylistMenu(false)}></div>
-                  <div className="absolute right-0 mt-2 w-48 bg-white border border-stone-200 rounded shadow-2xl z-50 p-2 text-left">
-                    <p className="text-[10px] uppercase font-bold tracking-wider text-stone-400 p-2">Add to setlist</p>
-                    {playlists.length === 0 ? (
-                      <p className="text-xs text-stone-400 p-2 italic">No setlists created</p>
-                    ) : (
-                      playlists.map(pl => {
-                        const hasSong = pl.songIds.includes(song.id);
-                        return (
-                          <button
-                            key={pl.id}
-                            onClick={() => {
-                              onAddSongToPlaylist(pl.id, song.id);
-                              setShowPlaylistMenu(false);
-                            }}
-                            className="w-full flex items-center justify-between p-2 hover:bg-stone-100 text-xs rounded transition-colors text-stone-700"
-                          >
-                            <span>{pl.name}</span>
-                            {hasSong && <Check className="w-3.5 h-3.5 text-green-600" />}
-                          </button>
-                        );
-                      })
-                    )}
+                    <button
+                      onClick={() => {
+                        setShowShareMenu(false);
+                        window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(song.title + ' ' + song.artist)}`, '_blank');
+                      }}
+                      className="w-full flex items-center gap-2.5 p-2.5 hover:bg-stone-50 text-xs rounded-lg text-stone-700 transition-colors"
+                    >
+                      <Youtube className="w-4 h-4 text-red-500" />
+                      <span>Tìm trên YouTube</span>
+                    </button>
                   </div>
                 </>
               )}
             </div>
-          )}
-        </div>
-      </header>
+          </div>
+        </header>
+      ) : (
+        <header className={`sticky top-0 z-30 bg-[#f5f3ef]/90 backdrop-blur border-b border-stone-200 flex items-center justify-between shadow-sm transition-all duration-200 ${
+          localIsCompact ? 'px-3 py-1' : 'py-2 song-viewer-padding-x'
+        }`}>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={onBack}
+              className="p-2 hover:bg-stone-200 rounded-full transition-colors text-stone-600 hover:text-stone-900 shrink-0"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <h1 className={`font-bold text-stone-900 truncate max-w-[100px] xs:max-w-[150px] sm:max-w-xs transition-all duration-200 ${
+                  localIsCompact ? 'text-sm' : 'text-base'
+                }`}>{song.title}</h1>
+                {song.isOnline && (
+                  <span className="shrink-0 px-1.5 py-0.5 bg-blue-50 text-blue-600 border border-blue-200 rounded text-[9px] font-black uppercase tracking-wider select-none animate-pulse">
+                    Online
+                  </span>
+                )}
+              </div>
+              {displayMeta && (
+                <p className={`text-stone-500 truncate max-w-[100px] xs:max-w-[150px] sm:max-w-xs transition-all duration-205 ${
+                  localIsCompact ? 'text-[10px]' : 'text-xs'
+                }`}>
+                  {displayMeta}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Dropdown Rhythm Button and Popover list */}
+          <div className="relative flex items-center justify-center mx-2 shrink-0">
+            <button
+              onClick={() => setShowRhythmMenu(!showRhythmMenu)}
+              className="rhythm-trigger-button px-2.5 py-1.5 bg-stone-200/60 hover:bg-stone-200 border border-stone-300/60 rounded-full text-[10px] font-black text-stone-600 uppercase tracking-wider select-none cursor-pointer flex items-center gap-1 transition-all duration-150 active:scale-95 shadow-sm"
+            >
+              <span>{currentRhythm.trim() || 'SELECT STYLE'}</span>
+              {playingStyle && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>}
+            </button>
+
+             {showRhythmMenu && (
+               <div className="rhythm-menu-container absolute left-1/2 -translate-x-1/2 mt-2 w-80 bg-white border border-stone-200 rounded-xl shadow-2xl z-50 p-2.5 text-left top-full max-h-96 overflow-y-auto">
+                 <p className="text-[11px] uppercase font-black tracking-wider text-stone-400 p-2 border-b border-stone-100 flex items-center justify-between">
+                   <span>Drum Styles</span>
+                   {playingStyle && (
+                     <button 
+                       onClick={(e) => { e.stopPropagation(); stopBeat(); }} 
+                       className="text-red-500 hover:text-red-700 font-bold text-xs"
+                     >
+                       Dừng
+                     </button>
+                   )}
+                 </p>
+                 <div className="space-y-1.5 mt-2">
+                   {DRUM_STYLES.map(style => {
+                     const isStylePlaying = playingStyle === style.name;
+                     return (
+                       <div key={style.name} className="relative">
+                         <div 
+                           onClick={() => {
+                             setCurrentRhythm(style.name);
+                             setShowRhythmMenu(false);
+                             setShowBpmSelector(null);
+                           }}
+                           className={`w-full flex items-center justify-between py-4.5 px-3.5 hover:bg-stone-50 text-sm rounded-lg transition-colors cursor-pointer text-stone-700 ${
+                             currentRhythm === style.name ? 'bg-stone-100/70 font-semibold' : ''
+                           }`}
+                         >
+                           <div className="flex items-center gap-3">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (isStylePlaying) {
+                                    stopBeat();
+                                  } else {
+                                    startBeat(style.name);
+                                  }
+                                }}
+                                className={`p-3 rounded-full transition-all active:scale-90 ${
+                                  isStylePlaying 
+                                    ? 'bg-red-500 text-white shadow-sm' 
+                                    : 'bg-stone-100 hover:bg-stone-200 text-stone-600'
+                                }`}
+                              >
+                                {isStylePlaying ? (
+                                  <Square className="w-8 h-8 fill-white" />
+                                ) : (
+                                  <Play className="w-8 h-8 fill-stone-600 text-stone-600" />
+                                )}
+                              </button>
+                              <span className="font-semibold text-stone-800 text-base">{style.name}</span>
+                           </div>
+                           
+                           {/* BPM Selector Trigger Badge */}
+                           <button
+                             onClick={(e) => {
+                               e.stopPropagation();
+                               setShowBpmSelector(showBpmSelector === style.name ? null : style.name);
+                             }}
+                             className="font-mono text-xs font-bold text-stone-500 bg-stone-100 hover:bg-stone-200 border border-stone-200/85 px-3 py-1.5 rounded-full transition-colors active:scale-95 shrink-0"
+                           >
+                             {style.bpm} BPM
+                           </button>
+                         </div>
+
+                         {/* Incremental Speed List Popover (Bigger targets) */}
+                         {showBpmSelector === style.name && (
+                           <div className="absolute right-0 top-full mt-1.5 w-32 bg-white border border-stone-200 rounded-lg shadow-xl z-55 max-h-48 overflow-y-auto p-1.5 border border-stone-200/90 divide-y divide-stone-100">
+                             {Array.from({ length: 21 }, (_, idx) => 40 + idx * 5).map(bpmVal => (
+                               <button
+                                 key={bpmVal}
+                                 onClick={(e) => {
+                                   e.stopPropagation();
+                                   // Update BPM for the selected style
+                                   setDrumStyles(prev => prev.map(s => s.name === style.name ? { ...s, bpm: bpmVal } : s));
+                                   setShowBpmSelector(null);
+                                   
+                                   // Update playing audio speed on the fly if active
+                                   if (isStylePlaying) {
+                                     if (style.audioFile && audioPlayerRef.current) {
+                                       audioPlayerRef.current.playbackRate = bpmVal / style.originalBpm;
+                                     }
+                                   }
+                                 }}
+                                 className={`w-full text-left px-3.5 py-3 text-xs font-medium hover:bg-stone-100 transition-colors ${
+                                   style.bpm === bpmVal ? 'text-emerald-600 font-bold bg-emerald-50/50' : 'text-stone-700'
+                                 }`}
+                               >
+                                 {bpmVal} BPM
+                               </button>
+                             ))}
+                           </div>
+                         )}
+                       </div>
+                     );
+                   })}
+                 </div>
+               </div>
+             )}
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            {/* YouTube Search Button */}
+            <button
+              onClick={() => {
+                window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(song.title + ' ' + song.artist)}`, '_blank');
+              }}
+              className="p-1.5 rounded-full hover:bg-red-50 text-stone-400 hover:text-red-600 transition-colors"
+              title="Search on YouTube"
+            >
+              <Youtube className="w-4.5 h-4.5" />
+            </button>
+
+            {/* Share/Print Menu Trigger */}
+            <div className="relative">
+              <button
+                onClick={() => setShowShareMenu(!showShareMenu)}
+                className="p-1.5 rounded-full hover:bg-stone-200 text-stone-400 hover:text-stone-700 transition-colors"
+                title="Share or Print"
+              >
+                <Share2 className="w-4.5 h-4.5" />
+              </button>
+              {showShareMenu && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowShareMenu(false)}></div>
+                  <div className="absolute right-0 mt-2 w-48 bg-white border border-stone-200 rounded-lg shadow-xl z-50 p-1.5 text-left">
+                    {navigator.share && (
+                      <button
+                        onClick={async () => {
+                          setShowShareMenu(false);
+                          trackFeatureUse('share');
+                          try {
+                            await navigator.share({
+                              title: song.title,
+                              text: `Hợp âm bài hát: ${song.title} - ${song.artist || ''}`,
+                              url: window.location.origin + '?song=' + song.id
+                            });
+                          } catch (err) {
+                            console.log('Share canceled/failed:', err);
+                          }
+                        }}
+                        className="w-full flex items-center gap-2 p-2 hover:bg-stone-50 text-xs rounded text-stone-700 transition-colors"
+                      >
+                        <Share2 className="w-3.5 h-3.5 text-stone-500" />
+                        <span>Chia sẻ ứng dụng...</span>
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        setShowShareMenu(false);
+                        trackFeatureUse('print');
+                        window.print();
+                      }}
+                      className="w-full flex items-center gap-2 p-2 hover:bg-stone-50 text-xs rounded text-stone-700 transition-colors"
+                    >
+                      <Printer className="w-3.5 h-3.5 text-stone-500" />
+                      <span>In bản nhạc (Print)</span>
+                    </button>
+                    <button
+                      onClick={async () => {
+                        setShowShareMenu(false);
+                        trackFeatureUse('share');
+                        const shareUrl = window.location.origin + '?song=' + song.id;
+                        try {
+                          await navigator.clipboard.writeText(shareUrl);
+                          alert('Đã sao chép liên kết vào bộ nhớ tạm!');
+                        } catch (err) {
+                          console.error('Failed to copy text: ', err);
+                        }
+                      }}
+                      className="w-full flex items-center gap-2 p-2 hover:bg-stone-50 text-xs rounded text-stone-700 transition-colors"
+                    >
+                      <Link className="w-3.5 h-3.5 text-stone-500" />
+                      <span>Sao chép liên kết</span>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Song Info Button */}
+            <button
+              onClick={() => setShowSongInfo(true)}
+              className="p-1.5 rounded-full hover:bg-stone-200 text-stone-400 hover:text-stone-700 transition-colors animate-fade-in"
+              title="Song Info"
+            >
+              <Info className="w-4.5 h-4.5" />
+            </button>
+
+            {/* Favorite Button */}
+            {!song.isOnline && (
+              <button
+                onClick={() => onToggleFavorite(song.id)}
+                className={`p-1.5 rounded-full hover:bg-stone-200 transition-colors ${
+                  song.isFavorite ? 'text-red-600' : 'text-stone-400 hover:text-stone-800'
+                }`}
+              >
+                <Heart className="w-4.5 h-4.5" fill={song.isFavorite ? "currentColor" : "none"} />
+              </button>
+            )}
+
+            {/* Add to Playlist / Save to Library Button */}
+            {song.isOnline ? (
+              <button
+                onClick={() => onSaveToLibrary(song)}
+                disabled={isSavingToLibrary}
+                className={`px-2.5 py-1.5 rounded text-xs font-bold flex items-center gap-1 transition-all text-white shadow-sm active:scale-95 ${
+                  isSavingToLibrary 
+                    ? 'bg-blue-400 cursor-not-allowed' 
+                    : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700'
+                }`}
+              >
+                {isSavingToLibrary ? (
+                  <>
+                    <svg className="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Đang lưu...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-3.5 h-3.5" /> Lưu thư viện
+                  </>
+                )}
+              </button>
+            ) : (
+              <div className="relative">
+                <button
+                  onClick={() => setShowPlaylistMenu(!showPlaylistMenu)}
+                  className="px-2.5 py-1.5 bg-stone-200 hover:bg-stone-300 active:scale-95 rounded text-xs font-semibold flex items-center gap-1 transition-all text-stone-700"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Setlist
+                </button>
+                
+                {showPlaylistMenu && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowPlaylistMenu(false)}></div>
+                    <div className="absolute right-0 mt-2 w-48 bg-white border border-stone-200 rounded shadow-2xl z-50 p-2 text-left">
+                      <p className="text-[10px] uppercase font-bold tracking-wider text-stone-400 p-2">Add to setlist</p>
+                      {playlists.length === 0 ? (
+                        <p className="text-xs text-stone-400 p-2 italic">No setlists created</p>
+                      ) : (
+                        playlists.map(pl => {
+                          const hasSong = pl.songIds.includes(song.id);
+                          return (
+                            <button
+                              key={pl.id}
+                              onClick={() => {
+                                onAddSongToPlaylist(pl.id, song.id);
+                                setShowPlaylistMenu(false);
+                              }}
+                              className="w-full flex items-center justify-between p-2 hover:bg-stone-100 text-xs rounded transition-colors text-stone-700"
+                            >
+                              <span>{pl.name}</span>
+                              {hasSong && <Check className="w-3.5 h-3.5 text-green-600" />}
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        </header>
+      )}
 
 
 
@@ -1369,6 +1541,249 @@ export default function SongViewer({
         </div>
       )}
       
+      {/* Floating mobile controls bar at the bottom */}
+      {isMobile && (
+        <div className="fixed bottom-6 left-0 right-0 z-40 flex items-center justify-center gap-2 px-4 select-none pointer-events-none">
+          {/* Pill 1: Font Size Controls */}
+          <div className="flex items-center gap-1 bg-white/95 border border-stone-200 rounded-full px-2 py-1 shadow-lg pointer-events-auto backdrop-blur-sm">
+            <button 
+              onClick={() => setFontSize(prev => Math.max(10, prev - 1))}
+              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-stone-100 text-stone-700 active:scale-90 transition font-bold text-sm"
+            >
+              A-
+            </button>
+            <span className="text-xs font-mono font-bold text-orange-600 min-w-[28px] text-center">
+              {fontSize}px
+            </span>
+            <button 
+              onClick={() => setFontSize(prev => Math.min(30, prev + 1))}
+              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-stone-100 text-stone-700 active:scale-90 transition font-bold text-sm"
+            >
+              A+
+            </button>
+          </div>
+
+          {/* Pill 2: Transpose Controls */}
+          <div className="flex items-center gap-1 bg-white/95 border border-stone-200 rounded-full px-2 py-1 shadow-lg pointer-events-auto backdrop-blur-sm">
+            <button 
+              onClick={() => setTransposeOffset(prev => prev - 1)}
+              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-stone-100 text-stone-700 active:scale-90 transition font-bold text-base"
+            >
+              -
+            </button>
+            <button
+              onClick={() => setShowKeySelector(!showKeySelector)}
+              className="px-2 py-1 bg-stone-100 border border-stone-200/60 rounded-full text-xs font-mono font-black text-[#4B2E20] active:scale-95 transition min-w-[42px] text-center"
+            >
+              {transposeChord(song.key, transposeOffset)}
+            </button>
+            <button 
+              onClick={() => setTransposeOffset(prev => prev + 1)}
+              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-stone-100 text-stone-700 active:scale-90 transition font-bold text-base"
+            >
+              +
+            </button>
+          </div>
+
+          {/* Pill 3: Rhythm / Beat Controls */}
+          <div className="flex items-center gap-1.5 bg-white/95 border border-stone-200 rounded-full pl-2 pr-3 py-1 shadow-lg pointer-events-auto backdrop-blur-sm">
+            <button
+              onClick={() => {
+                if (playingStyle === currentRhythm) {
+                  stopBeat();
+                } else {
+                  startBeat(currentRhythm || 'Slow / Slow Rock');
+                }
+              }}
+              className={`w-8 h-8 flex items-center justify-center rounded-full transition-all active:scale-90 ${
+                playingStyle 
+                  ? 'bg-red-500 text-white shadow-sm' 
+                  : 'bg-stone-100 hover:bg-stone-200 text-stone-700'
+              }`}
+            >
+              {playingStyle ? (
+                <Square className="w-3.5 h-3.5 fill-white text-white" />
+              ) : (
+                <Play className="w-3.5 h-3.5 fill-stone-700 text-stone-700 ml-0.5" />
+              )}
+            </button>
+            <div 
+              onClick={() => setShowRhythmMenu(!showRhythmMenu)}
+              className="flex flex-col text-left cursor-pointer select-none pr-1"
+            >
+              <span className="text-[10px] font-black text-stone-800 leading-none">
+                {currentRhythm.trim() || 'Select Style'}
+              </span>
+              <span className="text-[8px] font-mono font-bold text-stone-500 mt-0.5 leading-none">
+                {(DRUM_STYLES.find(s => s.name === currentRhythm) || DRUM_STYLES[0]).bpm} BPM
+              </span>
+            </div>
+            <ChevronDown className="w-3 h-3 text-stone-400 shrink-0 -ml-0.5" />
+          </div>
+
+          {/* Button 4: Compact mode Grid Toggle */}
+          <button
+            onClick={() => setIsCompact(!isCompact)}
+            className={`w-10 h-10 flex items-center justify-center bg-white/95 border border-stone-200 rounded-full shadow-lg hover:bg-stone-100 text-stone-700 active:scale-90 transition pointer-events-auto backdrop-blur-sm`}
+          >
+            <LayoutGrid className="w-4.5 h-4.5" />
+          </button>
+        </div>
+      )}
+
+      {/* Mobile Key Selector Modal Popup */}
+      {isMobile && showKeySelector && (
+        <>
+          <div className="fixed inset-0 z-45" onClick={() => setShowKeySelector(false)}></div>
+          <div className="fixed bottom-20 left-1/2 -translate-x-1/2 w-[90vw] max-w-sm bg-white border border-stone-200 rounded-2xl shadow-2xl p-4 z-50 animate-fade-in text-center select-none pointer-events-auto">
+            <div className="flex items-center justify-between border-b border-stone-100 pb-2 mb-3">
+              <span className="text-[10px] uppercase font-black tracking-widest text-stone-400">Chọn tông (Key Selection)</span>
+              <button
+                onClick={() => {
+                  setTransposeOffset(0);
+                  setShowKeySelector(false);
+                }}
+                className="text-[10px] font-black uppercase text-orange-600"
+              >
+                Reset
+              </button>
+            </div>
+            <div className="grid grid-cols-4 gap-2">
+              {['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'].map(keyNote => {
+                const cleanSongKey = song.key.replace('m', '').replace(' ', '');
+                const originalVal = NOTE_TO_SEMITONE[cleanSongKey] || 0;
+                const targetVal = NOTE_TO_SEMITONE[keyNote] || 0;
+                let diff = targetVal - originalVal;
+                if (diff > 6) diff -= 12;
+                if (diff < -5) diff += 12;
+                
+                const transposedDisplay = transposeChord(song.key, diff);
+                const isSelected = transposeChord(song.key, transposeOffset) === transposedDisplay;
+                
+                return (
+                  <button
+                    key={keyNote}
+                    onClick={() => {
+                      setTransposeOffset(diff);
+                      setShowKeySelector(false);
+                    }}
+                    className={`py-2 px-1 text-xs font-mono font-bold rounded-lg border transition ${
+                      isSelected 
+                        ? 'bg-orange-500 text-white border-orange-500' 
+                        : 'bg-stone-50 border-stone-200/80 hover:bg-stone-100 text-stone-700'
+                    }`}
+                  >
+                    {transposedDisplay}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Mobile Rhythm Style Selector Popup */}
+      {isMobile && showRhythmMenu && (
+        <>
+          <div className="fixed inset-0 z-45" onClick={() => setShowRhythmMenu(false)}></div>
+          <div className="fixed bottom-20 left-1/2 -translate-x-1/2 w-[90vw] max-w-sm bg-white border border-stone-200 rounded-2xl shadow-2xl p-4 z-50 animate-fade-in text-left pointer-events-auto max-h-[60vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-stone-100 pb-2 mb-3">
+              <span className="text-[10px] uppercase font-black tracking-widest text-stone-400">Chọn điệu (Drum Styles)</span>
+              {playingStyle && (
+                <button 
+                  onClick={(e) => { e.stopPropagation(); stopBeat(); }} 
+                  className="text-[10px] font-black uppercase text-red-500 hover:text-red-700"
+                >
+                  Dừng
+                </button>
+              )}
+            </div>
+            <div className="space-y-1.5 mt-2">
+              {DRUM_STYLES.map(style => {
+                const isStylePlaying = playingStyle === style.name;
+                return (
+                  <div key={style.name} className="relative">
+                    <div 
+                      onClick={() => {
+                        setCurrentRhythm(style.name);
+                        setShowRhythmMenu(false);
+                        setShowBpmSelector(null);
+                      }}
+                      className={`w-full flex items-center justify-between py-3 px-3 hover:bg-stone-50 text-sm rounded-xl transition-colors cursor-pointer text-stone-700 ${
+                        currentRhythm === style.name ? 'bg-stone-100/70 font-semibold' : ''
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                         <button
+                           onClick={(e) => {
+                             e.stopPropagation();
+                             if (isStylePlaying) {
+                               stopBeat();
+                             } else {
+                               startBeat(style.name);
+                             }
+                           }}
+                           className={`p-2.5 rounded-full transition-all active:scale-90 ${
+                             isStylePlaying 
+                               ? 'bg-red-500 text-white shadow-sm' 
+                               : 'bg-stone-100 hover:bg-stone-200 text-stone-600'
+                           }`}
+                         >
+                           {isStylePlaying ? (
+                             <Square className="w-5 h-5 fill-white text-white" />
+                           ) : (
+                             <Play className="w-5 h-5 fill-stone-600 text-stone-600" />
+                           )}
+                         </button>
+                         <span className="font-semibold text-stone-850 text-sm">{style.name}</span>
+                      </div>
+                      
+                      {/* BPM Selector Trigger Badge */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowBpmSelector(showBpmSelector === style.name ? null : style.name);
+                        }}
+                        className="font-mono text-[10px] font-bold text-stone-500 bg-stone-100 hover:bg-stone-200 border border-stone-250 px-2.5 py-1 rounded-full transition-colors active:scale-95 shrink-0"
+                      >
+                        {style.bpm} BPM
+                      </button>
+                    </div>
+
+                    {/* Incremental Speed List Popover for Mobile */}
+                    {showBpmSelector === style.name && (
+                      <div className="absolute right-0 top-full mt-1.5 w-32 bg-white border border-stone-250 rounded-xl shadow-xl z-55 max-h-40 overflow-y-auto p-1.5 divide-y divide-stone-100">
+                        {Array.from({ length: 21 }, (_, idx) => 40 + idx * 5).map(bpmVal => (
+                          <button
+                            key={bpmVal}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDrumStyles(prev => prev.map(s => s.name === style.name ? { ...s, bpm: bpmVal } : s));
+                              setShowBpmSelector(null);
+                              
+                              if (isStylePlaying) {
+                                if (style.audioFile && audioPlayerRef.current) {
+                                  audioPlayerRef.current.playbackRate = bpmVal / style.originalBpm;
+                                }
+                              }
+                            }}
+                            className={`w-full text-left px-3.5 py-2.5 text-xs font-semibold hover:bg-stone-100 transition-colors ${
+                              style.bpm === bpmVal ? 'text-orange-600 font-bold bg-orange-50/50' : 'text-stone-700'
+                            }`}
+                          >
+                            {bpmVal} BPM
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </>
+      )}
+
       {/* Subtle Watermarks in Unused Space (Left & Right margins) */}
       <div className="hidden xl:flex absolute left-4 top-[40%] -translate-y-1/2 opacity-[0.025] select-none pointer-events-none flex-col items-center justify-center text-center max-w-[150px]">
         <BrandLogo className="w-24 h-24 mb-2" />
