@@ -742,21 +742,38 @@ export default function SongViewer({
     if (!styleObj) return;
 
     if (styleObj.audioFile) {
-      // Release any previous audio player source
-      if (audioPlayerRef.current) {
+      // Create persistent audio element if not exists
+      if (!audioPlayerRef.current) {
+        audioPlayerRef.current = new Audio();
+      } else {
         audioPlayerRef.current.pause();
-        audioPlayerRef.current = null;
       }
-      // Load corresponding audio file from assets/audio/ directory
-      audioPlayerRef.current = new Audio(`/assets/audio/${styleObj.audioFile}`);
+      
+      audioPlayerRef.current.src = `/assets/audio/${styleObj.audioFile}`;
       audioPlayerRef.current.loop = true;
       
-      // On mobile browsers, make sure play() triggers directly on user gesture
-      audioPlayerRef.current.play().catch(err => {
-        console.log('Initial audio play fail, retrying:', err);
-      });
-      // Apply playbackRate target_bpm / original_bpm
-      audioPlayerRef.current.playbackRate = styleObj.bpm / styleObj.originalBpm;
+      const targetPlaybackRate = styleObj.bpm / styleObj.originalBpm;
+      
+      // Safari requires metadata to be loaded or play promise to resolve before setting playbackRate
+      const applyPlaybackRate = () => {
+        if (audioPlayerRef.current) {
+          audioPlayerRef.current.playbackRate = targetPlaybackRate;
+        }
+      };
+      
+      audioPlayerRef.current.addEventListener('canplay', applyPlaybackRate, { once: true });
+      audioPlayerRef.current.addEventListener('loadedmetadata', applyPlaybackRate, { once: true });
+      
+      audioPlayerRef.current.play()
+        .then(() => {
+          applyPlaybackRate();
+        })
+        .catch(err => {
+          console.log('Audio play failed:', err);
+        });
+      
+      // Set immediately as fallback
+      audioPlayerRef.current.playbackRate = targetPlaybackRate;
       setPlayingStyle(styleName);
     } else {
       // Fallback for synthesizers (e.g. Boston style)
