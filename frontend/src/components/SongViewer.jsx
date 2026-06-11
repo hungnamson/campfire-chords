@@ -140,7 +140,7 @@ export default function SongViewer({
 
     // Helper to test layouts synchronously and return the actual layout height of the sheet
     const testLayout = (cols, size, compact = false) => {
-      let className = 'song-lyrics-sheet select-text max-w-4xl mx-auto w-full';
+      let className = 'song-lyrics-sheet select-text max-w-[96%] mx-auto w-full';
       if (cols === 2) className += ' song-lyrics-sheet-cols-2';
       else if (cols === 3) className += ' song-lyrics-sheet-cols-3';
       if (compact) className += ' song-lyrics-sheet-compact';
