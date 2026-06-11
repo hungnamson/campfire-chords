@@ -37,6 +37,9 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
+// Serve assets folder from root directory
+app.use('/assets', express.static(path.join(__dirname, 'assets')));
+
 // ----------------------------------------------------
 // Intelligent Chord-Over-Text Parser
 // Converts two-line text format to ChordPro format.
