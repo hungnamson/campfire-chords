@@ -775,6 +775,7 @@ export default function SongViewer({
       }
       
       audioPlayerRef.current.src = `/assets/audio/${styleObj.audioFile}`;
+      audioPlayerRef.current.load();
       audioPlayerRef.current.loop = true;
       
       const targetPlaybackRate = styleObj.bpm / styleObj.originalBpm;
@@ -1738,7 +1739,8 @@ export default function SongViewer({
                 return (
                   <div key={style.name} className="relative">
                     <div 
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setCurrentRhythm(style.name);
                         setShowRhythmMenu(false);
                         setShowBpmSelector(null);
@@ -1786,7 +1788,10 @@ export default function SongViewer({
 
                     {/* Incremental Speed List Popover for Mobile */}
                     {showBpmSelector === style.name && (
-                      <div className="absolute right-0 top-full mt-1.5 w-32 bg-white border border-stone-250 rounded-xl shadow-xl z-55 max-h-40 overflow-y-auto p-1.5 divide-y divide-stone-100">
+                      <div 
+                        onClick={(e) => e.stopPropagation()}
+                        className="absolute right-0 top-full mt-1.5 w-32 bg-white border border-stone-250 rounded-xl shadow-xl z-55 max-h-40 overflow-y-auto p-1.5 divide-y divide-stone-100"
+                      >
                         {Array.from({ length: 21 }, (_, idx) => 40 + idx * 5).map(bpmVal => (
                           <button
                             key={bpmVal}
