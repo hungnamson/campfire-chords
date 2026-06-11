@@ -1256,6 +1256,7 @@ export default function App() {
       <div className="flex-grow flex flex-col min-w-0">
         
         {/* Unified Sticky Search and Transpose Header */}
+        {!(activeSongId !== null && window.innerWidth < 768) && (
         <header className="bg-[#f5f3ef]/90 backdrop-blur sticky top-0 z-30 border-b border-[#e3ded5] shadow-sm select-none transition-all duration-300 w-full flex flex-col">
           <div className={`max-w-6xl w-full mx-auto px-4 py-2 md:py-3 md:px-8 flex items-center justify-between relative transition-all duration-300 ${
             isSearchFocused ? 'gap-0 md:gap-4' : 'gap-4'
@@ -1576,6 +1577,7 @@ export default function App() {
           </div>
           </div>
         </header>
+        )}
 
         {/* Content Body */}
         <main className={`flex-grow overflow-y-auto ${
