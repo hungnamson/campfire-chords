@@ -1266,10 +1266,7 @@ export default function App() {
               ? 'max-w-0 opacity-0 pointer-events-none md:max-w-[320px] md:opacity-100 md:pointer-events-auto' 
               : 'max-w-[320px] opacity-100 pointer-events-auto'
           }`}>
-            <BrandLogo className="w-5 h-5 md:w-8 md:h-8 shrink-0 transition-all duration-200" />
-            <span className="font-bold text-base md:text-2xl tracking-tight font-display text-[#1E293B] hidden sm:inline transition-all duration-200">
-              Hát<span className="text-[#FF8A00]">Cùng</span>Nhau
-            </span>
+            <BrandLogo variant="horizontal" className="h-6 md:h-10 w-auto transition-all duration-200" />
           </div>
 
           {/* Search Box (Center, expands) */}
@@ -1674,16 +1671,9 @@ export default function App() {
                     <div className="flex flex-col gap-8 max-w-6xl mx-auto w-full">
                       {/* Hero Header Card */}
                       <div className="text-center py-10 px-6 bg-gradient-to-br from-amber-500/[0.04] via-orange-500/[0.02] to-transparent border border-[#EBDDCB] rounded-2xl shadow-xs select-none animate-fade-in relative overflow-hidden">
-                        <div className="flex justify-center w-full mb-4">
-                          <div className="w-16 h-16 bg-red-600/5 border border-red-600/10 rounded-full flex items-center justify-center">
-                            <BrandLogo className="w-12 h-12" />
-                          </div>
+                        <div className="flex justify-center w-full mb-1">
+                          <BrandLogo variant="vertical" className="h-32 md:h-40 w-auto" />
                         </div>
-                        <h3 className="text-2xl font-black text-[#1E293B] font-display tracking-tight">
-                          Hát<span className="text-[#FF8A00]">Cùng</span>Nhau
-                        </h3>
-                        <p className="text-xs text-[#4B2E20] mt-1 font-medium font-sans">Lời nhạc & Hợp âm Việt</p>
-                        <p className="text-xs text-[#FF8A00] mt-1 italic font-semibold font-display">Hát cùng nhau, mọi lúc mọi nơi.</p>
                         {songs.length > 0 ? (
                           <>
                             <p className="text-sm font-bold text-stone-600 mt-3.5">
