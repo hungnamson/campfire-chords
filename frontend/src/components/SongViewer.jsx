@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
-import { Heart, ArrowLeft, Plus, Check, Minimize2, Maximize2, Info, ExternalLink, X, Share2, Printer, Link, Play, Square, Search, MoreVertical, ChevronDown, LayoutGrid } from 'lucide-react';
+import { Heart, ArrowLeft, Plus, Check, Minimize2, Maximize2, Info, ExternalLink, X, Share2, Printer, Link, Play, Square, Search, MoreVertical, ChevronDown, LayoutGrid, Pause } from 'lucide-react';
 import { transposeChord, NOTE_TO_SEMITONE } from '../utils/transposer';
 import ChordDiagram from './ChordDiagram';
 import BrandLogo from './BrandLogo';
@@ -868,7 +868,11 @@ export default function SongViewer({
 
   // Update current style selection state if the song updates
   useEffect(() => {
-    setCurrentRhythm(song.rhythm || '');
+    const matchingStyle = DRUM_STYLES.find(s => 
+      s.name.toLowerCase().includes((song.rhythm || '').toLowerCase()) || 
+      (song.rhythm || '').toLowerCase().includes(s.name.toLowerCase())
+    );
+    setCurrentRhythm(matchingStyle ? matchingStyle.name : (song.rhythm || ''));
     stopBeat();
   }, [song]);
 
@@ -1137,7 +1141,7 @@ export default function SongViewer({
                                 }`}
                               >
                                 {isStylePlaying ? (
-                                  <Square className="w-8 h-8 fill-white" />
+                                  <Pause className="w-8 h-8 fill-white" />
                                 ) : (
                                   <Play className="w-8 h-8 fill-stone-600 text-stone-600" />
                                 )}
@@ -1623,7 +1627,7 @@ export default function SongViewer({
               }`}
             >
               {playingStyle ? (
-                <Square className="w-4 h-4 fill-white text-white" />
+                <Pause className="w-4 h-4 fill-white text-white" />
               ) : (
                 <Play className="w-4 h-4 fill-stone-700 text-stone-700 ml-0.5" />
               )}
@@ -1656,8 +1660,12 @@ export default function SongViewer({
       {/* Mobile Key Selector Modal Popup */}
       {isMobile && showKeySelector && (
         <>
-          <div className="fixed inset-0 z-45" onClick={() => setShowKeySelector(false)}></div>
-          <div className="fixed bottom-20 left-1/2 -translate-x-1/2 w-[90vw] max-w-sm bg-white border border-stone-200 rounded-2xl shadow-2xl p-4 z-50 animate-fade-in text-center select-none pointer-events-auto">
+          <div className="fixed inset-0 z-45" onClick={(e) => { e.stopPropagation(); setShowKeySelector(false); }} onTouchStart={(e) => e.stopPropagation()}></div>
+          <div 
+            onClick={(e) => e.stopPropagation()} 
+            onTouchStart={(e) => e.stopPropagation()}
+            className="fixed bottom-20 left-1/2 -translate-x-1/2 w-[90vw] max-w-sm bg-white border border-stone-200 rounded-2xl shadow-2xl p-4 z-50 animate-fade-in text-center select-none pointer-events-auto"
+          >
             <div className="flex items-center justify-between border-b border-stone-100 pb-2 mb-3">
               <span className="text-[10px] uppercase font-black tracking-widest text-stone-400">Chọn tông (Key Selection)</span>
               <button
@@ -1707,8 +1715,12 @@ export default function SongViewer({
       {/* Mobile Rhythm Style Selector Popup */}
       {isMobile && showRhythmMenu && (
         <>
-          <div className="fixed inset-0 z-45" onClick={() => setShowRhythmMenu(false)}></div>
-          <div className="fixed bottom-20 left-1/2 -translate-x-1/2 w-[90vw] max-w-sm bg-white border border-stone-200 rounded-2xl shadow-2xl p-4 z-50 animate-fade-in text-left pointer-events-auto max-h-[60vh] overflow-y-auto">
+          <div className="fixed inset-0 z-45" onClick={(e) => { e.stopPropagation(); setShowRhythmMenu(false); }} onTouchStart={(e) => e.stopPropagation()}></div>
+          <div 
+            onClick={(e) => e.stopPropagation()} 
+            onTouchStart={(e) => e.stopPropagation()}
+            className="fixed bottom-20 left-1/2 -translate-x-1/2 w-[90vw] max-w-sm bg-white border border-stone-200 rounded-2xl shadow-2xl p-4 z-50 animate-fade-in text-left pointer-events-auto max-h-[60vh] overflow-y-auto"
+          >
             <div className="flex items-center justify-between border-b border-stone-100 pb-2 mb-3">
               <span className="text-[10px] uppercase font-black tracking-widest text-stone-400">Chọn điệu (Drum Styles)</span>
               {playingStyle && (
@@ -1720,7 +1732,7 @@ export default function SongViewer({
                 </button>
               )}
             </div>
-            <div className="space-y-1.5 mt-2">
+            <div className="space-y-4 mt-2">
               {DRUM_STYLES.map(style => {
                 const isStylePlaying = playingStyle === style.name;
                 return (
@@ -1731,7 +1743,7 @@ export default function SongViewer({
                         setShowRhythmMenu(false);
                         setShowBpmSelector(null);
                       }}
-                      className={`w-full flex items-center justify-between py-3 px-3 hover:bg-stone-50 text-sm rounded-xl transition-colors cursor-pointer text-stone-700 ${
+                      className={`w-full flex items-center justify-between py-4.5 px-3 hover:bg-stone-50 text-sm rounded-xl transition-colors cursor-pointer text-stone-700 ${
                         currentRhythm === style.name ? 'bg-stone-100/70 font-semibold' : ''
                       }`}
                     >
@@ -1752,7 +1764,7 @@ export default function SongViewer({
                            }`}
                          >
                            {isStylePlaying ? (
-                             <Square className="w-5 h-5 fill-white text-white" />
+                             <Pause className="w-5 h-5 fill-white text-white" />
                            ) : (
                              <Play className="w-5 h-5 fill-stone-600 text-stone-600" />
                            )}
