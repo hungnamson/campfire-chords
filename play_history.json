@@ -44,13 +44,25 @@
   {
     "userId": "henrytran",
     "songId": "mua-chieu-lam-thuy-van",
-    "playCount": 2,
-    "lastPlayed": "2026-06-11T02:02:03.642Z"
+    "playCount": 3,
+    "lastPlayed": "2026-06-11T04:38:16.804Z"
   },
   {
     "userId": "henrytran",
     "songId": "dieu-gian-di-hong-nhung",
     "playCount": 1,
     "lastPlayed": "2026-06-11T02:02:07.429Z"
+  },
+  {
+    "userId": "henrytran",
+    "songId": "nguoi-tinh-tram-nam-duc-huy",
+    "playCount": 1,
+    "lastPlayed": "2026-06-11T04:40:42.556Z"
+  },
+  {
+    "userId": "henrytran",
+    "songId": "cat-bui",
+    "playCount": 1,
+    "lastPlayed": "2026-06-11T04:41:27.847Z"
   }
 ]

@@ -28,43 +28,7 @@ import {
 import SongViewer from './components/SongViewer';
 import InstrumentTuner from './components/InstrumentTuner';
 import { transposeChord, NOTE_TO_SEMITONE } from './utils/transposer';
-
-export function BrandLogo({ className = "w-6 h-6" }) {
-  return (
-    <svg className={className} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-      {/* Circle Background */}
-      <circle cx="50" cy="50" r="48" fill="#FF8A00" />
-      {/* Yellow Inner Arch / Campfire glow */}
-      <circle cx="50" cy="50" r="40" stroke="#FFC24D" strokeWidth="4" strokeLinecap="round" strokeDasharray="160 100" transform="rotate(-90 50 50)" />
-      {/* Guitar Neck / Headstock */}
-      <rect x="47" y="15" width="6" height="50" fill="#4B2E20" rx="1" />
-      {/* Guitar body top curve */}
-      <path d="M42 62C42 55 58 55 58 62L54 75H46L42 62Z" fill="#4B2E20" />
-      {/* Guitar Tuning Pegs */}
-      <circle cx="44" cy="20" r="1.5" fill="#4B2E20" />
-      <circle cx="44" cy="26" r="1.5" fill="#4B2E20" />
-      <circle cx="44" cy="32" r="1.5" fill="#4B2E20" />
-      <circle cx="56" cy="20" r="1.5" fill="#4B2E20" />
-      <circle cx="56" cy="26" r="1.5" fill="#4B2E20" />
-      <circle cx="56" cy="32" r="1.5" fill="#4B2E20" />
-      
-      {/* People Silhouettes at bottom */}
-      {/* Left person */}
-      <circle cx="30" cy="74" r="7" fill="#4B2E20" />
-      <path d="M18 90C18 80 24 78 30 78C36 78 42 80 42 90H18Z" fill="#4B2E20" />
-      {/* Right person */}
-      <circle cx="70" cy="74" r="7" fill="#4B2E20" />
-      <path d="M58 90C58 80 64 78 70 78C76 78 82 80 82 90H58Z" fill="#4B2E20" />
-      {/* Center person */}
-      <circle cx="50" cy="68" r="8" fill="#4B2E20" />
-      <path d="M36 88C36 76 43 74 50 74C57 74 64 76 64 88H36Z" fill="#4B2E20" />
-
-      {/* Musical notes */}
-      <path d="M72 35 C 72 30, 78 30, 78 35 L 78 45 C 78 47, 76 49, 74 49 C 72 49, 70 47, 70 45 C 70 43, 72 41, 74 41 L 74 37 L 72 37 Z" fill="#FFC24D" />
-      <path d="M22 45 C 22 40, 28 40, 28 45 L 28 55 C 28 57, 26 59, 24 59 C 22 59, 20 57, 20 55 C 20 53, 22 51, 24 51 L 24 47 L 22 47 Z" fill="#FFC24D" />
-    </svg>
-  );
-}
+import BrandLogo from './components/BrandLogo';
 
 const API_BASE = '/api';
 
@@ -1258,8 +1222,8 @@ export default function App() {
               ? 'max-w-0 opacity-0 pointer-events-none md:max-w-[320px] md:opacity-100 md:pointer-events-auto' 
               : 'max-w-[320px] opacity-100 pointer-events-auto'
           }`}>
-            <BrandLogo className="w-5 h-5 shrink-0" />
-            <span className="font-bold text-base tracking-tight font-display text-[#1E293B] hidden sm:inline">
+            <BrandLogo className="w-5 h-5 md:w-8 md:h-8 shrink-0 transition-all duration-200" />
+            <span className="font-bold text-base md:text-2xl tracking-tight font-display text-[#1E293B] hidden sm:inline transition-all duration-200">
               Hát<span className="text-[#FF8A00]">Cùng</span>Nhau
             </span>
           </div>

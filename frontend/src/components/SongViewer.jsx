@@ -2,6 +2,7 @@ import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { Heart, ArrowLeft, Plus, Check, Minimize2, Maximize2, Info, ExternalLink, X, Share2, Printer, Link } from 'lucide-react';
 import { transposeChord } from '../utils/transposer';
 import ChordDiagram from './ChordDiagram';
+import BrandLogo from './BrandLogo';
 
 // Custom YouTube Icon Component
 const Youtube = (props) => (
@@ -525,7 +526,7 @@ export default function SongViewer({
   })();
 
   return (
-    <div className="song-viewer-container flex flex-col min-h-screen text-stone-900 bg-stone-100 md:bg-white pb-28 animate-fade-in w-full md:w-[90vw] md:max-w-[90vw] self-center mx-auto md:shadow-lg md:border-x md:border-stone-200/80 cursor-default" ref={songContainerRef} onClick={(e) => e.stopPropagation()}>
+    <div className="song-viewer-container flex flex-col min-h-screen text-stone-900 bg-stone-100 md:bg-white pb-28 animate-fade-in w-full md:w-[90vw] md:max-w-[90vw] self-center mx-auto md:shadow-lg md:border-x md:border-stone-200/80 cursor-default relative" ref={songContainerRef} onClick={(e) => e.stopPropagation()}>
       {/* Sub Header / Action bar */}
       <header className={`sticky top-0 z-30 bg-[#f5f3ef]/90 backdrop-blur border-b border-stone-200 flex items-center justify-between shadow-sm transition-all duration-200 ${
         localIsCompact ? 'px-3 py-1' : 'py-2 song-viewer-padding-x'
@@ -935,6 +936,16 @@ export default function SongViewer({
           </div>
         </div>
       )}
+      
+      {/* Subtle Watermarks in Unused Space (Left & Right margins) */}
+      <div className="hidden xl:flex absolute left-4 top-[40%] -translate-y-1/2 opacity-[0.025] select-none pointer-events-none flex-col items-center justify-center text-center max-w-[150px]">
+        <BrandLogo className="w-24 h-24 mb-2" />
+        <span className="text-[10px] font-black uppercase tracking-widest text-[#4B2E20] font-display">HátCùngNhau</span>
+      </div>
+      <div className="hidden xl:flex absolute right-4 top-[40%] -translate-y-1/2 opacity-[0.025] select-none pointer-events-none flex-col items-center justify-center text-center max-w-[150px]">
+        <BrandLogo className="w-24 h-24 mb-2" />
+        <span className="text-[10px] font-black uppercase tracking-widest text-[#4B2E20] font-display">HátCùngNhau</span>
+      </div>
     </div>
   );
 }
