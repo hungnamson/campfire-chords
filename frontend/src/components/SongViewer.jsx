@@ -66,7 +66,7 @@ export default function SongViewer({
     }
     hideControlsTimeoutRef.current = setTimeout(() => {
       setShowMobileControls(false);
-    }, 30000);
+    }, 5000);
   };
 
   useEffect(() => {
@@ -1570,7 +1570,7 @@ export default function SongViewer({
       {/* Floating mobile controls bar at the bottom */}
       {isMobile && (
         <div 
-          className={`fixed bottom-[200px] left-0 right-0 z-40 flex items-center justify-center gap-1.5 px-3 select-none pointer-events-none transition-all duration-300 ease-in-out ${
+          className={`fixed bottom-[50px] left-0 right-0 z-40 flex items-center justify-center gap-1.5 px-3 select-none pointer-events-none transition-all duration-300 ease-in-out ${
             showMobileControls 
               ? 'opacity-100 translate-y-0 pointer-events-auto' 
               : 'opacity-0 translate-y-4 pointer-events-none'
