@@ -837,116 +837,113 @@ export default function SongViewer({
         <div className="relative flex items-center justify-center mx-2 shrink-0">
           <button
             onClick={() => setShowRhythmMenu(!showRhythmMenu)}
-            className="px-2.5 py-1.5 bg-stone-200/60 hover:bg-stone-200 border border-stone-300/60 rounded-full text-[10px] font-black text-stone-600 uppercase tracking-wider select-none cursor-pointer flex items-center gap-1 transition-all duration-150 active:scale-95 shadow-sm"
+            className="rhythm-trigger-button px-2.5 py-1.5 bg-stone-200/60 hover:bg-stone-200 border border-stone-300/60 rounded-full text-[10px] font-black text-stone-600 uppercase tracking-wider select-none cursor-pointer flex items-center gap-1 transition-all duration-150 active:scale-95 shadow-sm"
           >
             <span>{currentRhythm.trim() || 'SELECT STYLE'}</span>
             {playingStyle && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>}
           </button>
 
            {showRhythmMenu && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => { setShowRhythmMenu(false); setShowBpmSelector(null); }}></div>
-              <div className="absolute left-1/2 -translate-x-1/2 mt-2 w-72 bg-white border border-stone-200 rounded-xl shadow-2xl z-50 p-2 text-left top-full max-h-96 overflow-y-auto">
-                <p className="text-[10px] uppercase font-black tracking-wider text-stone-400 p-2 border-b border-stone-100 flex items-center justify-between">
-                  <span>Drum Styles</span>
-                  {playingStyle && (
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); stopBeat(); }} 
-                      className="text-red-500 hover:text-red-700 font-bold"
-                    >
-                      Dừng
-                    </button>
-                  )}
-                </p>
-                <div className="space-y-1 mt-1.5">
-                  {DRUM_STYLES.map(style => {
-                    const isStylePlaying = playingStyle === style.name;
-                    return (
-                      <div key={style.name} className="relative">
-                        <div 
-                          onClick={() => {
-                            setCurrentRhythm(style.name);
-                            setShowRhythmMenu(false);
-                            setShowBpmSelector(null);
-                          }}
-                          className={`w-full flex items-center justify-between py-3.5 px-3 hover:bg-stone-50 text-sm rounded-lg transition-colors cursor-pointer text-stone-700 ${
-                            currentRhythm === style.name ? 'bg-stone-100/70 font-semibold' : ''
-                          }`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (isStylePlaying) {
-                                  stopBeat();
-                                } else {
-                                  startBeat(style.name);
-                                }
-                              }}
-                              className={`p-2 rounded-full transition-all active:scale-90 ${
-                                isStylePlaying 
-                                  ? 'bg-red-500 text-white shadow-sm' 
-                                  : 'bg-stone-100 hover:bg-stone-200 text-stone-600'
-                              }`}
-                            >
-                              {isStylePlaying ? (
-                                <Square className="w-3.5 h-3.5 fill-white" />
-                              ) : (
-                                <Play className="w-3.5 h-3.5 fill-stone-600 text-stone-600" />
-                              )}
-                            </button>
-                            <span>{style.name}</span>
-                          </div>
-                          
-                          {/* BPM Selector Trigger Badge */}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setShowBpmSelector(showBpmSelector === style.name ? null : style.name);
-                            }}
-                            className="font-mono text-xs font-bold text-stone-500 bg-stone-100 hover:bg-stone-200 border border-stone-200/80 px-2.5 py-1 rounded-full transition-colors active:scale-95 shrink-0"
-                          >
-                            {style.bpm} BPM
-                          </button>
-                        </div>
+             <div className="rhythm-menu-container absolute left-1/2 -translate-x-1/2 mt-2 w-72 bg-white border border-stone-200 rounded-xl shadow-2xl z-50 p-2 text-left top-full max-h-96 overflow-y-auto">
+               <p className="text-[10px] uppercase font-black tracking-wider text-stone-400 p-2 border-b border-stone-100 flex items-center justify-between">
+                 <span>Drum Styles</span>
+                 {playingStyle && (
+                   <button 
+                     onClick={(e) => { e.stopPropagation(); stopBeat(); }} 
+                     className="text-red-500 hover:text-red-700 font-bold"
+                   >
+                     Dừng
+                   </button>
+                 )}
+               </p>
+               <div className="space-y-1 mt-1.5">
+                 {DRUM_STYLES.map(style => {
+                   const isStylePlaying = playingStyle === style.name;
+                   return (
+                     <div key={style.name} className="relative">
+                       <div 
+                         onClick={() => {
+                           setCurrentRhythm(style.name);
+                           setShowRhythmMenu(false);
+                           setShowBpmSelector(null);
+                         }}
+                         className={`w-full flex items-center justify-between py-3.5 px-3 hover:bg-stone-50 text-sm rounded-lg transition-colors cursor-pointer text-stone-700 ${
+                           currentRhythm === style.name ? 'bg-stone-100/70 font-semibold' : ''
+                         }`}
+                       >
+                         <div className="flex items-center gap-3">
+                           <button
+                             onClick={(e) => {
+                               e.stopPropagation();
+                               if (isStylePlaying) {
+                                 stopBeat();
+                               } else {
+                                 startBeat(style.name);
+                               }
+                             }}
+                             className={`p-2 rounded-full transition-all active:scale-90 ${
+                               isStylePlaying 
+                                 ? 'bg-red-500 text-white shadow-sm' 
+                                 : 'bg-stone-100 hover:bg-stone-200 text-stone-600'
+                             }`}
+                           >
+                             {isStylePlaying ? (
+                               <Square className="w-3.5 h-3.5 fill-white" />
+                             ) : (
+                               <Play className="w-3.5 h-3.5 fill-stone-600 text-stone-600" />
+                             )}
+                           </button>
+                           <span>{style.name}</span>
+                         </div>
+                         
+                         {/* BPM Selector Trigger Badge */}
+                         <button
+                           onClick={(e) => {
+                             e.stopPropagation();
+                             setShowBpmSelector(showBpmSelector === style.name ? null : style.name);
+                           }}
+                           className="font-mono text-xs font-bold text-stone-500 bg-stone-100 hover:bg-stone-200 border border-stone-200/80 px-2.5 py-1 rounded-full transition-colors active:scale-95 shrink-0"
+                         >
+                           {style.bpm} BPM
+                         </button>
+                       </div>
 
-                        {/* Incremental Speed List Popover */}
-                        {showBpmSelector === style.name && (
-                          <div className="absolute right-0 top-full mt-1 w-28 bg-white border border-stone-200 rounded-lg shadow-xl z-55 max-h-40 overflow-y-auto p-1 border border-stone-200/90 divide-y divide-stone-100">
-                            {Array.from({ length: 21 }, (_, idx) => 40 + idx * 5).map(bpmVal => (
-                              <button
-                                key={bpmVal}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  // Update BPM for the selected style
-                                  setDrumStyles(prev => prev.map(s => s.name === style.name ? { ...s, bpm: bpmVal } : s));
-                                  setShowBpmSelector(null);
-                                  
-                                  // Update playing audio speed on the fly if active
-                                  if (isStylePlaying) {
-                                    if (style.name === 'Slow / Slow Rock') {
-                                      if (audioPlayerRef.current) {
-                                        audioPlayerRef.current.playbackRate = bpmVal / 60;
-                                      }
-                                    }
-                                  }
-                                }}
-                                className={`w-full text-left px-3 py-2 text-xs hover:bg-stone-100 transition-colors ${
-                                  style.bpm === bpmVal ? 'text-emerald-600 font-bold bg-emerald-50/50' : 'text-stone-700'
-                                }`}
-                              >
-                                {bpmVal} BPM
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </>
-          )}
+                       {/* Incremental Speed List Popover */}
+                       {showBpmSelector === style.name && (
+                         <div className="absolute right-0 top-full mt-1 w-28 bg-white border border-stone-200 rounded-lg shadow-xl z-55 max-h-40 overflow-y-auto p-1 border border-stone-200/90 divide-y divide-stone-100">
+                           {Array.from({ length: 21 }, (_, idx) => 40 + idx * 5).map(bpmVal => (
+                             <button
+                               key={bpmVal}
+                               onClick={(e) => {
+                                 e.stopPropagation();
+                                 // Update BPM for the selected style
+                                 setDrumStyles(prev => prev.map(s => s.name === style.name ? { ...s, bpm: bpmVal } : s));
+                                 setShowBpmSelector(null);
+                                 
+                                 // Update playing audio speed on the fly if active
+                                 if (isStylePlaying) {
+                                   if (style.name === 'Slow / Slow Rock') {
+                                     if (audioPlayerRef.current) {
+                                       audioPlayerRef.current.playbackRate = bpmVal / 60;
+                                     }
+                                   }
+                                 }
+                               }}
+                               className={`w-full text-left px-3 py-2 text-xs hover:bg-stone-100 transition-colors ${
+                                 style.bpm === bpmVal ? 'text-emerald-600 font-bold bg-emerald-50/50' : 'text-stone-700'
+                               }`}
+                             >
+                               {bpmVal} BPM
+                             </button>
+                           ))}
+                         </div>
+                       )}
+                     </div>
+                   );
+                 })}
+               </div>
+             </div>
+           )}
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
