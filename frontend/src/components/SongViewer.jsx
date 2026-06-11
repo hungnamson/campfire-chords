@@ -180,99 +180,44 @@ export default function SongViewer({
       let height = testLayout(1, fontSize, isCompact);
 
       if (height > availableHeight) {
-        // If standard spacing doesn't fit, try compact spacing if not already on
-        if (!isCompact) {
-          let compactHeight = testLayout(1, fontSize, true);
-          if (compactHeight <= availableHeight) {
-            optimalFontSize = fontSize;
-            optimalIsCompact = true;
-          } else {
-            optimalFontSize = findOptimalSize(1, minFontSize, fontSize, true);
-            optimalIsCompact = true;
-          }
-        } else {
-          optimalFontSize = findOptimalSize(1, minFontSize, fontSize, true);
-          optimalIsCompact = true;
-        }
+        optimalFontSize = findOptimalSize(1, minFontSize, fontSize, isCompact);
       } else {
         optimalFontSize = fontSize;
-        optimalIsCompact = isCompact;
       }
+      optimalIsCompact = isCompact;
     } else {
-      // Tablet & Desktop: try to fit screen. If too long, use 2 columns or 3 columns. If short, scale up font size
-
-      // First test 1 column at current base fontSize (with standard spacing)
-      let height1 = testLayout(1, fontSize, false);
+      // Tablet & Desktop: try to fit screen respecting user's manual isCompact selection
+      
+      // First test 1 column at current base fontSize in the chosen mode
+      let height1 = testLayout(1, fontSize, isCompact);
 
       if (height1 <= availableHeight) {
         // Fits in 1 column: scale up to fill screen (up to 50px)
-        optimalFontSize = findOptimalSize(1, fontSize, 50, false);
+        optimalFontSize = findOptimalSize(1, fontSize, 50, isCompact);
         optimalColumns = 1;
-        optimalIsCompact = false;
       } else {
-        // Try 1 column with COMPACT spacing
-        let height1Compact = testLayout(1, fontSize, true);
-        if (height1Compact <= availableHeight) {
-          optimalFontSize = findOptimalSize(1, fontSize, 50, true);
-          optimalColumns = 1;
-          optimalIsCompact = true;
+        // Try 2 columns in the chosen mode
+        let height2 = testLayout(2, fontSize, isCompact);
+
+        if (height2 <= availableHeight) {
+          // Fits in 2 columns: scale up to fill screen (up to 36px)
+          optimalFontSize = findOptimalSize(2, fontSize, 36, isCompact);
+          optimalColumns = 2;
         } else {
-          // Doesn't fit in 1 column compact: try 2 columns standard spacing
-          let height2 = testLayout(2, fontSize, false);
-
-          if (height2 <= availableHeight) {
-            // Fits in 2 columns standard: scale up to fill screen (up to 36px)
-            optimalFontSize = findOptimalSize(2, fontSize, 36, false);
+          // Doesn't fit in 2 columns: try to scale down font size down to min readable size
+          const minSize = isCompact ? 14 : 16;
+          let heightAtMin = testLayout(2, minSize, isCompact);
+          if (heightAtMin <= availableHeight) {
+            optimalFontSize = findOptimalSize(2, minSize, fontSize, isCompact);
             optimalColumns = 2;
-            optimalIsCompact = false;
           } else {
-            // Doesn't fit 2 columns standard: try 2 columns COMPACT spacing (prioritize spacing reduction over font-downsizing!)
-            let height2Compact = testLayout(2, fontSize, true);
-            if (height2Compact <= availableHeight) {
-              optimalFontSize = findOptimalSize(2, fontSize, 36, true);
-              optimalColumns = 2;
-              optimalIsCompact = true;
-            } else {
-              // Doesn't fit 2 columns compact at base size: try 2 columns compact down to 14px
-              let height2CompactAt14 = testLayout(2, 14, true);
-              if (height2CompactAt14 <= availableHeight) {
-                optimalFontSize = findOptimalSize(2, 14, fontSize, true);
-                optimalColumns = 2;
-                optimalIsCompact = true;
-              } else {
-                // Try 3 columns standard spacing
-                let height3 = testLayout(3, fontSize, false);
-
-                if (height3 <= availableHeight) {
-                  optimalFontSize = findOptimalSize(3, fontSize, 28, false);
-                  optimalColumns = 3;
-                  optimalIsCompact = false;
-                } else {
-                  // Try 3 columns COMPACT spacing
-                  let height3Compact = testLayout(3, fontSize, true);
-                  if (height3Compact <= availableHeight) {
-                    optimalFontSize = findOptimalSize(3, fontSize, 28, true);
-                    optimalColumns = 3;
-                    optimalIsCompact = true;
-                  } else {
-                    // Try 3 columns compact down to 12px
-                    let height3CompactAt12 = testLayout(3, 12, true);
-                    if (height3CompactAt12 <= availableHeight) {
-                      optimalFontSize = findOptimalSize(3, 12, fontSize, true);
-                      optimalColumns = 3;
-                      optimalIsCompact = true;
-                    } else {
-                      optimalFontSize = 12;
-                      optimalColumns = 3;
-                      optimalIsCompact = true;
-                    }
-                  }
-                }
-              }
-            }
+            // Keep it at minimum size and let it scroll
+            optimalFontSize = minSize;
+            optimalColumns = 2;
           }
         }
       }
+      optimalIsCompact = isCompact;
     }
 
     // Restore original manual styles so React controls layout
