@@ -28,5 +28,29 @@
     "songId": "mot-mai-gia-tu-vu-khi-tat-ca-0-9-a-b-c-d-e-f-g-h-i-j-k-l-m-n-o-p-q-r-s-t-u-v-w-x-y-z",
     "playCount": 2,
     "lastPlayed": "2026-06-11T01:53:56.024Z"
+  },
+  {
+    "userId": "henrytran",
+    "songId": "thanh-pho-buon-dam-vinh-hung-quang-thanh",
+    "playCount": 2,
+    "lastPlayed": "2026-06-11T02:01:59.227Z"
+  },
+  {
+    "userId": "henrytran",
+    "songId": "giong-ca-di-vang-0-9",
+    "playCount": 1,
+    "lastPlayed": "2026-06-11T02:01:16.095Z"
+  },
+  {
+    "userId": "henrytran",
+    "songId": "mua-chieu-lam-thuy-van",
+    "playCount": 2,
+    "lastPlayed": "2026-06-11T02:02:03.642Z"
+  },
+  {
+    "userId": "henrytran",
+    "songId": "dieu-gian-di-hong-nhung",
+    "playCount": 1,
+    "lastPlayed": "2026-06-11T02:02:07.429Z"
   }
 ]

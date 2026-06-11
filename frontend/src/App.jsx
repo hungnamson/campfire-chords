@@ -1605,7 +1605,7 @@ export default function App() {
                       </button>
                     </div>
                   ) : filteredSongs.length === 0 && !searchQuery.trim() ? (
-                    <div className="flex flex-col gap-8 max-w-4xl mx-auto w-full">
+                    <div className="flex flex-col gap-8 max-w-6xl mx-auto w-full">
                       {/* Hero Header Card */}
                       <div className="text-center py-10 px-6 bg-gradient-to-br from-amber-500/[0.04] via-orange-500/[0.02] to-transparent border border-stone-200/80 rounded-2xl shadow-xs select-none animate-fade-in relative overflow-hidden">
                         <div className="flex justify-center w-full mb-3.5">
@@ -1997,7 +1997,7 @@ export default function App() {
 
           {/* TAB 4: PLAY HISTORY */}
           {activeTab === 'history' && (
-            <div className="animate-fade-in flex flex-col gap-6 max-w-4xl mx-auto w-full">
+            <div className="animate-fade-in flex flex-col gap-6 max-w-6xl mx-auto w-full">
               <div className="border-b border-stone-200 pb-4">
                 <h2 className="text-lg font-bold text-stone-900 font-display flex items-center gap-2">
                   <ListMusic className="w-5 h-5 text-red-700" />
