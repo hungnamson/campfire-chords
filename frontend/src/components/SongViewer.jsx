@@ -530,13 +530,12 @@ export default function SongViewer({
   // List of drum styles
   const [DRUM_STYLES, setDrumStyles] = useState([
     { name: 'Slow / Slow Rock', bpm: 60, audioFile: 'slowrock_60bpm.m4a', originalBpm: 60 },
-    { name: 'Boston', bpm: 55, originalBpm: 55 },
     { name: 'Bolero / Rhumba', bpm: 80, audioFile: 'Bolero_80bpm.m4a', originalBpm: 80 },
     { name: 'Tango', bpm: 80, audioFile: 'Tango_80bpm.m4a', originalBpm: 80 },
     { name: 'Chachacha', bpm: 80, audioFile: 'Chachacha_80bpm.m4a', originalBpm: 80 },
     { name: 'Ballad', bpm: 65, audioFile: 'Ballad_65bpm.m4a', originalBpm: 65 },
     { name: 'Disco', bpm: 120, audioFile: 'Disco_120bpm.m4a', originalBpm: 120 },
-    { name: 'Waltz', bpm: 80, audioFile: 'Waltz_80bpm.m4a', originalBpm: 80 }
+    { name: 'Waltz & 3/4', bpm: 80, audioFile: 'Waltz_80bpm.m4a', originalBpm: 80 }
   ]);
 
   // Helper sound synthesis functions using Web Audio API
@@ -796,6 +795,23 @@ export default function SongViewer({
     };
   }, []);
 
+  // Close rhythm menu popover on click outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      const isInsideBtnOrMenu = e.target.closest('.rhythm-menu-container') || e.target.closest('.rhythm-trigger-button');
+      if (!isInsideBtnOrMenu) {
+        setShowRhythmMenu(false);
+        setShowBpmSelector(null);
+      }
+    };
+    if (showRhythmMenu) {
+      window.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      window.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showRhythmMenu]);
+
   // Update current style selection state if the song updates
   useEffect(() => {
     setCurrentRhythm(song.rhythm || '');
@@ -847,19 +863,19 @@ export default function SongViewer({
           </button>
 
            {showRhythmMenu && (
-             <div className="rhythm-menu-container absolute left-1/2 -translate-x-1/2 mt-2 w-72 bg-white border border-stone-200 rounded-xl shadow-2xl z-50 p-2 text-left top-full max-h-96 overflow-y-auto">
-               <p className="text-[10px] uppercase font-black tracking-wider text-stone-400 p-2 border-b border-stone-100 flex items-center justify-between">
+             <div className="rhythm-menu-container absolute left-1/2 -translate-x-1/2 mt-2 w-80 bg-white border border-stone-200 rounded-xl shadow-2xl z-50 p-2.5 text-left top-full max-h-96 overflow-y-auto">
+               <p className="text-[11px] uppercase font-black tracking-wider text-stone-400 p-2 border-b border-stone-100 flex items-center justify-between">
                  <span>Drum Styles</span>
                  {playingStyle && (
                    <button 
                      onClick={(e) => { e.stopPropagation(); stopBeat(); }} 
-                     className="text-red-500 hover:text-red-700 font-bold"
+                     className="text-red-500 hover:text-red-700 font-bold text-xs"
                    >
                      Dừng
                    </button>
                  )}
                </p>
-               <div className="space-y-1 mt-1.5">
+               <div className="space-y-1.5 mt-2">
                  {DRUM_STYLES.map(style => {
                    const isStylePlaying = playingStyle === style.name;
                    return (
@@ -870,7 +886,7 @@ export default function SongViewer({
                            setShowRhythmMenu(false);
                            setShowBpmSelector(null);
                          }}
-                         className={`w-full flex items-center justify-between py-3.5 px-3 hover:bg-stone-50 text-sm rounded-lg transition-colors cursor-pointer text-stone-700 ${
+                         className={`w-full flex items-center justify-between py-4.5 px-3.5 hover:bg-stone-50 text-sm rounded-lg transition-colors cursor-pointer text-stone-700 ${
                            currentRhythm === style.name ? 'bg-stone-100/70 font-semibold' : ''
                          }`}
                        >
@@ -884,19 +900,19 @@ export default function SongViewer({
                                  startBeat(style.name);
                                }
                              }}
-                             className={`p-2 rounded-full transition-all active:scale-90 ${
+                             className={`p-2.5 rounded-full transition-all active:scale-90 ${
                                isStylePlaying 
                                  ? 'bg-red-500 text-white shadow-sm' 
                                  : 'bg-stone-100 hover:bg-stone-200 text-stone-600'
                              }`}
                            >
                              {isStylePlaying ? (
-                               <Square className="w-3.5 h-3.5 fill-white" />
+                               <Square className="w-4 h-4 fill-white" />
                              ) : (
-                               <Play className="w-3.5 h-3.5 fill-stone-600 text-stone-600" />
+                               <Play className="w-4 h-4 fill-stone-600 text-stone-600" />
                              )}
                            </button>
-                           <span>{style.name}</span>
+                           <span className="font-semibold text-stone-800">{style.name}</span>
                          </div>
                          
                          {/* BPM Selector Trigger Badge */}
@@ -905,15 +921,15 @@ export default function SongViewer({
                              e.stopPropagation();
                              setShowBpmSelector(showBpmSelector === style.name ? null : style.name);
                            }}
-                           className="font-mono text-xs font-bold text-stone-500 bg-stone-100 hover:bg-stone-200 border border-stone-200/80 px-2.5 py-1 rounded-full transition-colors active:scale-95 shrink-0"
+                           className="font-mono text-xs font-bold text-stone-500 bg-stone-100 hover:bg-stone-200 border border-stone-200/85 px-3 py-1.5 rounded-full transition-colors active:scale-95 shrink-0"
                          >
                            {style.bpm} BPM
                          </button>
                        </div>
 
-                       {/* Incremental Speed List Popover */}
+                       {/* Incremental Speed List Popover (Bigger targets) */}
                        {showBpmSelector === style.name && (
-                         <div className="absolute right-0 top-full mt-1 w-28 bg-white border border-stone-200 rounded-lg shadow-xl z-55 max-h-40 overflow-y-auto p-1 border border-stone-200/90 divide-y divide-stone-100">
+                         <div className="absolute right-0 top-full mt-1.5 w-32 bg-white border border-stone-200 rounded-lg shadow-xl z-55 max-h-48 overflow-y-auto p-1.5 border border-stone-200/90 divide-y divide-stone-100">
                            {Array.from({ length: 21 }, (_, idx) => 40 + idx * 5).map(bpmVal => (
                              <button
                                key={bpmVal}
@@ -930,7 +946,7 @@ export default function SongViewer({
                                    }
                                  }
                                }}
-                               className={`w-full text-left px-3 py-2 text-xs hover:bg-stone-100 transition-colors ${
+                               className={`w-full text-left px-3.5 py-3 text-xs font-medium hover:bg-stone-100 transition-colors ${
                                  style.bpm === bpmVal ? 'text-emerald-600 font-bold bg-emerald-50/50' : 'text-stone-700'
                                }`}
                              >
