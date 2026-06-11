@@ -154,6 +154,27 @@ export default function App() {
       .map(item => item.song);
   })();
 
+  const popularSongs = useMemo(() => {
+    const targets = ["Cát bụi", "Diễm xưa", "Thôi đời", "Trả lại thời gian", "Giọng ca dĩ vãng", "Đập vỡ cây đàn", "Áo em chưa mặc một lần", "Thành phố buồn", "Như một lời chia tay"];
+    const found = songs.filter(s => targets.some(t => s.title.toLowerCase().includes(t.toLowerCase())));
+    if (found.length > 0) return found.slice(0, 6);
+    return songs.slice(0, 6);
+  }, [songs]);
+
+  const newSongs = useMemo(() => {
+    return [...songs]
+      .filter(s => s.dateAdded)
+      .sort((a, b) => new Date(b.dateAdded) - new Date(a.dateAdded))
+      .slice(0, 6);
+  }, [songs]);
+
+  const favoriteSongs = useMemo(() => {
+    if (currentUser) {
+      return songs.filter(s => userFavoritesList.includes(s.id));
+    }
+    return songs.filter(s => s.isFavorite);
+  }, [songs, userFavoritesList, currentUser]);
+
   const [transposeOffset, setTransposeOffset] = useState(0);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [fontSize, setFontSize] = useState(() => {
@@ -1583,68 +1604,136 @@ export default function App() {
                       </button>
                     </div>
                   ) : filteredSongs.length === 0 && !searchQuery.trim() ? (
-                    <div className="flex flex-col gap-6 max-w-4xl mx-auto w-full">
-                      <div className="text-center py-12 bg-white border border-stone-200/80 rounded-xl shadow-sm select-none animate-fade-in">
-                        <div className="flex justify-center w-full mb-4">
-                          <div className="w-16 h-16 bg-red-600/5 border border-red-600/10 rounded-full flex items-center justify-center animate-pulse">
-                            <Flame className="w-8 h-8 text-red-600 fill-red-600" />
+                    <div className="flex flex-col gap-8 max-w-4xl mx-auto w-full">
+                      {/* Hero Header Card */}
+                      <div className="text-center py-10 px-6 bg-gradient-to-br from-amber-500/[0.04] via-orange-500/[0.02] to-transparent border border-stone-200/80 rounded-2xl shadow-xs select-none animate-fade-in relative overflow-hidden">
+                        <div className="flex justify-center w-full mb-3.5">
+                          <div className="w-14 h-14 bg-red-600/5 border border-red-600/10 rounded-full flex items-center justify-center animate-pulse">
+                            <Flame className="w-7 h-7 text-red-600 fill-red-600" />
                           </div>
                         </div>
-                        <h3 className="text-lg font-bold text-stone-900 font-display">Campfire Chords</h3>
+                        <h3 className="text-xl font-black text-stone-900 font-display tracking-tight">Campfire Chords</h3>
                         {songs.length > 0 ? (
                           <>
-                            <p className="text-sm font-bold text-stone-700 mt-2">
+                            <p className="text-sm font-bold text-stone-600 mt-1.5">
                               Thư viện hiện có <span className="text-red-600 font-black">{songs.length}</span> bài hát
                             </p>
-                            <p className="text-xs text-stone-500 mt-1.5 max-w-xs mx-auto leading-relaxed">
+                            <p className="text-xs text-stone-400 mt-2 max-w-xs mx-auto leading-relaxed">
                               Nhập tên bài hát, ca sĩ, tác giả hoặc lời nhạc vào thanh tìm kiếm ở trên để tìm hợp âm.
                             </p>
                           </>
                         ) : (
                           <>
-                            <p className="text-xs text-stone-500 mt-2 max-w-xs mx-auto leading-relaxed">
+                            <p className="text-xs text-stone-400 mt-2 max-w-xs mx-auto leading-relaxed">
                               Thư viện của bạn hiện chưa có bài hát nào. Hãy tìm kiếm tên bài hát hoặc ca sĩ ở thanh tìm kiếm phía trên để tìm và lưu bài hát mới trực tuyến!
                             </p>
                           </>
                         )}
                       </div>
 
-                      {currentUser && userFavoritesList.length > 0 && (
-                        <div className="mt-4 text-left animate-fade-in">
-                          <h3 className="text-xs uppercase font-bold tracking-widest text-stone-500 mb-3 flex items-center gap-1.5 font-sans">
-                            <Heart className="w-3.5 h-3.5 fill-red-600 text-red-600 animate-pulse" />
-                            Bài hát yêu thích / Favorites ({userFavoritesList.length})
+                      {/* SECTION 1: Most Popular Today */}
+                      {popularSongs.length > 0 && (
+                        <div className="text-left animate-fade-in">
+                          <h3 className="text-xs uppercase font-black tracking-widest text-stone-500 mb-3.5 flex items-center gap-1.5 font-sans">
+                            <Sparkles className="w-4 h-4 text-amber-500 fill-amber-500/20" />
+                            Thịnh hành hôm nay / Most Popular Today
                           </h3>
                           <div className="songs-grid">
-                            {songs.filter(s => userFavoritesList.includes(s.id)).map(song => (
+                            {popularSongs.map(song => (
                               <div 
                                 key={song.id}
                                 onClick={() => setActiveSongId(song.id)}
-                                className="bg-white border border-stone-200/80 hover:border-red-600/30 rounded-lg p-4 cursor-pointer transition-all hover:-translate-y-0.5 shadow-sm hover:shadow flex items-center justify-between"
+                                className="bg-white border border-stone-200/80 hover:border-red-600/30 rounded-xl p-4 cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99] flex items-center justify-between group"
                               >
                                 <div className="truncate pr-4">
-                                  <div className="flex items-center gap-1.5">
-                                    <Heart className="w-3.5 h-3.5 fill-red-600 text-red-600 shrink-0" />
-                                    <h3 className="font-bold text-sm text-stone-900 truncate">{song.title}</h3>
-                                  </div>
-                                  <p className="text-xs text-stone-500 truncate mt-0.5">{getSongMetaText(song)}</p>
+                                  <h3 className="font-bold text-sm text-stone-900 group-hover:text-red-750 transition-colors truncate">{song.title}</h3>
+                                  <p className="text-xs text-stone-500 truncate mt-1">{getSongMetaText(song) || 'Khuyết danh'}</p>
                                 </div>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 shrink-0">
+                                  {isSongFavorited(song) && <Heart className="w-3.5 h-3.5 fill-red-600 text-red-600" />}
                                   <span className="font-mono text-[10px] font-bold text-stone-500 bg-stone-100 px-1.5 py-0.5 rounded">
                                     {song.key}
                                   </span>
-                                  <button 
-                                    onClick={(e) => handleDeleteSong(song.id, e)}
-                                    className="p-1 hover:bg-stone-100 text-stone-400 hover:text-red-600 rounded transition cursor-pointer"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
                                 </div>
                               </div>
                             ))}
                           </div>
                         </div>
                       )}
+
+                      {/* SECTION 2: New Songs */}
+                      {newSongs.length > 0 && (
+                        <div className="text-left animate-fade-in">
+                          <h3 className="text-xs uppercase font-black tracking-widest text-stone-500 mb-3.5 flex items-center gap-1.5 font-sans">
+                            <Flame className="w-4 h-4 text-red-500 fill-red-500/25" />
+                            Mới cập nhật / New Songs
+                          </h3>
+                          <div className="songs-grid">
+                            {newSongs.map(song => (
+                              <div 
+                                key={song.id}
+                                onClick={() => setActiveSongId(song.id)}
+                                className="bg-white border border-stone-200/80 hover:border-red-600/30 rounded-xl p-4 cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99] flex items-center justify-between group"
+                              >
+                                <div className="truncate pr-4">
+                                  <h3 className="font-bold text-sm text-stone-900 group-hover:text-red-750 transition-colors truncate">{song.title}</h3>
+                                  <p className="text-xs text-stone-500 truncate mt-1">{getSongMetaText(song) || 'Khuyết danh'}</p>
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                  {isSongFavorited(song) && <Heart className="w-3.5 h-3.5 fill-red-600 text-red-600" />}
+                                  <span className="font-mono text-[10px] font-bold text-stone-500 bg-stone-100 px-1.5 py-0.5 rounded">
+                                    {song.key}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* SECTION 3: Your Favorites */}
+                      <div className="text-left animate-fade-in mb-6">
+                        <h3 className="text-xs uppercase font-black tracking-widest text-stone-500 mb-3.5 flex items-center gap-1.5 font-sans">
+                          <Heart className="w-4 h-4 text-red-600 fill-red-600" />
+                          Hợp âm yêu thích / Your Favorites ({favoriteSongs.length})
+                        </h3>
+                        {favoriteSongs.length > 0 ? (
+                          <div className="songs-grid">
+                            {favoriteSongs.map(song => (
+                              <div 
+                                key={song.id}
+                                onClick={() => setActiveSongId(song.id)}
+                                className="bg-white border border-stone-200/80 hover:border-red-600/30 rounded-xl p-4 cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99] flex items-center justify-between group"
+                              >
+                                <div className="truncate pr-4">
+                                  <h3 className="font-bold text-sm text-stone-900 group-hover:text-red-750 transition-colors truncate">{song.title}</h3>
+                                  <p className="text-xs text-stone-500 truncate mt-1">{getSongMetaText(song) || 'Khuyết danh'}</p>
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <button 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleToggleFavorite(song.id);
+                                    }}
+                                    className="p-1 hover:bg-stone-100 rounded text-red-600 transition"
+                                  >
+                                    <Heart className="w-3.5 h-3.5 fill-red-600" />
+                                  </button>
+                                  <span className="font-mono text-[10px] font-bold text-stone-500 bg-stone-100 px-1.5 py-0.5 rounded">
+                                    {song.key}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-8 bg-white border border-stone-200/80 border-dashed rounded-2xl select-none px-4">
+                            <p className="text-xs text-stone-400">
+                              Chưa có bài hát yêu thích nào. Bấm nút thả tim ❤️ khi xem hợp âm để lưu vào đây.
+                            </p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ) : (filteredSongs.length === 0 || forceOnlineSearch) ? (
                     <div className="flex flex-col gap-6 max-w-xl mx-auto mt-8">
