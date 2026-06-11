@@ -154,27 +154,6 @@ export default function App() {
       .map(item => item.song);
   })();
 
-  const popularSongs = useMemo(() => {
-    const targets = ["Cát bụi", "Diễm xưa", "Thôi đời", "Trả lại thời gian", "Giọng ca dĩ vãng", "Đập vỡ cây đàn", "Áo em chưa mặc một lần", "Thành phố buồn", "Như một lời chia tay"];
-    const found = songs.filter(s => targets.some(t => s.title.toLowerCase().includes(t.toLowerCase())));
-    if (found.length > 0) return found.slice(0, 6);
-    return songs.slice(0, 6);
-  }, [songs]);
-
-  const newSongs = useMemo(() => {
-    return [...songs]
-      .filter(s => s.dateAdded)
-      .sort((a, b) => new Date(b.dateAdded) - new Date(a.dateAdded))
-      .slice(0, 6);
-  }, [songs]);
-
-  const favoriteSongs = useMemo(() => {
-    if (currentUser) {
-      return songs.filter(s => userFavoritesList.includes(s.id));
-    }
-    return songs.filter(s => s.isFavorite);
-  }, [songs, userFavoritesList, currentUser]);
-
   const [transposeOffset, setTransposeOffset] = useState(0);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [fontSize, setFontSize] = useState(() => {
@@ -220,6 +199,28 @@ export default function App() {
   // User personalizations (favorites list and play history)
   const [userFavoritesList, setUserFavoritesList] = useState([]);
   const [playHistory, setPlayHistory] = useState([]);
+
+  const popularSongs = useMemo(() => {
+    const targets = ["Cát bụi", "Diễm xưa", "Thôi đời", "Trả lại thời gian", "Giọng ca dĩ vãng", "Đập vỡ cây đàn", "Áo em chưa mặc một lần", "Thành phố buồn", "Như một lời chia tay"];
+    const found = songs.filter(s => targets.some(t => s.title.toLowerCase().includes(t.toLowerCase())));
+    if (found.length > 0) return found.slice(0, 6);
+    return songs.slice(0, 6);
+  }, [songs]);
+
+  const newSongs = useMemo(() => {
+    return [...songs]
+      .filter(s => s.dateAdded)
+      .sort((a, b) => new Date(b.dateAdded) - new Date(a.dateAdded))
+      .slice(0, 6);
+  }, [songs]);
+
+  const favoriteSongs = useMemo(() => {
+    if (currentUser) {
+      return songs.filter(s => userFavoritesList.includes(s.id));
+    }
+    return songs.filter(s => s.isFavorite);
+  }, [songs, userFavoritesList, currentUser]);
+
 
   const fetchUserFavorites = async () => {
     if (!currentUser) return;
