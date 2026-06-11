@@ -215,14 +215,14 @@ input:focus, textarea:focus, select:focus {
 /* Column Layout for Song Viewer */
 .song-lyrics-sheet-cols-2 {
   column-count: 2;
-  column-gap: 1.5rem;
+  column-gap: 4rem;
   column-rule: 1px dashed var(--border-stone);
   height: auto;
 }
 
 .song-lyrics-sheet-cols-3 {
   column-count: 3;
-  column-gap: 1.5rem;
+  column-gap: 3rem;
   column-rule: 1px dashed var(--border-stone);
   height: auto;
 }

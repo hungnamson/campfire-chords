@@ -1266,7 +1266,7 @@ export default function App() {
               ? 'max-w-0 opacity-0 pointer-events-none md:max-w-[320px] md:opacity-100 md:pointer-events-auto' 
               : 'max-w-[320px] opacity-100 pointer-events-auto'
           }`}>
-            <BrandLogo variant="horizontal" className="h-6 md:h-10 w-auto transition-all duration-200" />
+            <BrandLogo variant="horizontal" className="h-12 md:h-20 w-auto transition-all duration-200" />
           </div>
 
           {/* Search Box (Center, expands) */}
