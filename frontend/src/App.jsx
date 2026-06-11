@@ -1494,7 +1494,7 @@ export default function App() {
         <main className={`flex-grow overflow-y-auto ${
           displaySong 
             ? 'w-full flex flex-col p-0' 
-            : 'p-4 md:p-8 max-w-6xl w-full mx-auto'
+            : 'p-4 md:p-8 max-w-6xl w-full mx-auto self-center'
         }`}>
           
           {displaySong ? (
