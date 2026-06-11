@@ -29,6 +29,43 @@ import SongViewer from './components/SongViewer';
 import InstrumentTuner from './components/InstrumentTuner';
 import { transposeChord, NOTE_TO_SEMITONE } from './utils/transposer';
 
+export function BrandLogo({ className = "w-6 h-6" }) {
+  return (
+    <svg className={className} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Circle Background */}
+      <circle cx="50" cy="50" r="48" fill="#FF8A00" />
+      {/* Yellow Inner Arch / Campfire glow */}
+      <circle cx="50" cy="50" r="40" stroke="#FFC24D" strokeWidth="4" strokeLinecap="round" strokeDasharray="160 100" transform="rotate(-90 50 50)" />
+      {/* Guitar Neck / Headstock */}
+      <rect x="47" y="15" width="6" height="50" fill="#4B2E20" rx="1" />
+      {/* Guitar body top curve */}
+      <path d="M42 62C42 55 58 55 58 62L54 75H46L42 62Z" fill="#4B2E20" />
+      {/* Guitar Tuning Pegs */}
+      <circle cx="44" cy="20" r="1.5" fill="#4B2E20" />
+      <circle cx="44" cy="26" r="1.5" fill="#4B2E20" />
+      <circle cx="44" cy="32" r="1.5" fill="#4B2E20" />
+      <circle cx="56" cy="20" r="1.5" fill="#4B2E20" />
+      <circle cx="56" cy="26" r="1.5" fill="#4B2E20" />
+      <circle cx="56" cy="32" r="1.5" fill="#4B2E20" />
+      
+      {/* People Silhouettes at bottom */}
+      {/* Left person */}
+      <circle cx="30" cy="74" r="7" fill="#4B2E20" />
+      <path d="M18 90C18 80 24 78 30 78C36 78 42 80 42 90H18Z" fill="#4B2E20" />
+      {/* Right person */}
+      <circle cx="70" cy="74" r="7" fill="#4B2E20" />
+      <path d="M58 90C58 80 64 78 70 78C76 78 82 80 82 90H58Z" fill="#4B2E20" />
+      {/* Center person */}
+      <circle cx="50" cy="68" r="8" fill="#4B2E20" />
+      <path d="M36 88C36 76 43 74 50 74C57 74 64 76 64 88H36Z" fill="#4B2E20" />
+
+      {/* Musical notes */}
+      <path d="M72 35 C 72 30, 78 30, 78 35 L 78 45 C 78 47, 76 49, 74 49 C 72 49, 70 47, 70 45 C 70 43, 72 41, 74 41 L 74 37 L 72 37 Z" fill="#FFC24D" />
+      <path d="M22 45 C 22 40, 28 40, 28 45 L 28 55 C 28 57, 26 59, 24 59 C 22 59, 20 57, 20 55 C 20 53, 22 51, 24 51 L 24 47 L 22 47 Z" fill="#FFC24D" />
+    </svg>
+  );
+}
+
 const API_BASE = '/api';
 
 const removeAccents = (str) => {
@@ -1221,9 +1258,9 @@ export default function App() {
               ? 'max-w-0 opacity-0 pointer-events-none md:max-w-[320px] md:opacity-100 md:pointer-events-auto' 
               : 'max-w-[320px] opacity-100 pointer-events-auto'
           }`}>
-            <Flame className="w-5 h-5 text-red-600 fill-red-600" />
-            <span className="font-bold text-sm tracking-wide font-display text-stone-900 hidden sm:inline">
-              Campfire Chords
+            <BrandLogo className="w-5 h-5 shrink-0" />
+            <span className="font-bold text-base tracking-tight font-display text-[#1E293B] hidden sm:inline">
+              Hát<span className="text-[#FF8A00]">Cùng</span>Nhau
             </span>
           </div>
 
@@ -1607,17 +1644,21 @@ export default function App() {
                   ) : filteredSongs.length === 0 && !searchQuery.trim() ? (
                     <div className="flex flex-col gap-8 max-w-6xl mx-auto w-full">
                       {/* Hero Header Card */}
-                      <div className="text-center py-10 px-6 bg-gradient-to-br from-amber-500/[0.04] via-orange-500/[0.02] to-transparent border border-stone-200/80 rounded-2xl shadow-xs select-none animate-fade-in relative overflow-hidden">
-                        <div className="flex justify-center w-full mb-3.5">
-                          <div className="w-14 h-14 bg-red-600/5 border border-red-600/10 rounded-full flex items-center justify-center animate-pulse">
-                            <Flame className="w-7 h-7 text-red-600 fill-red-600" />
+                      <div className="text-center py-10 px-6 bg-gradient-to-br from-amber-500/[0.04] via-orange-500/[0.02] to-transparent border border-[#EBDDCB] rounded-2xl shadow-xs select-none animate-fade-in relative overflow-hidden">
+                        <div className="flex justify-center w-full mb-4">
+                          <div className="w-16 h-16 bg-red-600/5 border border-red-600/10 rounded-full flex items-center justify-center">
+                            <BrandLogo className="w-12 h-12" />
                           </div>
                         </div>
-                        <h3 className="text-xl font-black text-stone-900 font-display tracking-tight">Campfire Chords</h3>
+                        <h3 className="text-2xl font-black text-[#1E293B] font-display tracking-tight">
+                          Hát<span className="text-[#FF8A00]">Cùng</span>Nhau
+                        </h3>
+                        <p className="text-xs text-[#4B2E20] mt-1 font-medium font-sans">Lời nhạc & Hợp âm Việt</p>
+                        <p className="text-xs text-[#FF8A00] mt-1 italic font-semibold font-display">Hát cùng nhau, mọi lúc mọi nơi.</p>
                         {songs.length > 0 ? (
                           <>
-                            <p className="text-sm font-bold text-stone-600 mt-1.5">
-                              Thư viện hiện có <span className="text-red-600 font-black">{songs.length}</span> bài hát
+                            <p className="text-sm font-bold text-stone-600 mt-3.5">
+                              Thư viện hiện có <span className="text-[#FF8A00] font-black">{songs.length}</span> bài hát
                             </p>
                             <p className="text-xs text-stone-400 mt-2 max-w-xs mx-auto leading-relaxed">
                               Nhập tên bài hát, ca sĩ, tác giả hoặc lời nhạc vào thanh tìm kiếm ở trên để tìm hợp âm.
@@ -2009,8 +2050,8 @@ export default function App() {
               {playHistory.length === 0 ? (
                 <div className="text-center py-20 bg-white border border-stone-200/80 rounded-xl shadow-sm select-none animate-fade-in">
                   <div className="flex justify-center w-full mb-4">
-                    <div className="w-16 h-16 bg-red-700/5 border border-red-700/10 rounded-full flex items-center justify-center animate-pulse">
-                      <Flame className="w-8 h-8 text-red-700 fill-red-700" />
+                    <div className="w-16 h-16 bg-red-700/5 border border-red-700/10 rounded-full flex items-center justify-center">
+                      <BrandLogo className="w-10 h-10" />
                     </div>
                   </div>
                   <h3 className="text-sm font-bold text-stone-900 font-sans">Lịch sử chơi nhạc trống</h3>

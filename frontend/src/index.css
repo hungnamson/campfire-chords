@@ -1,32 +1,45 @@
 @import "tailwindcss";
-
+ 
 @theme {
   --breakpoint-xs: 375px;
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro", "SFNSDisplay-Regular", "Helvetica Neue", Helvetica, Arial, "Inter", sans-serif;
-  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro", "SFNSText-Regular", "Helvetica Neue", Helvetica, Arial, "Outfit", sans-serif;
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro", "SFNSDisplay-Regular", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-display: "Be Vietnam Pro", -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro", "SFNSText-Regular", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-mono: "SF Mono", "SFProMono-Regular", Menlo, Monaco, Consolas, "JetBrains Mono", monospace;
   
-  --color-blue-dark: #1e3a8a; /* Premium Dark Blue for maximum legibility */
-  --color-chord: #dc2626;    /* Red chords */
-  --bg-chord-pill: rgba(30, 58, 138, 0.06); /* very soft blue backdrop */
+  --color-blue-dark: #1E293B; /* Premium Navy Blue */
+  --color-chord: #dc2626;    /* Red chords - strictly kept per constraints */
+  --bg-chord-pill: rgba(255, 138, 0, 0.08); /* very soft orange brand backdrop */
+
+  /* Override Red shades to brand orange/yellow/brown colors for quick & complete styling */
+  --color-red-50: #FFF6E9;   /* Brand Cream/Light Beige */
+  --color-red-100: #FFEAD1;
+  --color-red-200: #FFD2A8;
+  --color-red-300: #FFB37A;
+  --color-red-400: #FF9B4D;
+  --color-red-500: #FF8A00;  /* Brand Orange Primary */
+  --color-red-600: #FF8A00;  /* Brand Orange Primary */
+  --color-red-700: #E07200;  /* Dark Orange active state */
+  --color-red-850: #4B2E20;  /* Brand Dark Brown */
+  --color-red-800: #4B2E20;  /* Brand Dark Brown */
+  --color-red-900: #341F15;  /* Darker Brown */
 }
 
 :root {
-  /* Premium Warm Light Theme (Paper style) */
-  --bg-main: #fcfbfa;        /* Soft paper off-white */
-  --bg-panel: #f5f3ef;       /* Warm grey/sand panel */
+  /* HátCùngNhau Warm Cozy Camping/Paper Theme */
+  --bg-main: #FFFBF6;        /* Soft paper cream off-white */
+  --bg-panel: #FFF6E9;       /* Brand Cream/Light Beige */
   --bg-card: #ffffff;        /* Clean card white */
-  --bg-active: #e8e5df;
+  --bg-active: #F2E5D5;
   
-  --border-stone: #e3ded5;
-  --border-light: #d6cfc1;
+  --border-stone: #EBDDCB;
+  --border-light: #F2E5D5;
 
-  --color-amber: #b45309;    /* Warm amber for primary accents */
-  --color-orange: #c2410c;
-  --color-red: #dc2626;      /* Vibrant Crimson Red for general indicators */
+  --color-amber: #FF8A00;    /* Brand orange */
+  --color-orange: #FF8A00;   /* Brand orange */
+  --color-red: #dc2626;      /* Vibrant Crimson Red for chords */
   
-  --text-primary: #1c1917;   /* Charcoal primary text */
-  --text-secondary: #44403c; /* Stone 700 secondary text */
+  --text-primary: #1E293B;   /* Navy primary text */
+  --text-secondary: #4B2E20; /* Dark Brown secondary text */
   --text-muted: #78716c;     /* Stone 500 muted text */
 }
 
