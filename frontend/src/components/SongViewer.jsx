@@ -1570,66 +1570,43 @@ export default function SongViewer({
       {/* Floating mobile controls bar at the bottom */}
       {isMobile && (
         <div 
-          className={`fixed bottom-[50px] left-0 right-0 z-40 flex items-center justify-center gap-1.5 px-3 select-none pointer-events-none transition-all duration-300 ease-in-out ${
+          className={`fixed bottom-[50px] left-0 right-0 z-40 flex items-center justify-center gap-2 px-4 select-none pointer-events-none transition-all duration-300 ease-in-out ${
             showMobileControls 
               ? 'opacity-100 translate-y-0 pointer-events-auto' 
               : 'opacity-0 translate-y-4 pointer-events-none'
           }`}
         >
-          {/* Pill 1: Font Size Controls */}
+          {/* Pill 1: Transpose Controls */}
           <div 
             onClick={(e) => { e.stopPropagation(); triggerShowControls(); }}
             onTouchStart={(e) => { e.stopPropagation(); triggerShowControls(); }}
-            className="flex items-center gap-0.5 bg-white/95 border border-stone-200 rounded-full px-1.5 py-0.5 shadow-lg pointer-events-auto backdrop-blur-sm"
-          >
-            <button 
-              onClick={() => setFontSize(prev => Math.max(10, prev - 1))}
-              className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-stone-100 text-stone-750 active:scale-90 transition font-bold text-xs"
-            >
-              A-
-            </button>
-            <span className="text-[11px] font-mono font-bold text-orange-600 min-w-[20px] text-center">
-              {fontSize}
-            </span>
-            <button 
-              onClick={() => setFontSize(prev => Math.min(30, prev + 1))}
-              className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-stone-100 text-stone-750 active:scale-90 transition font-bold text-xs"
-            >
-              A+
-            </button>
-          </div>
-
-          {/* Pill 2: Transpose Controls */}
-          <div 
-            onClick={(e) => { e.stopPropagation(); triggerShowControls(); }}
-            onTouchStart={(e) => { e.stopPropagation(); triggerShowControls(); }}
-            className="flex items-center gap-0.5 bg-white/95 border border-stone-200 rounded-full px-1.5 py-0.5 shadow-lg pointer-events-auto backdrop-blur-sm"
+            className="flex items-center gap-1 bg-white/95 border border-stone-200 rounded-full px-2.5 py-1 shadow-lg pointer-events-auto backdrop-blur-sm"
           >
             <button 
               onClick={() => setTransposeOffset(prev => prev - 1)}
-              className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-stone-100 text-stone-750 active:scale-90 transition font-bold text-sm"
+              className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-stone-100 text-stone-750 active:scale-90 transition font-bold text-lg"
             >
               -
             </button>
             <button
               onClick={() => setShowKeySelector(!showKeySelector)}
-              className="px-1.5 py-0.5 bg-stone-100 border border-stone-200/60 rounded-full text-[10px] font-mono font-black text-[#4B2E20] active:scale-95 transition min-w-[32px] text-center"
+              className="px-2.5 py-1 bg-stone-100 border border-stone-200/60 rounded-full text-xs font-mono font-black text-[#4B2E20] active:scale-95 transition min-w-[38px] text-center"
             >
               {transposeChord(song.key, transposeOffset)}
             </button>
             <button 
               onClick={() => setTransposeOffset(prev => prev + 1)}
-              className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-stone-100 text-stone-750 active:scale-90 transition font-bold text-sm"
+              className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-stone-100 text-stone-750 active:scale-90 transition font-bold text-lg"
             >
               +
             </button>
           </div>
 
-          {/* Pill 3: Rhythm / Beat Controls */}
+          {/* Pill 2: Rhythm / Beat Controls */}
           <div 
             onClick={(e) => { e.stopPropagation(); triggerShowControls(); }}
             onTouchStart={(e) => { e.stopPropagation(); triggerShowControls(); }}
-            className="flex items-center gap-1 bg-white/95 border border-stone-200 rounded-full pl-1.5 pr-2.5 py-0.5 shadow-lg pointer-events-auto backdrop-blur-sm"
+            className="flex items-center gap-1.5 bg-white/95 border border-stone-200 rounded-full pl-2 pr-3.5 py-1 shadow-lg pointer-events-auto backdrop-blur-sm"
           >
             <button
               onClick={() => {
@@ -1639,39 +1616,39 @@ export default function SongViewer({
                   startBeat(currentRhythm || 'Slow / Slow Rock');
                 }
               }}
-              className={`w-7 h-7 flex items-center justify-center rounded-full transition-all active:scale-90 ${
+              className={`w-9 h-9 flex items-center justify-center rounded-full transition-all active:scale-90 ${
                 playingStyle 
                   ? 'bg-red-500 text-white shadow-sm' 
                   : 'bg-stone-100 hover:bg-stone-200 text-stone-700'
               }`}
             >
               {playingStyle ? (
-                <Square className="w-3 h-3 fill-white text-white" />
+                <Square className="w-4 h-4 fill-white text-white" />
               ) : (
-                <Play className="w-3 h-3 fill-stone-700 text-stone-700 ml-0.5" />
+                <Play className="w-4 h-4 fill-stone-700 text-stone-700 ml-0.5" />
               )}
             </button>
             <div 
               onClick={() => setShowRhythmMenu(!showRhythmMenu)}
               className="flex flex-col text-left cursor-pointer select-none pr-0.5"
             >
-              <span className="text-[9px] font-black text-stone-800 leading-none">
+              <span className="text-[10px] font-black text-stone-800 leading-none">
                 {currentRhythm.trim() || 'Style'}
               </span>
-              <span className="text-[8px] font-mono font-bold text-stone-500 mt-0.5 leading-none">
+              <span className="text-[9px] font-mono font-bold text-stone-500 mt-0.5 leading-none">
                 {(DRUM_STYLES.find(s => s.name === currentRhythm) || DRUM_STYLES[0]).bpm} BPM
               </span>
             </div>
-            <ChevronDown className="w-2.5 h-2.5 text-stone-400 shrink-0 -ml-0.5" />
+            <ChevronDown className="w-3.5 h-3.5 text-stone-400 shrink-0 -ml-0.5" />
           </div>
 
-          {/* Button 4: Compact mode Grid Toggle */}
+          {/* Button 3: Compact mode Grid Toggle */}
           <button
             onClick={(e) => { e.stopPropagation(); triggerShowControls(); setIsCompact(!isCompact); }}
             onTouchStart={(e) => { e.stopPropagation(); triggerShowControls(); }}
-            className={`w-8 h-8 flex items-center justify-center bg-white/95 border border-stone-200 rounded-full shadow-lg hover:bg-stone-100 text-stone-700 active:scale-90 transition pointer-events-auto backdrop-blur-sm`}
+            className={`w-11 h-11 flex items-center justify-center bg-white/95 border border-stone-200 rounded-full shadow-lg hover:bg-stone-100 text-stone-700 active:scale-90 transition pointer-events-auto backdrop-blur-sm`}
           >
-            <LayoutGrid className="w-4 h-4" />
+            <LayoutGrid className="w-5 h-5" />
           </button>
         </div>
       )}
