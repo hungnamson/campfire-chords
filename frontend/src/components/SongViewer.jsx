@@ -570,7 +570,7 @@ export default function SongViewer({
   })();
 
   return (
-    <div className="song-viewer-container flex flex-col min-h-screen text-stone-900 bg-stone-100 md:bg-white pb-28 animate-fade-in w-full md:max-w-6xl self-center mx-auto md:shadow-lg md:border-x md:border-stone-200/80 cursor-default relative" ref={songContainerRef} onClick={(e) => e.stopPropagation()}>
+    <div className="song-viewer-container flex flex-col min-h-screen text-stone-900 bg-stone-100 md:bg-white pb-28 animate-fade-in w-full md:max-w-[96vw] self-center mx-auto md:shadow-lg md:border-x md:border-stone-200/80 cursor-default relative" ref={songContainerRef} onClick={(e) => e.stopPropagation()}>
       {/* Sub Header / Action bar */}
       <header className={`sticky top-0 z-30 bg-[#f5f3ef]/90 backdrop-blur border-b border-stone-200 flex items-center justify-between shadow-sm transition-all duration-200 ${
         localIsCompact ? 'px-3 py-1' : 'py-2 song-viewer-padding-x'
@@ -789,7 +789,7 @@ export default function SongViewer({
           {/* Inline chords song sheet */}
           <div 
             ref={sheetRef}
-            className={`song-lyrics-sheet select-text max-w-4xl mx-auto w-full ${localIsCompact ? 'song-lyrics-sheet-compact' : ''} ${localColumns === 2 ? 'song-lyrics-sheet-cols-2' : localColumns === 3 ? 'song-lyrics-sheet-cols-3' : ''}`}
+            className={`song-lyrics-sheet select-text max-w-[96%] mx-auto w-full ${localIsCompact ? 'song-lyrics-sheet-compact' : ''} ${localColumns === 2 ? 'song-lyrics-sheet-cols-2' : localColumns === 3 ? 'song-lyrics-sheet-cols-3' : ''}`}
             style={{ fontSize: `${localFontSize}px` }}
           >
             {lines.map((line, index) => {
