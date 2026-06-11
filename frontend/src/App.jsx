@@ -23,10 +23,12 @@ import {
   Maximize2,
   Minimize2,
   Mic,
-  Sparkles
+  Sparkles,
+  BarChart3
 } from 'lucide-react';
 import SongViewer from './components/SongViewer';
 import InstrumentTuner from './components/InstrumentTuner';
+import AdminStatsView from './components/AdminStatsView';
 import { transposeChord, NOTE_TO_SEMITONE } from './utils/transposer';
 import BrandLogo from './components/BrandLogo';
 
@@ -283,6 +285,46 @@ export default function App() {
     }
   }, [currentUser]);
 
+  const trackFeatureUse = (featureName) => {
+    fetch(`${API_BASE}/analytics/track`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'feature_use', featureName })
+    }).catch(console.error);
+  };
+
+  // Analytics Tracking (Visits, Sessions, Duration)
+  useEffect(() => {
+    const sessionId = Math.random().toString(36).substring(2, 15);
+    
+    // Track initial visit
+    fetch(`${API_BASE}/analytics/track`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'visit', userId: currentUser?.id, sessionId })
+    }).catch(console.error);
+
+    // Track heartbeat/duration every 30 seconds
+    const interval = setInterval(() => {
+      fetch(`${API_BASE}/analytics/track`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'session_duration', userId: currentUser?.id, sessionId, durationSeconds: 30 })
+      }).catch(console.error);
+    }, 30000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [currentUser]);
+
+  // Track transpose usage
+  useEffect(() => {
+    if (transposeOffset !== 0) {
+      trackFeatureUse('transpose');
+    }
+  }, [transposeOffset]);
+
   // Close settings menu and key selector when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -478,6 +520,7 @@ export default function App() {
 
     let active = true;
     const searchOnline = async () => {
+      trackFeatureUse('search_online');
       setIsSearchingOnline(true);
       setOnlineResults([]);
       try {
@@ -583,6 +626,7 @@ export default function App() {
   };
 
   const handleToggleFavorite = async (songId) => {
+    trackFeatureUse('favorite_toggle');
     if (currentUser) {
       try {
         const res = await fetch(`${API_BASE}/user/${currentUser.id}/favorites/toggle`, {
@@ -1453,6 +1497,7 @@ export default function App() {
                     onClick={() => {
                       setShowTuner(true);
                       setShowSettingsMenu(false);
+                      trackFeatureUse('tuner');
                     }}
                     className="w-full flex items-center gap-3 px-4 py-3.5 text-sm font-bold rounded-xl transition-all text-left text-stone-800 hover:bg-stone-50 hover:text-stone-950 cursor-pointer"
                   >
@@ -1461,17 +1506,37 @@ export default function App() {
                   </button>
 
                   {currentUser?.role === 'admin' && (
-                    <button
-                      onClick={() => {
-                        handleTriggerCleanup();
-                        setShowSettingsMenu(false);
-                      }}
-                      disabled={isCleaningDb}
-                      className="w-full flex items-center gap-3 px-4 py-3.5 text-sm font-bold rounded-xl transition-all text-left text-stone-800 hover:bg-stone-50 hover:text-stone-950 disabled:opacity-50 cursor-pointer animate-fade-in"
-                    >
-                      <Sparkles className="w-4.5 h-4.5 text-yellow-600 shrink-0 animate-pulse" />
-                      <span>{isCleaningDb ? 'Đang dọn dẹp...' : 'Dọn dẹp Database / Cleanup'}</span>
-                    </button>
+                    <>
+                      <button
+                        onClick={() => {
+                          setActiveTab('admin-stats');
+                          setSelectedPlaylistId(null);
+                          setActiveSongId(null);
+                          setShowSettingsMenu(false);
+                          trackFeatureUse('admin_stats_view');
+                        }}
+                        className={`w-full flex items-center gap-3 px-4 py-3.5 text-sm font-bold rounded-xl transition-all text-left cursor-pointer ${
+                          activeTab === 'admin-stats' 
+                            ? 'text-[#FF8A00] font-extrabold bg-[#FFF6E9]' 
+                            : 'text-stone-800 hover:bg-stone-50 hover:text-stone-950'
+                        }`}
+                      >
+                        <BarChart3 className="w-4.5 h-4.5 text-[#FF8A00] shrink-0" />
+                        <span>Thống kê hệ thống / Analytics</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          handleTriggerCleanup();
+                          setShowSettingsMenu(false);
+                        }}
+                        disabled={isCleaningDb}
+                        className="w-full flex items-center gap-3 px-4 py-3.5 text-sm font-bold rounded-xl transition-all text-left text-stone-800 hover:bg-stone-50 hover:text-stone-950 disabled:opacity-50 cursor-pointer animate-fade-in"
+                      >
+                        <Sparkles className="w-4.5 h-4.5 text-yellow-600 shrink-0 animate-pulse" />
+                        <span>{isCleaningDb ? 'Đang dọn dẹp...' : 'Dọn dẹp Database / Cleanup'}</span>
+                      </button>
+                    </>
                   )}
 
                   {/* Instrument Selector Segmented Control */}
@@ -2053,6 +2118,11 @@ export default function App() {
                 </div>
               )}
             </div>
+          )}
+
+          {/* TAB 5: ADMIN STATS */}
+          {activeTab === 'admin-stats' && currentUser?.role === 'admin' && (
+            <AdminStatsView API_BASE={API_BASE} />
           )}
             </>
           )}

@@ -729,5 +729,145 @@ export function incrementPlayCount(userId, songId) {
   return entry ? entry.playCount : 1;
 }
 
+// ----------------------------------------------------
+// Analytics Persistence and Management
+// ----------------------------------------------------
+const ANALYTICS_FILE = path.join(__dirname, 'analytics.json');
+let analyticsCache = null;
+
+function getAnalyticsDb() {
+  if (analyticsCache) return analyticsCache;
+  if (!fs.existsSync(ANALYTICS_FILE)) {
+    analyticsCache = {
+      visits: [],
+      featureUsage: {
+        transpose: 0,
+        tuner: 0,
+        share: 0,
+        print: 0,
+        search_online: 0,
+        favorite_toggle: 0
+      },
+      sessionDurations: []
+    };
+    saveAnalyticsDb(analyticsCache);
+  } else {
+    try {
+      analyticsCache = JSON.parse(fs.readFileSync(ANALYTICS_FILE, 'utf8'));
+    } catch {
+      analyticsCache = {
+        visits: [],
+        featureUsage: {
+          transpose: 0,
+          tuner: 0,
+          share: 0,
+          print: 0,
+          search_online: 0,
+          favorite_toggle: 0
+        },
+        sessionDurations: []
+      };
+    }
+  }
+  return analyticsCache;
+}
+
+function saveAnalyticsDb(data) {
+  analyticsCache = data;
+  fs.writeFileSync(ANALYTICS_FILE, JSON.stringify(data, null, 2), 'utf8');
+}
+
+export function trackVisit(userId, sessionId) {
+  const db = getAnalyticsDb();
+  if (!db.visits) db.visits = [];
+  db.visits.push({
+    timestamp: new Date().toISOString(),
+    userId: userId || null,
+    sessionId: sessionId
+  });
+  saveAnalyticsDb(db);
+}
+
+export function trackFeatureUse(featureName) {
+  const db = getAnalyticsDb();
+  if (!db.featureUsage) {
+    db.featureUsage = {
+      transpose: 0,
+      tuner: 0,
+      share: 0,
+      print: 0,
+      search_online: 0,
+      favorite_toggle: 0
+    };
+  }
+  db.featureUsage[featureName] = (db.featureUsage[featureName] || 0) + 1;
+  saveAnalyticsDb(db);
+}
+
+export function trackSessionDuration(userId, sessionId, durationSeconds) {
+  const db = getAnalyticsDb();
+  if (!db.sessionDurations) {
+    db.sessionDurations = [];
+  }
+  db.sessionDurations.push({
+    timestamp: new Date().toISOString(),
+    userId: userId || null,
+    sessionId: sessionId,
+    durationSeconds: durationSeconds
+  });
+  saveAnalyticsDb(db);
+}
+
+export function getStats() {
+  const db = getAnalyticsDb();
+  const users = getUsers();
+  const history = getPlayHistoryDb();
+  const songs = getSongs();
+
+  // Top played songs across all users
+  const songPlays = {};
+  history.forEach(h => {
+    songPlays[h.songId] = (songPlays[h.songId] || 0) + h.playCount;
+  });
+
+  const topPlayedSongs = Object.entries(songPlays)
+    .map(([songId, playCount]) => {
+      const song = songs.find(s => s.id === songId);
+      return {
+        songId,
+        title: song ? song.title : songId,
+        artist: song ? song.artist : 'Unknown',
+        playCount
+      };
+    })
+    .sort((a, b) => b.playCount - a.playCount)
+    .slice(0, 15);
+
+  // Total session durations
+  const durations = db.sessionDurations || [];
+  const avgDuration = durations.length > 0
+    ? Math.round(durations.reduce((acc, curr) => acc + curr.durationSeconds, 0) / durations.length)
+    : 0;
+
+  return {
+    totalVisits: db.visits ? db.visits.length : 0,
+    visits: db.visits || [],
+    usersCount: users.length,
+    users: users.map(u => ({ id: u.id, email: u.email, role: u.role })),
+    featureUsage: db.featureUsage || {
+      transpose: 0,
+      tuner: 0,
+      share: 0,
+      print: 0,
+      search_online: 0,
+      favorite_toggle: 0
+    },
+    topPlayedSongs,
+    avgSessionDurationSeconds: avgDuration,
+    sessionCount: durations.length
+  };
+}
+
 // Auto-initialize presets
 getUsers();
+

@@ -20,7 +20,11 @@ import {
   getUserFavorites,
   toggleUserFavorite,
   getPlayHistory,
-  incrementPlayCount
+  incrementPlayCount,
+  trackVisit,
+  trackFeatureUse,
+  trackSessionDuration,
+  getStats
 } from './db.js';
 import { scrapeUniversal, scrapeHopAmChuan, searchHopAmChuan } from './scraper.js';
 
@@ -548,6 +552,23 @@ app.delete('/api/playlists/:id', (req, res) => {
   const success = deletePlaylist(req.params.id);
   if (!success) return res.status(404).json({ error: 'Playlist not found' });
   res.json({ message: 'Playlist deleted' });
+});
+
+// Analytics API Routes
+app.post('/api/analytics/track', (req, res) => {
+  const { type, userId, sessionId, featureName, durationSeconds } = req.body;
+  if (type === 'visit') {
+    trackVisit(userId, sessionId);
+  } else if (type === 'feature_use') {
+    trackFeatureUse(featureName);
+  } else if (type === 'session_duration') {
+    trackSessionDuration(userId, sessionId, parseInt(durationSeconds, 10) || 0);
+  }
+  res.json({ success: true });
+});
+
+app.get('/api/analytics/stats', (req, res) => {
+  res.json(getStats());
 });
 
 // Serve frontend in production (static files build)

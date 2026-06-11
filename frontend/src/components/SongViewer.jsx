@@ -41,6 +41,13 @@ export default function SongViewer({
   const [activeChord, setActiveChord] = useState(null);
   const [showPlaylistMenu, setShowPlaylistMenu] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
+  const trackFeatureUse = (featureName) => {
+    fetch('/api/analytics/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'feature_use', featureName })
+    }).catch(console.error);
+  };
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
   const [showSongInfo, setShowSongInfo] = useState(false);
   const [keepScreenAwake, setKeepScreenAwake] = useState(true);
@@ -596,6 +603,7 @@ export default function SongViewer({
                     <button
                       onClick={async () => {
                         setShowShareMenu(false);
+                        trackFeatureUse('share');
                         try {
                           await navigator.share({
                             title: song.title,
@@ -615,6 +623,7 @@ export default function SongViewer({
                   <button
                     onClick={() => {
                       setShowShareMenu(false);
+                      trackFeatureUse('print');
                       window.print();
                     }}
                     className="w-full flex items-center gap-2 p-2 hover:bg-stone-50 text-xs rounded text-stone-700 transition-colors"
@@ -625,6 +634,7 @@ export default function SongViewer({
                   <button
                     onClick={async () => {
                       setShowShareMenu(false);
+                      trackFeatureUse('share');
                       const shareUrl = window.location.origin + '?song=' + song.id;
                       try {
                         await navigator.clipboard.writeText(shareUrl);
