@@ -401,13 +401,13 @@ export default function SongViewer({
     const hasChords = parts.length > 1;
 
     // In compact mode, hide lines that contain no chords
-    if (localIsCompact && !hasChords) {
+    if (isCompact && !hasChords) {
       return { isEmpty: true };
     }
 
     const chunks = [];
 
-    if (localIsCompact) {
+    if (isCompact) {
       const getLastWord = (text) => {
         const t = text.trim();
         if (!t) return '';
