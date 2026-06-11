@@ -7,7 +7,7 @@
   --font-mono: "SF Mono", "SFProMono-Regular", Menlo, Monaco, Consolas, "JetBrains Mono", monospace;
   
   --color-blue-dark: #1E293B; /* Premium Navy Blue */
-  --color-chord: #FFA800;    /* Orange chords */
+  --color-chord: #ff6600;    /* Orange chords */
   --bg-chord-pill: rgba(255, 138, 0, 0.08); /* very soft orange brand backdrop */
 
   /* Override Red shades to brand orange/yellow/brown colors for quick & complete styling */
@@ -36,7 +36,7 @@
 
   --color-amber: #FF8A00;    /* Brand orange */
   --color-orange: #FF8A00;   /* Brand orange */
-  --color-red: #FFA800;      /* Orange brand chords */
+  --color-red: #ff6600;      /* Orange brand chords */
   
   --text-primary: #1E293B;   /* Navy primary text */
   --text-secondary: #4B2E20; /* Dark Brown secondary text */
@@ -161,7 +161,7 @@ input:focus, textarea:focus, select:focus {
 }
 
 .chord-inline:hover {
-  color: #d48200;             /* Darker orange hover */
+  color: #cc5200;             /* Darker orange hover */
   text-decoration: underline;
 }
 
@@ -402,7 +402,7 @@ input:focus, textarea:focus, select:focus {
   }
   
   .chord-inline {
-    color: #FFA800 !important;
+    color: #ff6600 !important;
     font-weight: 700 !important;
   }
   
