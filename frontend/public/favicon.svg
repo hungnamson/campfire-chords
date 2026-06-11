@@ -1,32 +1,42 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
-  <!-- Circle Background -->
-  <circle cx="50" cy="50" r="48" fill="#FF8A00" />
-  <!-- Yellow Inner Arch / Campfire glow -->
-  <circle cx="50" cy="50" r="40" stroke="#FFC24D" strokeWidth="4" strokeLinecap="round" strokeDasharray="160 100" transform="rotate(-90 50 50)" />
-  <!-- Guitar Neck / Headstock -->
-  <rect x="47" y="15" width="6" height="50" fill="#4B2E20" rx="1" />
-  <!-- Guitar body top curve -->
-  <path d="M42 62C42 55 58 55 58 62L54 75H46L42 62Z" fill="#4B2E20" />
-  <!-- Guitar Tuning Pegs -->
-  <circle cx="44" cy="20" r="1.5" fill="#4B2E20" />
-  <circle cx="44" cy="26" r="1.5" fill="#4B2E20" />
-  <circle cx="44" cy="32" r="1.5" fill="#4B2E20" />
-  <circle cx="56" cy="20" r="1.5" fill="#4B2E20" />
-  <circle cx="56" cy="26" r="1.5" fill="#4B2E20" />
-  <circle cx="56" cy="32" r="1.5" fill="#4B2E20" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!-- App Icon Background: Rounded Square with Brand Orange Gradient -->
+  <defs>
+    <linearGradient id="orangeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFA41C" />
+      <stop offset="100%" stop-color="#FF5A00" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#orangeGrad)" />
   
-  <!-- People Silhouettes at bottom -->
-  <!-- Left person -->
-  <circle cx="30" cy="74" r="7" fill="#4B2E20" />
-  <path d="M18 90C18 80 24 78 30 78C36 78 42 80 42 90H18Z" fill="#4B2E20" />
-  <!-- Right person -->
-  <circle cx="70" cy="74" r="7" fill="#4B2E20" />
-  <path d="M58 90C58 80 64 78 70 78C76 78 82 80 82 90H58Z" fill="#4B2E20" />
-  <!-- Center person -->
-  <circle cx="50" cy="68" r="8" fill="#4B2E20" />
-  <path d="M36 88C36 76 43 74 50 74C57 74 64 76 64 88H36Z" fill="#4B2E20" />
+  <!-- Logo Circle (White/Cream) -->
+  <circle cx="256" cy="226" r="120" fill="#FFF6E9" />
+  
+  <!-- Inner Cutouts (Orange shapes drawn on top to look like cutouts) -->
+  <!-- Guitar Neck / Headstock -->
+  <rect x="250" y="136" width="12" height="110" fill="url(#orangeGrad)" rx="2" />
+  <path d="M240 236C240 220 272 220 272 236L264 266H248L240 236Z" fill="url(#orangeGrad)" />
+  <!-- Guitar Tuning Pegs -->
+  <circle cx="244" cy="146" r="3" fill="url(#orangeGrad)" />
+  <circle cx="244" cy="158" r="3" fill="url(#orangeGrad)" />
+  <circle cx="244" cy="170" r="3" fill="url(#orangeGrad)" />
+  <circle cx="268" cy="146" r="3" fill="url(#orangeGrad)" />
+  <circle cx="268" cy="158" r="3" fill="url(#orangeGrad)" />
+  <circle cx="268" cy="170" r="3" fill="url(#orangeGrad)" />
 
-  <!-- Musical notes -->
-  <path d="M72 35 C 72 30, 78 30, 78 35 L 78 45 C 78 47, 76 49, 74 49 C 72 49, 70 47, 70 45 C 70 43, 72 41, 74 41 L 74 37 L 72 37 Z" fill="#FFC24D" />
-  <path d="M22 45 C 22 40, 28 40, 28 45 L 28 55 C 28 57, 26 59, 24 59 C 22 59, 20 57, 20 55 C 20 53, 22 51, 24 51 L 24 47 L 22 47 Z" fill="#FFC24D" />
+  <!-- People Silhouettes -->
+  <!-- Left Person -->
+  <circle cx="216" cy="260" r="15" fill="url(#orangeGrad)" />
+  <path d="M192 294C192 272 204 268 216 268C228 268 240 272 240 294H192Z" fill="url(#orangeGrad)" />
+  <!-- Right Person -->
+  <circle cx="296" cy="260" r="15" fill="url(#orangeGrad)" />
+  <path d="M272 294C272 272 284 268 296 268C308 268 320 272 320 294H272Z" fill="url(#orangeGrad)" />
+  <!-- Center Person -->
+  <circle cx="256" cy="250" r="17" fill="url(#orangeGrad)" />
+  <path d="M228 290C228 266 242 262 256 262C270 262 284 266 284 290H228Z" fill="url(#orangeGrad)" />
+
+  <!-- Decorative Musical Notes in Yellow/Gold -->
+  <path d="M302 145 C 302 138, 314 138, 314 145 L 314 165 C 314 169, 310 173, 306 173 C 302 173, 298 169, 298 165 C 298 161, 302 157, 306 157 L 306 149 L 302 149 Z" fill="#FFA41C" />
+
+  <!-- App Text "HátCùngNhau" in White -->
+  <text x="256" y="420" fill="#FFFFFF" font-family="'Be Vietnam Pro', 'Inter', sans-serif" font-weight="900" font-size="54" text-anchor="middle" letter-spacing="-1">HátCùngNhau</text>
 </svg>
