@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
-import { Heart, ArrowLeft, Plus, Check, Minimize2, Maximize2, Info, ExternalLink, X, Share2, Printer, Link } from 'lucide-react';
+import { Heart, ArrowLeft, Plus, Check, Minimize2, Maximize2, Info, ExternalLink, X, Share2, Printer, Link, Play, Square } from 'lucide-react';
 import { transposeChord } from '../utils/transposer';
 import ChordDiagram from './ChordDiagram';
 import BrandLogo from './BrandLogo';
@@ -514,6 +514,291 @@ export default function SongViewer({
     return cleanArtist || cleanComposer || '';
   })();
 
+  // State for rhythm style list popover and play state
+  const [showRhythmMenu, setShowRhythmMenu] = useState(false);
+  const [currentRhythm, setCurrentRhythm] = useState(song.rhythm || '');
+  const [playingStyle, setPlayingStyle] = useState(null); // name of style currently playing
+  const [showBpmSelector, setShowBpmSelector] = useState(null); // Name of style showing BPM options
+
+  // Audio Context and Scheduling refs
+  const audioContextRef = useRef(null);
+  const schedulerIntervalRef = useRef(null);
+  const nextNoteTimeRef = useRef(0);
+  const beatIndexRef = useRef(0);
+  const audioPlayerRef = useRef(null); // Ref to HTML5 Audio Element for Slow Rock
+
+  // List of drum styles
+  const [DRUM_STYLES, setDrumStyles] = useState([
+    { name: 'Slow / Slow Rock', bpm: 60, timeSignature: '6/8' },
+    { name: 'Boston', bpm: 55, timeSignature: '3/4' },
+    { name: 'Bolero', bpm: 80, timeSignature: '4/4' },
+    { name: 'Rhumba', bpm: 80, timeSignature: '4/4' },
+    { name: 'Chachacha', bpm: 100, timeSignature: '4/4' },
+    { name: 'Ballad', bpm: 70, timeSignature: '4/4' },
+    { name: 'Disco', bpm: 120, timeSignature: '4/4' },
+    { name: 'Valse', bpm: 90, timeSignature: '3/4' }
+  ]);
+
+  // Helper sound synthesis functions using Web Audio API
+  const playKick = (ctx, time) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.frequency.setValueAtTime(150, time);
+    osc.frequency.exponentialRampToValueAtTime(0.01, time + 0.3);
+    
+    gain.gain.setValueAtTime(1, time);
+    gain.gain.exponentialRampToValueAtTime(0.01, time + 0.3);
+
+    osc.start(time);
+    osc.stop(time + 0.3);
+  };
+
+  const playSnare = (ctx, time) => {
+    // White noise generator
+    const bufferSize = ctx.sampleRate * 0.2;
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const noiseFilter = ctx.createBiquadFilter();
+    noiseFilter.type = 'highpass';
+    noiseFilter.frequency.value = 1000;
+
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.3, time);
+    noiseGain.gain.exponentialRampToValueAtTime(0.01, time + 0.2);
+
+    noise.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(ctx.destination);
+
+    // Tone oscillator
+    const osc = ctx.createOscillator();
+    const oscGain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.connect(oscGain);
+    oscGain.connect(ctx.destination);
+
+    osc.frequency.setValueAtTime(180, time);
+    oscGain.gain.setValueAtTime(0.5, time);
+    oscGain.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
+
+    noise.start(time);
+    noise.stop(time + 0.2);
+    osc.start(time);
+    osc.stop(time + 0.1);
+  };
+
+  const playHat = (ctx, time, accent = false) => {
+    const bufferSize = ctx.sampleRate * 0.05;
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 10000;
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(accent ? 0.2 : 0.08, time);
+    gain.gain.exponentialRampToValueAtTime(0.01, time + 0.05);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+
+    noise.start(time);
+    noise.stop(time + 0.05);
+  };
+
+  // Main scheduler that executes beat triggers based on selected style patterns
+  const scheduleNextBeats = () => {
+    if (!audioContextRef.current) return;
+    const ctx = audioContextRef.current;
+    
+    // Look ahead 100ms
+    while (nextNoteTimeRef.current < ctx.currentTime + 0.1) {
+      const styleObj = DRUM_STYLES.find(s => s.name === playingStyle);
+      if (!styleObj) break;
+
+      const time = nextNoteTimeRef.current;
+      const beat = beatIndexRef.current;
+
+      // Handle custom rhythmic styles
+      if (playingStyle === 'Boston' || playingStyle === 'Valse') {
+        // 3/4 styles: 6 steps (eighth notes)
+        // Kick on 1, Snare on 3 & 5 (or 2 & 3 in quarter notes)
+        const isKick = beat === 0;
+        const isSnare = beat === 2 || beat === 4;
+        const isHat = beat % 2 === 0;
+
+        if (isKick) playKick(ctx, time);
+        if (isSnare) playSnare(ctx, time);
+        if (isHat) playHat(ctx, time, beat === 0);
+
+        const stepDuration = 60 / styleObj.bpm / 2; // eighth notes
+        nextNoteTimeRef.current += stepDuration;
+        beatIndexRef.current = (beat + 1) % 6;
+      } 
+      else if (playingStyle === 'Disco') {
+        // 4/4 Disco: Four-on-the-floor kick, Snare on 2 & 4, off-beat open-ish hats
+        // 8 steps (eighth notes)
+        const isKick = beat % 2 === 0;
+        const isSnare = beat === 2 || beat === 6;
+        const isHat = beat % 2 !== 0; // Offbeat hat
+
+        if (isKick) playKick(ctx, time);
+        if (isSnare) playSnare(ctx, time);
+        if (isHat) playHat(ctx, time, true);
+
+        const stepDuration = 60 / styleObj.bpm / 2;
+        nextNoteTimeRef.current += stepDuration;
+        beatIndexRef.current = (beat + 1) % 8;
+      }
+      else if (playingStyle === 'Bolero') {
+        // 4/4 Bolero: Complex Latin pattern
+        // 8 steps (eighth notes)
+        // Kick on 1, 3, 5, 7. Snare on 3, 4, 7, 8
+        const isKick = beat === 0 || beat === 4;
+        const isSnare = beat === 2 || beat === 3 || beat === 6 || beat === 7;
+        const isHat = beat % 2 === 0;
+
+        if (isKick) playKick(ctx, time);
+        if (isSnare) playSnare(ctx, time);
+        if (isHat) playHat(ctx, time, beat === 0);
+
+        const stepDuration = 60 / styleObj.bpm / 2;
+        nextNoteTimeRef.current += stepDuration;
+        beatIndexRef.current = (beat + 1) % 8;
+      }
+      else if (playingStyle === 'Rhumba') {
+        // 4/4 Rhumba / Bossa rhythmic feel
+        const isKick = beat === 0 || beat === 3 || beat === 6;
+        const isSnare = beat === 2 || beat === 4 || beat === 7;
+        const isHat = true;
+
+        if (isKick) playKick(ctx, time);
+        if (isSnare) playSnare(ctx, time);
+        if (isHat) playHat(ctx, time, beat % 2 === 0);
+
+        const stepDuration = 60 / styleObj.bpm / 2;
+        nextNoteTimeRef.current += stepDuration;
+        beatIndexRef.current = (beat + 1) % 8;
+      }
+      else if (playingStyle === 'Chachacha') {
+        // 4/4 Cha Cha Cha: Kick on 1, 2, 3, 4; Snare roll on double steps
+        const isKick = beat % 2 === 0;
+        const isSnare = beat === 2 || beat === 6 || beat === 7;
+        const isHat = true;
+
+        if (isKick) playKick(ctx, time);
+        if (isSnare) playSnare(ctx, time);
+        if (isHat) playHat(ctx, time, beat % 2 === 0);
+
+        const stepDuration = 60 / styleObj.bpm / 2;
+        nextNoteTimeRef.current += stepDuration;
+        beatIndexRef.current = (beat + 1) % 8;
+      }
+      else {
+        // Standard 4/4 Ballad: Kick on 1 & 3, Snare on 2 & 4, Hats on all 8ths
+        // 8 steps (eighth notes)
+        const isKick = beat === 0 || beat === 4;
+        const isSnare = beat === 2 || beat === 6;
+        const isHat = true;
+
+        if (isKick) playKick(ctx, time);
+        if (isSnare) playSnare(ctx, time);
+        if (isHat) playHat(ctx, time, beat % 4 === 0);
+
+        const stepDuration = 60 / styleObj.bpm / 2; // eighth notes
+        nextNoteTimeRef.current += stepDuration;
+        beatIndexRef.current = (beat + 1) % 8;
+      }
+    }
+  };
+
+  const startBeat = (styleName) => {
+    stopBeat();
+
+    const styleObj = DRUM_STYLES.find(s => s.name === styleName);
+    if (!styleObj) return;
+
+    if (styleName === 'Slow / Slow Rock') {
+      // Play Slow Rock via HTML5 Audio using local slowrock_60bpm.m4a file
+      if (!audioPlayerRef.current) {
+        audioPlayerRef.current = new Audio('/assets/audio/slowrock_60bpm.m4a');
+        audioPlayerRef.current.loop = true;
+      }
+      // playbackRate = target_bpm / original_bpm (original is 60)
+      audioPlayerRef.current.playbackRate = styleObj.bpm / 60;
+      audioPlayerRef.current.play().catch(err => console.log('Audio playback block:', err));
+      setPlayingStyle(styleName);
+    } else {
+      // Initialize audio context on first play for web audio synthesized styles
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      
+      const ctx = audioContextRef.current;
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+      }
+
+      setPlayingStyle(styleName);
+      nextNoteTimeRef.current = ctx.currentTime + 0.05;
+      beatIndexRef.current = 0;
+
+      // Run scheduler loop every 25ms
+      schedulerIntervalRef.current = setInterval(scheduleNextBeats, 25);
+    }
+  };
+
+  const stopBeat = () => {
+    if (schedulerIntervalRef.current) {
+      clearInterval(schedulerIntervalRef.current);
+      schedulerIntervalRef.current = null;
+    }
+    if (audioPlayerRef.current) {
+      audioPlayerRef.current.pause();
+      audioPlayerRef.current.currentTime = 0;
+    }
+    setPlayingStyle(null);
+  };
+
+  // Clean up Web Audio resources on unmount
+  useEffect(() => {
+    return () => {
+      if (schedulerIntervalRef.current) {
+        clearInterval(schedulerIntervalRef.current);
+      }
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+      }
+      if (audioPlayerRef.current) {
+        audioPlayerRef.current.pause();
+      }
+    };
+  }, []);
+
+  // Update current style selection state if the song updates
+  useEffect(() => {
+    setCurrentRhythm(song.rhythm || '');
+    stopBeat();
+  }, [song]);
+
   return (
     <div className="song-viewer-container flex flex-col min-h-screen text-stone-900 bg-stone-100 md:bg-white pb-28 animate-fade-in w-full md:max-w-[96vw] self-center mx-auto md:shadow-lg md:border-x md:border-stone-200/80 cursor-default relative" ref={songContainerRef} onClick={(e) => e.stopPropagation()}>
       {/* Sub Header / Action bar */}
@@ -548,13 +833,121 @@ export default function SongViewer({
           </div>
         </div>
 
-        {song.rhythm && song.rhythm.trim() && song.rhythm.toLowerCase().trim() !== 'chưa xác định' && (
-          <div className="flex items-center justify-center mx-2 shrink-0">
-            <span className="px-2.5 py-0.5 bg-stone-200/50 border border-stone-300/60 rounded-full text-[10px] font-black text-stone-600 uppercase tracking-wider select-none">
-              {song.rhythm.trim()}
-            </span>
-          </div>
-        )}
+        {/* Dropdown Rhythm Button and Popover list */}
+        <div className="relative flex items-center justify-center mx-2 shrink-0">
+          <button
+            onClick={() => setShowRhythmMenu(!showRhythmMenu)}
+            className="px-2.5 py-1.5 bg-stone-200/60 hover:bg-stone-200 border border-stone-300/60 rounded-full text-[10px] font-black text-stone-600 uppercase tracking-wider select-none cursor-pointer flex items-center gap-1 transition-all duration-150 active:scale-95 shadow-sm"
+          >
+            <span>{currentRhythm.trim() || 'SELECT STYLE'}</span>
+            {playingStyle && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>}
+          </button>
+
+           {showRhythmMenu && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => { setShowRhythmMenu(false); setShowBpmSelector(null); }}></div>
+              <div className="absolute left-1/2 -translate-x-1/2 mt-2 w-72 bg-white border border-stone-200 rounded-xl shadow-2xl z-50 p-2 text-left top-full max-h-96 overflow-y-auto">
+                <p className="text-[10px] uppercase font-black tracking-wider text-stone-400 p-2 border-b border-stone-100 flex items-center justify-between">
+                  <span>Drum Styles</span>
+                  {playingStyle && (
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); stopBeat(); }} 
+                      className="text-red-500 hover:text-red-700 font-bold"
+                    >
+                      Dừng
+                    </button>
+                  )}
+                </p>
+                <div className="space-y-1 mt-1.5">
+                  {DRUM_STYLES.map(style => {
+                    const isStylePlaying = playingStyle === style.name;
+                    return (
+                      <div key={style.name} className="relative">
+                        <div 
+                          onClick={() => {
+                            setCurrentRhythm(style.name);
+                            setShowRhythmMenu(false);
+                            setShowBpmSelector(null);
+                          }}
+                          className={`w-full flex items-center justify-between py-3.5 px-3 hover:bg-stone-50 text-sm rounded-lg transition-colors cursor-pointer text-stone-700 ${
+                            currentRhythm === style.name ? 'bg-stone-100/70 font-semibold' : ''
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (isStylePlaying) {
+                                  stopBeat();
+                                } else {
+                                  startBeat(style.name);
+                                }
+                              }}
+                              className={`p-2 rounded-full transition-all active:scale-90 ${
+                                isStylePlaying 
+                                  ? 'bg-red-500 text-white shadow-sm' 
+                                  : 'bg-stone-100 hover:bg-stone-200 text-stone-600'
+                              }`}
+                            >
+                              {isStylePlaying ? (
+                                <Square className="w-3.5 h-3.5 fill-white" />
+                              ) : (
+                                <Play className="w-3.5 h-3.5 fill-stone-600 text-stone-600" />
+                              )}
+                            </button>
+                            <span>{style.name}</span>
+                          </div>
+                          
+                          {/* BPM Selector Trigger Badge */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowBpmSelector(showBpmSelector === style.name ? null : style.name);
+                            }}
+                            className="font-mono text-xs font-bold text-stone-500 bg-stone-100 hover:bg-stone-200 border border-stone-200/80 px-2.5 py-1 rounded-full transition-colors active:scale-95 shrink-0"
+                          >
+                            {style.bpm} BPM
+                          </button>
+                        </div>
+
+                        {/* Incremental Speed List Popover */}
+                        {showBpmSelector === style.name && (
+                          <div className="absolute right-0 top-full mt-1 w-28 bg-white border border-stone-200 rounded-lg shadow-xl z-55 max-h-40 overflow-y-auto p-1 border border-stone-200/90 divide-y divide-stone-100">
+                            {Array.from({ length: 21 }, (_, idx) => 40 + idx * 5).map(bpmVal => (
+                              <button
+                                key={bpmVal}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  // Update BPM for the selected style
+                                  setDrumStyles(prev => prev.map(s => s.name === style.name ? { ...s, bpm: bpmVal } : s));
+                                  setShowBpmSelector(null);
+                                  
+                                  // Update playing audio speed on the fly if active
+                                  if (isStylePlaying) {
+                                    if (style.name === 'Slow / Slow Rock') {
+                                      if (audioPlayerRef.current) {
+                                        audioPlayerRef.current.playbackRate = bpmVal / 60;
+                                      }
+                                    }
+                                  }
+                                }}
+                                className={`w-full text-left px-3 py-2 text-xs hover:bg-stone-100 transition-colors ${
+                                  style.bpm === bpmVal ? 'text-emerald-600 font-bold bg-emerald-50/50' : 'text-stone-700'
+                                }`}
+                              >
+                                {bpmVal} BPM
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
 
         <div className="flex items-center gap-2 shrink-0">
           {/* YouTube Search Button */}
