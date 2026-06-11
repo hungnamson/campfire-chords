@@ -490,12 +490,18 @@ export default function SongViewer({
 
   // Close chord popup when clicking anywhere else or scrolling
   useEffect(() => {
-    const handleClose = () => setActiveChord(null);
+    const handleClose = (e) => {
+      // Don't close if clicking directly on a chord trigger
+      if (e.target.closest('.chord-inline')) return;
+      setActiveChord(null);
+    };
     window.addEventListener('click', handleClose);
     window.addEventListener('scroll', handleClose);
+    window.addEventListener('touchstart', handleClose);
     return () => {
       window.removeEventListener('click', handleClose);
       window.removeEventListener('scroll', handleClose);
+      window.removeEventListener('touchstart', handleClose);
     };
   }, []);
 
@@ -744,9 +750,13 @@ export default function SongViewer({
       // Load corresponding audio file from assets/audio/ directory
       audioPlayerRef.current = new Audio(`/assets/audio/${styleObj.audioFile}`);
       audioPlayerRef.current.loop = true;
-      // playbackRate = target_bpm / original_bpm
+      
+      // On mobile browsers, make sure play() triggers directly on user gesture
+      audioPlayerRef.current.play().catch(err => {
+        console.log('Initial audio play fail, retrying:', err);
+      });
+      // Apply playbackRate target_bpm / original_bpm
       audioPlayerRef.current.playbackRate = styleObj.bpm / styleObj.originalBpm;
-      audioPlayerRef.current.play().catch(err => console.log('Audio playback block:', err));
       setPlayingStyle(styleName);
     } else {
       // Fallback for synthesizers (e.g. Boston style)
@@ -806,9 +816,11 @@ export default function SongViewer({
     };
     if (showRhythmMenu) {
       window.addEventListener('mousedown', handleClickOutside);
+      window.addEventListener('touchstart', handleClickOutside);
     }
     return () => {
       window.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('touchstart', handleClickOutside);
     };
   }, [showRhythmMenu]);
 
@@ -819,7 +831,7 @@ export default function SongViewer({
   }, [song]);
 
   return (
-    <div className="song-viewer-container flex flex-col min-h-screen text-stone-900 bg-stone-100 md:bg-white pb-28 animate-fade-in w-full md:max-w-[96vw] self-center mx-auto md:shadow-lg md:border-x md:border-stone-200/80 cursor-default relative" ref={songContainerRef} onClick={(e) => e.stopPropagation()}>
+    <div className="song-viewer-container flex flex-col min-h-screen text-stone-900 bg-stone-100 md:bg-white pb-28 animate-fade-in w-full md:max-w-[96vw] self-center mx-auto md:shadow-lg md:border-x md:border-stone-200/80 cursor-default relative" ref={songContainerRef}>
       {/* Sub Header / Action bar */}
       <header className={`sticky top-0 z-30 bg-[#f5f3ef]/90 backdrop-blur border-b border-stone-200 flex items-center justify-between shadow-sm transition-all duration-200 ${
         localIsCompact ? 'px-3 py-1' : 'py-2 song-viewer-padding-x'
@@ -891,28 +903,28 @@ export default function SongViewer({
                          }`}
                        >
                          <div className="flex items-center gap-3">
-                           <button
-                             onClick={(e) => {
-                               e.stopPropagation();
-                               if (isStylePlaying) {
-                                 stopBeat();
-                               } else {
-                                 startBeat(style.name);
-                               }
-                             }}
-                             className={`p-2.5 rounded-full transition-all active:scale-90 ${
-                               isStylePlaying 
-                                 ? 'bg-red-500 text-white shadow-sm' 
-                                 : 'bg-stone-100 hover:bg-stone-200 text-stone-600'
-                             }`}
-                           >
-                             {isStylePlaying ? (
-                               <Square className="w-4 h-4 fill-white" />
-                             ) : (
-                               <Play className="w-4 h-4 fill-stone-600 text-stone-600" />
-                             )}
-                           </button>
-                           <span className="font-semibold text-stone-800">{style.name}</span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (isStylePlaying) {
+                                  stopBeat();
+                                } else {
+                                  startBeat(style.name);
+                                }
+                              }}
+                              className={`p-3 rounded-full transition-all active:scale-90 ${
+                                isStylePlaying 
+                                  ? 'bg-red-500 text-white shadow-sm' 
+                                  : 'bg-stone-100 hover:bg-stone-200 text-stone-600'
+                              }`}
+                            >
+                              {isStylePlaying ? (
+                                <Square className="w-8 h-8 fill-white" />
+                              ) : (
+                                <Play className="w-8 h-8 fill-stone-600 text-stone-600" />
+                              )}
+                            </button>
+                            <span className="font-semibold text-stone-800 text-base">{style.name}</span>
                          </div>
                          
                          {/* BPM Selector Trigger Badge */}
