@@ -1189,9 +1189,10 @@ export default function App() {
       <div className="flex-grow flex flex-col min-w-0">
         
         {/* Unified Sticky Search and Transpose Header */}
-        <header className={`bg-[#f5f3ef]/90 backdrop-blur sticky top-0 z-30 border-b border-[#e3ded5] px-4 py-2 md:py-3 md:px-8 flex items-center justify-between shadow-sm select-none transition-all duration-300 ${
-          isSearchFocused ? 'gap-0 md:gap-4' : 'gap-4'
-        }`}>
+        <header className="bg-[#f5f3ef]/90 backdrop-blur sticky top-0 z-30 border-b border-[#e3ded5] shadow-sm select-none transition-all duration-300 w-full flex flex-col">
+          <div className={`max-w-6xl w-full mx-auto px-4 py-2 md:py-3 md:px-8 flex items-center justify-between relative transition-all duration-300 ${
+            isSearchFocused ? 'gap-0 md:gap-4' : 'gap-4'
+          }`}>
           {/* Logo / Brand (Left) */}
           <div className={`flex items-center gap-2 select-none shrink-0 transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap ${
             isSearchFocused 
@@ -1205,7 +1206,7 @@ export default function App() {
           </div>
 
           {/* Search Box (Center, expands) */}
-          <div className={`relative flex-grow min-w-0 transition-all duration-300 ease-in-out ${
+          <div className={`relative md:absolute md:left-1/2 md:-translate-x-1/2 flex-grow md:flex-grow-0 min-w-0 w-full transition-all duration-300 ease-in-out z-20 ${
             isSearchFocused ? 'max-w-full md:max-w-2xl' : 'max-w-2xl'
           }`}>
             <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400 pointer-events-none transition-all duration-200" />
@@ -1487,6 +1488,7 @@ export default function App() {
                 </div>
               </>
             )}
+          </div>
           </div>
         </header>
 
