@@ -529,14 +529,14 @@ export default function SongViewer({
 
   // List of drum styles
   const [DRUM_STYLES, setDrumStyles] = useState([
-    { name: 'Slow / Slow Rock', bpm: 60, timeSignature: '6/8' },
-    { name: 'Boston', bpm: 55, timeSignature: '3/4' },
-    { name: 'Bolero', bpm: 80, timeSignature: '4/4' },
-    { name: 'Rhumba', bpm: 80, timeSignature: '4/4' },
-    { name: 'Chachacha', bpm: 100, timeSignature: '4/4' },
-    { name: 'Ballad', bpm: 70, timeSignature: '4/4' },
-    { name: 'Disco', bpm: 120, timeSignature: '4/4' },
-    { name: 'Valse', bpm: 90, timeSignature: '3/4' }
+    { name: 'Slow / Slow Rock', bpm: 60, audioFile: 'slowrock_60bpm.m4a', originalBpm: 60 },
+    { name: 'Boston', bpm: 55, originalBpm: 55 },
+    { name: 'Bolero / Rhumba', bpm: 80, audioFile: 'Bolero_80bpm.m4a', originalBpm: 80 },
+    { name: 'Tango', bpm: 80, audioFile: 'Tango_80bpm.m4a', originalBpm: 80 },
+    { name: 'Chachacha', bpm: 80, audioFile: 'Chachacha_80bpm.m4a', originalBpm: 80 },
+    { name: 'Ballad', bpm: 65, audioFile: 'Ballad_65bpm.m4a', originalBpm: 65 },
+    { name: 'Disco', bpm: 120, audioFile: 'Disco_120bpm.m4a', originalBpm: 120 },
+    { name: 'Waltz', bpm: 80, audioFile: 'Waltz_80bpm.m4a', originalBpm: 80 }
   ]);
 
   // Helper sound synthesis functions using Web Audio API
@@ -736,18 +736,21 @@ export default function SongViewer({
     const styleObj = DRUM_STYLES.find(s => s.name === styleName);
     if (!styleObj) return;
 
-    if (styleName === 'Slow / Slow Rock') {
-      // Play Slow Rock via HTML5 Audio using local slowrock_60bpm.m4a file
-      if (!audioPlayerRef.current) {
-        audioPlayerRef.current = new Audio('/assets/audio/slowrock_60bpm.m4a');
-        audioPlayerRef.current.loop = true;
+    if (styleObj.audioFile) {
+      // Release any previous audio player source
+      if (audioPlayerRef.current) {
+        audioPlayerRef.current.pause();
+        audioPlayerRef.current = null;
       }
-      // playbackRate = target_bpm / original_bpm (original is 60)
-      audioPlayerRef.current.playbackRate = styleObj.bpm / 60;
+      // Load corresponding audio file from assets/audio/ directory
+      audioPlayerRef.current = new Audio(`/assets/audio/${styleObj.audioFile}`);
+      audioPlayerRef.current.loop = true;
+      // playbackRate = target_bpm / original_bpm
+      audioPlayerRef.current.playbackRate = styleObj.bpm / styleObj.originalBpm;
       audioPlayerRef.current.play().catch(err => console.log('Audio playback block:', err));
       setPlayingStyle(styleName);
     } else {
-      // Initialize audio context on first play for web audio synthesized styles
+      // Fallback for synthesizers (e.g. Boston style)
       if (!audioContextRef.current) {
         audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
       }
@@ -922,10 +925,8 @@ export default function SongViewer({
                                  
                                  // Update playing audio speed on the fly if active
                                  if (isStylePlaying) {
-                                   if (style.name === 'Slow / Slow Rock') {
-                                     if (audioPlayerRef.current) {
-                                       audioPlayerRef.current.playbackRate = bpmVal / 60;
-                                     }
+                                   if (style.audioFile && audioPlayerRef.current) {
+                                     audioPlayerRef.current.playbackRate = bpmVal / style.originalBpm;
                                    }
                                  }
                                }}
