@@ -174,6 +174,10 @@ export default function App() {
   });
   const [showKeySelector, setShowKeySelector] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [detectionState, setDetectionState] = useState('idle'); // 'idle', 'listening', 'done', 'error'
+  const [detectionCountdown, setDetectionCountdown] = useState(5);
+  const [detectedKey, setDetectedKey] = useState(null);
+  const [detectedConfidence, setDetectedConfidence] = useState(0);
   const [showTuner, setShowTuner] = useState(false);
   const [cleanupResult, setCleanupResult] = useState(null);
   const [isCleaningDb, setIsCleaningDb] = useState(false);
@@ -431,6 +435,184 @@ export default function App() {
       }
     }
   }, [songs]);
+
+  const detectPitch = (buffer, sampleRate) => {
+    let bufferSize = buffer.length;
+    let rms = 0;
+    for (let i = 0; i < bufferSize; i++) {
+      rms += buffer[i] * buffer[i];
+    }
+    rms = Math.sqrt(rms / bufferSize);
+    if (rms < 0.015) {
+      return null;
+    }
+
+    let r1 = 0;
+    let r2 = bufferSize - 1;
+    const threshold = 0.2;
+    for (let i = 0; i < bufferSize / 2; i++) {
+      if (Math.abs(buffer[i]) < threshold) {
+        r1 = i;
+        break;
+      }
+    }
+    for (let i = bufferSize - 1; i >= bufferSize / 2; i--) {
+      if (Math.abs(buffer[i]) < threshold) {
+        r2 = i;
+        break;
+      }
+    }
+
+    const trimmedBuffer = buffer.slice(r1, r2);
+    const size = trimmedBuffer.length;
+    if (size <= 0) return null;
+
+    const correlations = new Float32Array(size);
+    for (let i = 0; i < size; i++) {
+      for (let j = 0; j < size - i; j++) {
+        correlations[i] += trimmedBuffer[j] * trimmedBuffer[j + i];
+      }
+    }
+
+    let d = 0;
+    while (correlations[d] > correlations[d + 1]) {
+      d++;
+    }
+    
+    let maxVal = -1;
+    let maxPos = -1;
+    for (let i = d; i < size / 2; i++) {
+      if (correlations[i] > correlations[i - 1] && correlations[i] > correlations[i + 1]) {
+        if (correlations[i] > maxVal) {
+          maxVal = correlations[i];
+          maxPos = i;
+        }
+      }
+    }
+
+    if (maxPos !== -1) {
+      return sampleRate / maxPos;
+    }
+    return null;
+  };
+
+  const pearsonCorrelation = (x, y) => {
+    let n = x.length;
+    let sumX = 0, sumY = 0, sumXY = 0;
+    let sumX2 = 0, sumY2 = 0;
+    for (let i = 0; i < n; i++) {
+      sumX += x[i];
+      sumY += y[i];
+      sumXY += x[i] * y[i];
+      sumX2 += x[i] * x[i];
+      sumY2 += y[i] * y[i];
+    }
+    let num = n * sumXY - sumX * sumY;
+    let den = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
+    if (den === 0) return 0;
+    return num / den;
+  };
+
+  const estimateKey = (pitchProfile, captureCount) => {
+    if (captureCount < 10) {
+      setDetectionState('error');
+      return;
+    }
+
+    const majorProfile = [6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88];
+    const minorProfile = [6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17];
+    const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+    let bestKey = '';
+    let maxCorr = -2;
+
+    for (let keyIdx = 0; keyIdx < 12; keyIdx++) {
+      const shiftedMajor = new Float32Array(12);
+      const shiftedMinor = new Float32Array(12);
+      for (let i = 0; i < 12; i++) {
+        shiftedMajor[(i + keyIdx) % 12] = majorProfile[i];
+        shiftedMinor[(i + keyIdx) % 12] = minorProfile[i];
+      }
+
+      const corrMajor = pearsonCorrelation(pitchProfile, shiftedMajor);
+      const corrMinor = pearsonCorrelation(pitchProfile, shiftedMinor);
+
+      if (corrMajor > maxCorr) {
+        maxCorr = corrMajor;
+        bestKey = notes[keyIdx];
+      }
+      if (corrMinor > maxCorr) {
+        maxCorr = corrMinor;
+        bestKey = notes[keyIdx] + 'm';
+      }
+    }
+
+    const confidence = Math.max(0, Math.min(100, Math.round(maxCorr * 100)));
+    setDetectedKey(bestKey);
+    setDetectedConfidence(confidence);
+    setDetectionState('done');
+  };
+
+  const startKeyDetection = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const source = audioCtx.createMediaStreamSource(stream);
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 2048;
+      source.connect(analyser);
+
+      const bufferLength = analyser.fftSize;
+      const dataArray = new Float32Array(bufferLength);
+      
+      setDetectionState('listening');
+      setDetectionCountdown(5);
+      setDetectedKey(null);
+
+      const pitchProfile = new Float32Array(12);
+      let detectionActive = true;
+      let captureCount = 0;
+
+      const checkPitch = () => {
+        if (!detectionActive) return;
+        analyser.getFloat32TimeDomainData(dataArray);
+        const pitch = detectPitch(dataArray, audioCtx.sampleRate);
+        
+        if (pitch && pitch > 60 && pitch < 1000) {
+          const midi = 12 * Math.log2(pitch / 440) + 69;
+          const noteIndex = Math.round(midi) % 12;
+          pitchProfile[noteIndex] += 1;
+          captureCount++;
+        }
+        requestAnimationFrame(checkPitch);
+      };
+
+      requestAnimationFrame(checkPitch);
+
+      let secondsLeft = 5;
+      const interval = setInterval(() => {
+        secondsLeft--;
+        setDetectionCountdown(secondsLeft);
+        if (secondsLeft <= 0) {
+          clearInterval(interval);
+          detectionActive = false;
+          
+          stream.getTracks().forEach(t => t.stop());
+          audioCtx.close();
+
+          estimateKey(pitchProfile, captureCount);
+        }
+      }, 1000);
+
+    } catch (err) {
+      console.error('Error starting key detection:', err);
+      setDetectionState('error');
+    }
+  };
+
+  useEffect(() => {
+    setDetectionState('idle');
+  }, [activeSongId]);
 
   // Load or save song-specific key selection and font size if song is favorited
   useEffect(() => {
@@ -2222,6 +2404,79 @@ export default function App() {
                           >
                             Reset ({displaySong.key})
                           </button>
+                        </div>
+
+                        {/* Key Detection Panel */}
+                        <div className="mb-4 p-3 bg-stone-50 border border-stone-200/60 rounded-xl flex flex-col items-center justify-center">
+                          {detectionState === 'idle' && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); startKeyDetection(); }}
+                              className="w-full flex items-center justify-center gap-2 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl transition-all active:scale-[0.98] font-bold text-sm shadow-sm cursor-pointer border border-orange-550"
+                            >
+                              <Mic className="w-4.5 h-4.5" />
+                              <span>Key Detection (Hum to Dò Tông)</span>
+                            </button>
+                          )}
+
+                          {detectionState === 'listening' && (
+                            <div className="w-full flex flex-col items-center justify-center py-1.5 animate-pulse">
+                              <Mic className="w-5 h-5 text-red-500 mb-1.5 animate-bounce" />
+                              <span className="text-xs font-bold text-stone-755">Đang lắng nghe giọng hát... {detectionCountdown}s</span>
+                              <span className="text-[10px] text-stone-400 mt-0.5">Hãy ngân nga hoặc hát một đoạn nhạc thật to</span>
+                            </div>
+                          )}
+
+                          {detectionState === 'done' && (
+                            <div className="w-full flex flex-col items-center gap-2.5">
+                              <div className="text-center">
+                                <span className="text-[10px] uppercase font-black tracking-widest text-stone-400 block mb-0.5">Tông phát hiện</span>
+                                <span className="font-mono text-xl font-black text-orange-600">
+                                  {detectedKey}
+                                </span>
+                                <span className="text-[10px] text-stone-400 block mt-0.5">Độ khớp: {detectedConfidence}%</span>
+                              </div>
+                              <div className="flex gap-2 w-full">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const cleanSongKey = displaySong.key.replace('m', '').replace(' ', '');
+                                    const originalVal = NOTE_TO_SEMITONE[cleanSongKey] || 0;
+                                    const targetVal = NOTE_TO_SEMITONE[detectedKey.replace('m', '')] || 0;
+                                    let diff = targetVal - originalVal;
+                                    if (diff > 6) diff -= 12;
+                                    if (diff < -5) diff += 12;
+                                    setTransposeOffset(diff);
+                                    
+                                    setTimeout(() => {
+                                      setShowKeySelector(false);
+                                      setDetectionState('idle');
+                                    }, 50);
+                                  }}
+                                  className="flex-grow py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-bold transition-all active:scale-95 border border-green-750 shadow-sm"
+                                >
+                                  Áp dụng tông
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); startKeyDetection(); }}
+                                  className="px-3 py-2 bg-stone-200 hover:bg-stone-300 text-stone-700 rounded-lg text-xs font-bold transition-all active:scale-95"
+                                >
+                                  Thử lại
+                                </button>
+                              </div>
+                            </div>
+                          )}
+
+                          {detectionState === 'error' && (
+                            <div className="w-full flex flex-col items-center gap-2 py-1">
+                              <span className="text-xs text-red-500 font-semibold text-center">Không nghe rõ, hãy hát to hơn hoặc kiểm tra Micro!</span>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); startKeyDetection(); }}
+                                className="w-full py-2 bg-stone-900 hover:bg-stone-850 text-white rounded-lg text-xs font-bold transition-all active:scale-95"
+                              >
+                                Thử lại / Try Again
+                              </button>
+                            </div>
+                          )}
                         </div>
 
                         {/* Reference Tones Banner */}
