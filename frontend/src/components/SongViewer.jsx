@@ -1811,7 +1811,8 @@ export default function SongViewer({
                 <div className="flex items-center gap-2.5">
                   {/* Big Play/Pause Button */}
                   <button
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       if (playingStyle === currentRhythm) {
                         stopBeat();
                       } else {
@@ -1820,6 +1821,7 @@ export default function SongViewer({
                         }
                       }
                     }}
+                    onTouchStart={(e) => e.stopPropagation()}
                     className={`w-11 h-11 flex items-center justify-center rounded-full transition-all active:scale-95 shadow-sm ${
                       playingStyle === currentRhythm
                         ? 'bg-red-500 text-white'
@@ -1875,6 +1877,8 @@ export default function SongViewer({
                       }
                     }
                   }}
+                  onClick={(e) => e.stopPropagation()}
+                  onTouchStart={(e) => e.stopPropagation()}
                   className="flex-grow h-1 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-orange-500"
                 />
                 <span className="text-[9px] font-bold text-stone-400">200</span>
