@@ -579,17 +579,52 @@ function generateSessionCode() {
 }
 
 app.post('/api/sessions/create', (req, res) => {
-  const { hostId, playlistId, currentSongId, currentKey } = req.body;
+  const { hostId, hostName, playlistId, currentSongId, currentKey } = req.body;
   const code = generateSessionCode();
   activeSessions[code] = {
     sessionId: code,
     hostId: hostId || 'anonymous_host',
+    hostName: hostName || 'Anonymous Host',
     playlistId: playlistId || null,
     currentSongId: currentSongId || null,
     currentKey: currentKey || null,
+    followers: [],
+    songsHistory: currentSongId ? [currentSongId] : [],
+    createdAt: Date.now(),
     lastUpdated: Date.now()
   };
   res.json(activeSessions[code]);
+});
+
+app.post('/api/sessions/:id/join', (req, res) => {
+  const session = activeSessions[req.params.id.toUpperCase()];
+  if (!session) return res.status(404).json({ error: 'Session not found' });
+  
+  const { userId, email } = req.body;
+  if (userId) {
+    // Add follower if not already present
+    if (!session.followers.some(f => f.userId === userId)) {
+      session.followers.push({
+        userId,
+        email: email || 'anonymous',
+        joinedAt: Date.now()
+      });
+    }
+  }
+  session.lastUpdated = Date.now();
+  res.json(session);
+});
+
+app.post('/api/sessions/:id/leave', (req, res) => {
+  const session = activeSessions[req.params.id.toUpperCase()];
+  if (!session) return res.status(404).json({ error: 'Session not found' });
+  
+  const { userId } = req.body;
+  if (userId) {
+    session.followers = session.followers.filter(f => f.userId !== userId);
+  }
+  session.lastUpdated = Date.now();
+  res.json(session);
 });
 
 app.post('/api/sessions/:id/update', (req, res) => {
@@ -597,7 +632,12 @@ app.post('/api/sessions/:id/update', (req, res) => {
   if (!session) return res.status(404).json({ error: 'Session not found' });
   
   const { currentSongId, currentKey } = req.body;
-  if (currentSongId !== undefined) session.currentSongId = currentSongId;
+  if (currentSongId !== undefined) {
+    session.currentSongId = currentSongId;
+    if (currentSongId && !session.songsHistory.includes(currentSongId)) {
+      session.songsHistory.push(currentSongId);
+    }
+  }
   if (currentKey !== undefined) session.currentKey = currentKey;
   session.lastUpdated = Date.now();
   
@@ -608,6 +648,30 @@ app.get('/api/sessions/:id', (req, res) => {
   const session = activeSessions[req.params.id.toUpperCase()];
   if (!session) return res.status(404).json({ error: 'Session not found' });
   res.json(session);
+});
+
+app.post('/api/sessions/:id/close', (req, res) => {
+  const code = req.params.id.toUpperCase();
+  const session = activeSessions[code];
+  if (!session) return res.status(404).json({ error: 'Session not found' });
+  
+  // Build final session report
+  const report = {
+    sessionId: session.sessionId,
+    hostId: session.hostId,
+    hostName: session.hostName,
+    playlistId: session.playlistId,
+    followers: session.followers,
+    songsHistory: session.songsHistory,
+    createdAt: session.createdAt,
+    closedAt: Date.now(),
+    durationSeconds: Math.round((Date.now() - session.createdAt) / 1000)
+  };
+  
+  // Remove from active store
+  delete activeSessions[code];
+  
+  res.json({ message: 'Session closed successfully', report });
 });
 
 // Analytics API Routes

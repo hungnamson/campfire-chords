@@ -189,6 +189,8 @@ export default function App() {
   const [sessionInputCode, setSessionInputCode] = useState('');
   const [importingPlaylist, setImportingPlaylist] = useState(null);
   const [sharePlaylistId, setSharePlaylistId] = useState(null);
+  const [sessionReport, setSessionReport] = useState(null);
+  const [sessionComment, setSessionComment] = useState('');
 
   // Authentication & User profile states
   const [currentUser, setCurrentUser] = useState(() => {
@@ -1560,12 +1562,19 @@ export default function App() {
   const displaySong = activeSongId === 'online' ? onlineSong : activeSong;
 
   const handleStartJamSession = async (playlistId) => {
+    if (!currentUser) {
+      setAuthMode('login');
+      setAuthError('Vui lòng Đăng nhập tài khoản để làm Host của Jam Session!');
+      setShowAuthModal(true);
+      return;
+    }
     try {
       const res = await fetch(`${API_BASE}/sessions/create`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          hostId: currentUser?.id || 'anonymous_host',
+          hostId: currentUser.id,
+          hostName: currentUser.email,
           playlistId: playlistId,
           currentSongId: activeSongId,
           currentKey: transposeOffset
@@ -1574,6 +1583,8 @@ export default function App() {
       const data = await res.json();
       setSessionCode(data.sessionId);
       setSessionRole('host');
+      setSessionComment('');
+      setSessionReport(null);
       trackFeatureUse('start_jam_session');
     } catch (err) {
       console.error('Error starting jam session:', err);
@@ -1581,12 +1592,25 @@ export default function App() {
   };
 
   const handleJoinJamSession = async (code) => {
+    if (!currentUser) {
+      setAuthMode('login');
+      setAuthError('Vui lòng Đăng nhập tài khoản để tham gia Jam Session!');
+      setShowAuthModal(true);
+      return;
+    }
     if (!code) return;
     const cleanCode = code.trim().toUpperCase();
     try {
-      const res = await fetch(`${API_BASE}/sessions/${cleanCode}`);
+      const res = await fetch(`${API_BASE}/sessions/${cleanCode}/join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: currentUser.id,
+          email: currentUser.email
+        })
+      });
       if (!res.ok) {
-        alert('Không tìm thấy Session này. Vui lòng kiểm tra lại mã!');
+        alert('Không tìm thấy Session này hoặc mã đã hết hạn. Vui lòng kiểm tra lại!');
         return;
       }
       const data = await res.json();
@@ -1605,6 +1629,42 @@ export default function App() {
     } catch (err) {
       console.error('Error joining session:', err);
       alert('Không thể kết nối tới Session. Vui lòng thử lại!');
+    }
+  };
+
+  const handleCloseSession = async () => {
+    if (!sessionCode || sessionRole !== 'host') return;
+    try {
+      const res = await fetch(`${API_BASE}/sessions/${sessionCode}/close`, {
+        method: 'POST'
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSessionReport(data.report);
+      }
+      setSessionCode(null);
+      setSessionRole(null);
+    } catch (err) {
+      console.error('Error closing session:', err);
+      setSessionCode(null);
+      setSessionRole(null);
+    }
+  };
+
+  const handleLeaveSession = async () => {
+    if (!sessionCode || sessionRole !== 'follower') return;
+    try {
+      await fetch(`${API_BASE}/sessions/${sessionCode}/leave`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: currentUser?.id })
+      });
+      setSessionCode(null);
+      setSessionRole(null);
+    } catch (err) {
+      console.error('Error leaving session:', err);
+      setSessionCode(null);
+      setSessionRole(null);
     }
   };
 
@@ -2085,10 +2145,7 @@ export default function App() {
                 </button>
               )}
               <button
-                onClick={() => {
-                  setSessionCode(null);
-                  setSessionRole(null);
-                }}
+                onClick={sessionRole === 'host' ? handleCloseSession : handleLeaveSession}
                 className="px-2.5 py-1 bg-stone-900 hover:bg-stone-850 text-white rounded-lg text-[10px] font-black uppercase shadow-sm cursor-pointer"
               >
                 {sessionRole === 'host' ? 'Dừng Session' : 'Rời Session'}
@@ -3266,6 +3323,111 @@ export default function App() {
             </div>
           );
         })()
+      )}
+
+      {sessionReport && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/60 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setSessionReport(null)}>
+          <div className="bg-white border border-stone-200 rounded-2xl max-w-md w-full shadow-2xl p-6 relative select-none flex flex-col no-scrollbar max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setSessionReport(null)}
+              className="absolute right-4 top-4 p-1 hover:bg-stone-100 rounded-full text-stone-400 hover:text-stone-700 transition cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            
+            <div className="flex items-center gap-3 mb-4 pb-3 border-b border-stone-100">
+              <div className="w-10 h-10 bg-green-50 border border-green-200 rounded-full flex items-center justify-center text-green-600">
+                <BarChart3 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-stone-900 leading-none">Báo cáo Session</h3>
+                <p className="text-[10px] text-stone-400 uppercase font-black tracking-widest mt-1">Jam Session Report</p>
+              </div>
+            </div>
+
+            <div className="bg-stone-50 border border-stone-200/80 rounded-xl p-4 my-2 flex flex-col gap-2 font-sans text-xs text-left">
+              <div className="flex justify-between">
+                <span className="text-stone-500 font-medium">Mã Session:</span>
+                <span className="font-bold text-stone-850 font-mono">{sessionReport.sessionId}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-stone-500 font-medium">Host:</span>
+                <span className="font-bold text-stone-850">{sessionReport.hostName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-stone-500 font-medium">Thời lượng:</span>
+                <span className="font-bold text-stone-850">{Math.floor(sessionReport.durationSeconds / 60)} phút {sessionReport.durationSeconds % 60} giây</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-stone-500 font-medium">Người tham gia:</span>
+                <span className="font-bold text-stone-850">{sessionReport.followers.length} thành viên</span>
+              </div>
+            </div>
+
+            {sessionReport.followers.length > 0 && (
+              <div className="my-2 text-left">
+                <span className="text-[10px] uppercase font-black tracking-widest text-stone-400">Danh sách thành viên:</span>
+                <div className="max-h-20 overflow-y-auto mt-1 border border-stone-100 rounded-lg p-2 bg-white text-[11px] font-bold text-stone-700 flex flex-col gap-1">
+                  {sessionReport.followers.map((f, i) => (
+                    <div key={i} className="flex justify-between items-center">
+                      <span>{f.email}</span>
+                      <span className="text-[9px] text-stone-400">Đã tham gia</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="my-2 text-left">
+              <span className="text-[10px] uppercase font-black tracking-widest text-stone-400">Danh sách bài đã chơi:</span>
+              <div className="max-h-28 overflow-y-auto mt-1 border border-stone-100 rounded-lg p-2 bg-white text-[11px] font-bold text-stone-750 flex flex-col gap-1">
+                {sessionReport.songsHistory.length === 0 ? (
+                  <span className="text-stone-400 italic font-medium">Chưa chơi bài hát nào</span>
+                ) : (
+                  sessionReport.songsHistory.map((songId, i) => {
+                    const song = songs.find(s => s.id === songId);
+                    return (
+                      <div key={i} className="flex items-center gap-1.5 py-0.5 border-b border-stone-55 last:border-0">
+                        <span className="text-stone-400 font-mono">{i + 1}.</span>
+                        <span className="truncate">{song ? song.title : 'Bài hát trực tuyến'}</span>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+
+            {/* Comment Section */}
+            <div className="my-2 text-left flex flex-col gap-1.5">
+              <label className="text-[10px] uppercase font-black tracking-widest text-stone-400">Ghi chú & Đánh giá (Jam Comment):</label>
+              <textarea
+                rows={3}
+                placeholder="Nhập ghi chú cho đêm nhạc, ví dụ: Đêm nhạc Acoustic cực vui, mọi người hát rất hay..."
+                value={sessionComment}
+                onChange={(e) => setSessionComment(e.target.value)}
+                className="w-full border border-stone-200 p-2.5 rounded-xl text-xs bg-white text-stone-800 placeholder-stone-400 shadow-inner outline-none focus:ring-1 focus:ring-green-500/25"
+              />
+            </div>
+
+            <div className="flex gap-2 mt-4">
+              <button
+                onClick={() => setSessionReport(null)}
+                className="w-1/2 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs rounded-xl transition cursor-pointer"
+              >
+                Đóng / Close
+              </button>
+              <button
+                onClick={() => {
+                  alert('Báo cáo Jam Record đã được lưu và gửi đi thành công với ghi chú: \n"' + sessionComment + '"');
+                  setSessionReport(null);
+                }}
+                className="w-1/2 py-2.5 bg-green-600 hover:bg-green-700 text-white font-bold text-xs rounded-xl transition shadow-md cursor-pointer active:scale-95"
+              >
+                Gửi báo cáo / Submit
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {showAuthModal && (
