@@ -37,6 +37,12 @@ export default function SongViewer({
   instrument,
   onSaveToLibrary,
   isSavingToLibrary,
+  onNextSong,
+  onPrevSong,
+  hasNext,
+  hasPrev,
+  playlistIndex,
+  playlistLength,
 }) {
   const [isScrolling, setIsScrolling] = useState(false);
   const [scrollSpeed, setScrollSpeed] = useState(3); // 1 to 10
@@ -52,6 +58,28 @@ export default function SongViewer({
   };
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
   const [showSongInfo, setShowSongInfo] = useState(false);
+  const [autoplay, setAutoplay] = useState(() => {
+    return localStorage.getItem('campfire_autoplay') === 'true';
+  });
+  const [autoplayTimer, setAutoplayTimer] = useState(null);
+
+  useEffect(() => {
+    if (autoplayTimer === null) return;
+    if (autoplayTimer <= 0) {
+      setAutoplayTimer(null);
+      if (onNextSong) onNextSong();
+      return;
+    }
+    const t = setTimeout(() => {
+      setAutoplayTimer(prev => prev - 1);
+    }, 1000);
+    return () => clearTimeout(t);
+  }, [autoplayTimer, onNextSong]);
+
+  const triggerAutoplayNext = () => {
+    if (autoplayTimer !== null) return;
+    setAutoplayTimer(3);
+  };
   const [showKeySelector, setShowKeySelector] = useState(false);
   const [keepScreenAwake, setKeepScreenAwake] = useState(true);
   const wakeLockRef = useRef(null);
@@ -308,8 +336,11 @@ export default function SongViewer({
       const intervalMs = Math.max(10, 100 - (scrollSpeed * 9));
 
       const scrollFn = () => {
-        if (window.scrollY + window.innerHeight >= document.documentElement.scrollHeight) {
+        if (window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 5) {
           setIsScrolling(false);
+          if (autoplay && hasNext) {
+            triggerAutoplayNext();
+          }
           return;
         }
         window.scrollBy(0, step);
@@ -1798,6 +1829,52 @@ export default function SongViewer({
 
 
       <main className={`flex-grow flex flex-col transition-all duration-200 ${localIsCompact ? 'px-3.5 py-2 md:p-3' : 'px-4.5 py-4 md:p-0 bg-white'}`}>
+        {playlistLength > 0 && (
+          <div className="mx-auto w-full md:max-w-xl mb-4 bg-stone-50 border border-stone-200/80 rounded-xl px-4 py-2 flex items-center justify-between gap-4 select-none font-sans text-xs shadow-xs mt-2">
+            <button
+              onClick={onPrevSong}
+              disabled={!hasPrev}
+              className={`p-1.5 rounded-full transition flex items-center justify-center border ${
+                hasPrev 
+                  ? 'bg-white border-stone-200 hover:bg-stone-100 text-[#4B2E20] cursor-pointer' 
+                  : 'bg-stone-50 border-stone-150 text-stone-300 cursor-not-allowed'
+              }`}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <div className="flex items-center gap-3">
+              <span className="font-extrabold text-[#4B2E20] uppercase tracking-wider text-[10px]">
+                Bài hát: {playlistIndex + 1} / {playlistLength}
+              </span>
+              <div className="h-4 w-px bg-stone-300"></div>
+              <label className="flex items-center gap-1.5 cursor-pointer font-bold text-stone-600">
+                <input
+                  type="checkbox"
+                  checked={autoplay}
+                  onChange={(e) => {
+                    const val = e.target.checked;
+                    setAutoplay(val);
+                    localStorage.setItem('campfire_autoplay', val ? 'true' : 'false');
+                  }}
+                  className="rounded border-stone-350 text-orange-600 focus:ring-orange-500 w-3.5 h-3.5"
+                />
+                <span>Tự động phát (Autoplay)</span>
+              </label>
+            </div>
+            <button
+              onClick={onNextSong}
+              disabled={!hasNext}
+              className={`p-1.5 rounded-full transition flex items-center justify-center border ${
+                hasNext 
+                  ? 'bg-white border-stone-200 hover:bg-stone-100 text-[#4B2E20] cursor-pointer' 
+                  : 'bg-stone-50 border-stone-150 text-stone-300 cursor-not-allowed'
+              }`}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
         <div className={`flex-grow bg-white select-text transition-all duration-200 w-full ${
           localIsCompact 
             ? 'py-3 px-[24px] sm:px-6 w-full md:max-w-full mx-auto border border-stone-200/85 md:border-none rounded-xl md:rounded-none shadow-md md:shadow-none bg-white' 
@@ -2421,6 +2498,18 @@ export default function SongViewer({
         <BrandLogo className="w-24 h-24 mb-2" />
         <span className="text-[10px] font-black uppercase tracking-widest text-[#4B2E20] font-display">HátCùngNhau</span>
       </div>
+      {autoplayTimer !== null && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-[#1e1b4b] text-white border border-indigo-900 px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-3 animate-bounce select-none font-sans text-xs">
+          <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-ping"></span>
+          <span>Chuyển bài kế tiếp sau <strong className="text-red-400 font-black font-mono text-sm">{autoplayTimer}s</strong>...</span>
+          <button 
+            onClick={() => setAutoplayTimer(null)}
+            className="px-2 py-0.5 bg-stone-800 hover:bg-stone-750 text-stone-300 font-bold rounded text-[10px] cursor-pointer"
+          >
+            Hủy / Stop
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -184,6 +184,11 @@ export default function App() {
   const [showVersionTracker, setShowVersionTracker] = useState(false);
   const [cleanupResult, setCleanupResult] = useState(null);
   const [isCleaningDb, setIsCleaningDb] = useState(false);
+  const [sessionCode, setSessionCode] = useState(null);
+  const [sessionRole, setSessionRole] = useState(null); // 'host' or 'follower'
+  const [sessionInputCode, setSessionInputCode] = useState('');
+  const [importingPlaylist, setImportingPlaylist] = useState(null);
+  const [sharePlaylistId, setSharePlaylistId] = useState(null);
 
   // Authentication & User profile states
   const [currentUser, setCurrentUser] = useState(() => {
@@ -324,6 +329,77 @@ export default function App() {
       clearInterval(interval);
     };
   }, [currentUser]);
+
+  // Startup URL parameters checker
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const importId = params.get('importPlaylist');
+    if (importId) {
+      fetch(`${API_BASE}/playlists/${importId}`)
+        .then(res => res.json())
+        .then(data => {
+          setImportingPlaylist(data);
+        })
+        .catch(err => console.error('Error loading import playlist:', err));
+    }
+
+    const joinCode = params.get('joinSession');
+    if (joinCode) {
+      // Automatically join session
+      setSessionCode(joinCode.toUpperCase());
+      setSessionRole('follower');
+      // Clear URL params so it doesn't prompt again on refresh
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
+
+  // Host Session sync effect
+  useEffect(() => {
+    if (sessionRole === 'host' && sessionCode) {
+      fetch(`${API_BASE}/sessions/${sessionCode}/update`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentSongId: activeSongId,
+          currentKey: transposeOffset
+        })
+      }).catch(err => console.error('Error syncing host state to session:', err));
+    }
+  }, [activeSongId, transposeOffset, sessionRole, sessionCode]);
+
+  // Follower Session sync effect (polling every 1.5s)
+  useEffect(() => {
+    if (sessionRole !== 'follower' || !sessionCode) return;
+
+    let active = true;
+    const interval = setInterval(() => {
+      if (!active) return;
+      fetch(`${API_BASE}/sessions/${sessionCode}`)
+        .then(res => res.json())
+        .then(data => {
+          if (!active) return;
+          if (data.currentSongId !== activeSongId) {
+            setActiveSongId(data.currentSongId);
+          }
+          if (data.currentKey !== null && data.currentKey !== undefined && parseInt(data.currentKey, 10) !== transposeOffset) {
+            setTransposeOffset(parseInt(data.currentKey, 10) || 0);
+          }
+        })
+        .catch(err => {
+          console.error('Error polling session sync:', err);
+          // If session not found, exit
+          if (err.status === 404) {
+            setSessionCode(null);
+            setSessionRole(null);
+          }
+        });
+    }, 1500);
+
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [sessionRole, sessionCode, activeSongId, transposeOffset]);
 
   // Track transpose usage
   useEffect(() => {
@@ -1483,6 +1559,77 @@ export default function App() {
   const activeSong = songs.find(s => s.id === activeSongId);
   const displaySong = activeSongId === 'online' ? onlineSong : activeSong;
 
+  const handleStartJamSession = async (playlistId) => {
+    try {
+      const res = await fetch(`${API_BASE}/sessions/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          hostId: currentUser?.id || 'anonymous_host',
+          playlistId: playlistId,
+          currentSongId: activeSongId,
+          currentKey: transposeOffset
+        })
+      });
+      const data = await res.json();
+      setSessionCode(data.sessionId);
+      setSessionRole('host');
+      trackFeatureUse('start_jam_session');
+    } catch (err) {
+      console.error('Error starting jam session:', err);
+    }
+  };
+
+  const handleJoinJamSession = async (code) => {
+    if (!code) return;
+    const cleanCode = code.trim().toUpperCase();
+    try {
+      const res = await fetch(`${API_BASE}/sessions/${cleanCode}`);
+      if (!res.ok) {
+        alert('Không tìm thấy Session này. Vui lòng kiểm tra lại mã!');
+        return;
+      }
+      const data = await res.json();
+      setSessionCode(data.sessionId);
+      setSessionRole('follower');
+      setSessionInputCode('');
+      
+      if (data.currentSongId) {
+        setActiveSongId(data.currentSongId);
+      }
+      if (data.currentKey !== null && data.currentKey !== undefined) {
+        setTransposeOffset(parseInt(data.currentKey, 10) || 0);
+      }
+      
+      trackFeatureUse('join_jam_session');
+    } catch (err) {
+      console.error('Error joining session:', err);
+      alert('Không thể kết nối tới Session. Vui lòng thử lại!');
+    }
+  };
+
+  const handleConfirmImport = async () => {
+    if (!importingPlaylist) return;
+    try {
+      const res = await fetch(`${API_BASE}/playlists`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: importingPlaylist.name,
+          songIds: importingPlaylist.songIds
+        })
+      });
+      if (!res.ok) throw new Error('Failed to import');
+      fetchPlaylists();
+      setImportingPlaylist(null);
+      window.history.replaceState({}, document.title, window.location.pathname);
+      setActiveTab('setlists');
+    } catch (err) {
+      console.error('Error importing playlist:', err);
+      alert('Lỗi nhập playlist: ' + err.message);
+    }
+  };
+
   const handleOpenSongFromPlaylist = (songId, playlistSongIds) => {
     const playlistSongsList = playlistSongIds.map(id => songs.find(s => s.id === id)).filter(Boolean);
     setActivePlaylistSongs(playlistSongsList);
@@ -1910,7 +2057,44 @@ export default function App() {
             )}
           </div>
           </div>
-        </header>
+         </header>
+        )}
+
+        {/* Collaborative Jam Session Pinned Status Banner */}
+        {sessionCode && (
+          <div className={`w-full py-2 px-4 select-none flex items-center justify-between text-xs font-bold border-b transition-all duration-300 animate-fade-in ${
+            sessionRole === 'host' 
+              ? 'bg-green-50 border-green-250 text-green-800' 
+              : 'bg-blue-50 border-blue-250 text-blue-800'
+          }`}>
+            <div className="flex items-center gap-2">
+              <Wifi className={`w-4 h-4 ${sessionRole === 'host' ? 'text-green-600 animate-pulse' : 'text-blue-600 animate-bounce'}`} />
+              <span>
+                {sessionRole === 'host' 
+                  ? `Đang làm Host Session: ${sessionCode} | Chơi nhạc để người khác theo dõi`
+                  : `Đang nghe nhạc cùng Host Session: ${sessionCode} (Tự động đồng bộ)`}
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              {sessionRole === 'host' && (
+                <button
+                  onClick={() => setSharePlaylistId('session')}
+                  className="px-2.5 py-1 bg-white border border-green-200 hover:bg-green-100 rounded-lg text-[10px] font-black uppercase text-green-700 shadow-sm cursor-pointer"
+                >
+                  Mã QR / Share
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  setSessionCode(null);
+                  setSessionRole(null);
+                }}
+                className="px-2.5 py-1 bg-stone-900 hover:bg-stone-850 text-white rounded-lg text-[10px] font-black uppercase shadow-sm cursor-pointer"
+              >
+                {sessionRole === 'host' ? 'Dừng Session' : 'Rời Session'}
+              </button>
+            </div>
+          </div>
         )}
 
         {/* Content Body */}
@@ -1929,26 +2113,40 @@ export default function App() {
                 setOnlineSong(null);
               }}
             >
-              <SongViewer 
-                song={displaySong.isOnline ? displaySong : { ...displaySong, isFavorite: isSongFavorited(displaySong) }} 
-                transposeOffset={transposeOffset}
-                setTransposeOffset={setTransposeOffset}
-                onBack={() => {
-                  setActiveSongId(null);
-                  setActivePlaylistSongs([]);
-                  setOnlineSong(null);
-                }}
-                onToggleFavorite={handleToggleFavorite}
-                playlists={playlists}
-                onAddSongToPlaylist={handleAddSongToPlaylist}
-                fontSize={fontSize}
-                setFontSize={setFontSize}
-                isCompact={isCompact}
-                setIsCompact={setIsCompact}
-                instrument={instrument}
-                onSaveToLibrary={handleSaveOnlineSongToLibrary}
-                isSavingToLibrary={isSavingToLibrary}
-              />
+              {(() => {
+                const playlistIndex = activePlaylistSongs.findIndex(s => s.id === activeSongId);
+                const hasNext = playlistIndex !== -1 && playlistIndex < activePlaylistSongs.length - 1;
+                const hasPrev = playlistIndex > 0;
+                
+                return (
+                  <SongViewer 
+                    song={displaySong.isOnline ? displaySong : { ...displaySong, isFavorite: isSongFavorited(displaySong) }} 
+                    transposeOffset={transposeOffset}
+                    setTransposeOffset={setTransposeOffset}
+                    onBack={() => {
+                      setActiveSongId(null);
+                      setActivePlaylistSongs([]);
+                      setOnlineSong(null);
+                    }}
+                    onToggleFavorite={handleToggleFavorite}
+                    playlists={playlists}
+                    onAddSongToPlaylist={handleAddSongToPlaylist}
+                    fontSize={fontSize}
+                    setFontSize={setFontSize}
+                    isCompact={isCompact}
+                    setIsCompact={setIsCompact}
+                    instrument={instrument}
+                    onSaveToLibrary={handleSaveOnlineSongToLibrary}
+                    isSavingToLibrary={isSavingToLibrary}
+                    onNextSong={handleNextSong}
+                    onPrevSong={handlePrevSong}
+                    hasNext={hasNext}
+                    hasPrev={hasPrev}
+                    playlistIndex={playlistIndex}
+                    playlistLength={activePlaylistSongs.length}
+                  />
+                );
+              })()}
               
               {activePlaylistSongs.length > 0 && (
                 (() => {
@@ -2278,17 +2476,31 @@ export default function App() {
                         <ChevronLeft className="w-4 h-4" /> Back to Setlists
                       </button>
 
-                      <div className="flex items-center justify-between border-b border-stone-200 pb-3">
+                      <div className="flex items-center justify-between border-b border-stone-200 pb-3 flex-wrap gap-2">
                         <div>
                           <h2 className="text-xl font-bold text-stone-900 font-display">{playlist.name}</h2>
                           <p className="text-xs text-stone-500">{playlist.songIds.length} songs queued</p>
                         </div>
-                        <button
-                          onClick={(e) => handleDeletePlaylist(playlist.id, e)}
-                          className="px-3 py-1.5 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 text-xs rounded transition flex items-center gap-1"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" /> Delete Setlist
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleStartJamSession(playlist.id)}
+                            className="px-3 py-1.5 bg-green-50 hover:bg-green-100 border border-green-200 text-green-700 text-xs rounded transition flex items-center gap-1 font-bold shadow-sm cursor-pointer"
+                          >
+                            <Wifi className="w-3.5 h-3.5 animate-pulse text-green-600" /> Jam Session
+                          </button>
+                          <button
+                            onClick={() => setSharePlaylistId(playlist.id)}
+                            className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-600 text-xs rounded transition flex items-center gap-1 font-bold shadow-sm cursor-pointer"
+                          >
+                            <Upload className="w-3.5 h-3.5 text-blue-600" /> Chia sẻ
+                          </button>
+                          <button
+                            onClick={(e) => handleDeletePlaylist(playlist.id, e)}
+                            className="px-3 py-1.5 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 text-xs rounded transition flex items-center gap-1 cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 text-red-650" /> Delete Setlist
+                          </button>
+                        </div>
                       </div>
 
                       {playlist.songIds.length === 0 ? (
@@ -2340,10 +2552,40 @@ export default function App() {
                 })()
               ) : (
                 // Playlist listing dashboard
-                <div className="flex flex-col gap-6">
-                  <div className="border-b border-stone-200 pb-4">
-                    <h2 className="text-lg font-bold text-stone-900 font-display">Campfire Setlists</h2>
-                    <p className="text-xs text-stone-500">Organize lists of songs to swipe through during a campfire night.</p>
+                <div className="flex flex-col gap-6 animate-fade-in">
+                  <div className="border-b border-stone-200 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                      <h2 className="text-lg font-bold text-stone-900 font-display">Campfire Setlists</h2>
+                      <p className="text-xs text-stone-500">Organize lists of songs to swipe through during a campfire night.</p>
+                    </div>
+                  </div>
+
+                  {/* Join Collaborative Session Panel */}
+                  <div className="bg-[#f5fbf7] border border-green-200 rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm select-none">
+                    <div className="flex items-center gap-3 text-left">
+                      <div className="w-10 h-10 rounded-full bg-green-150/40 border border-green-200 flex items-center justify-center text-green-700 shrink-0">
+                        <Wifi className="w-5 h-5 animate-pulse text-green-650" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-black text-stone-900 leading-tight">Tham gia Jam Session</h4>
+                        <p className="text-[11px] text-stone-500">Đồng bộ hóa bài hát & tông giọng theo thời gian thực với Host.</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 w-full md:w-auto shrink-0">
+                      <input
+                        type="text"
+                        placeholder="Mã Session (E.g. JAMX4)"
+                        value={sessionInputCode}
+                        onChange={(e) => setSessionInputCode(e.target.value)}
+                        className="px-3 py-2 bg-white border border-stone-200 rounded-xl text-xs placeholder-stone-400 font-mono font-black uppercase w-full md:w-44 shadow-inner"
+                      />
+                      <button
+                        onClick={() => handleJoinJamSession(sessionInputCode)}
+                        className="px-5 py-2 bg-green-600 hover:bg-green-750 text-white font-bold text-xs rounded-xl transition shrink-0 shadow-md active:scale-95 cursor-pointer"
+                      >
+                        Tham gia
+                      </button>
+                    </div>
                   </div>
 
                   {/* Create Playlist Form */}
@@ -2906,6 +3148,124 @@ export default function App() {
             </div>
           </div>
         </div>
+      )}
+
+      {importingPlaylist && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/60 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setImportingPlaylist(null)}>
+          <div className="bg-white border border-stone-200 rounded-2xl max-w-sm w-full shadow-2xl p-6 relative select-none" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setImportingPlaylist(null)}
+              className="absolute right-4 top-4 p-1 hover:bg-stone-100 rounded-full text-stone-400 hover:text-stone-700 transition cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            
+            <div className="flex items-center gap-3 mb-4 pb-3 border-b border-stone-100">
+              <div className="w-10 h-10 bg-blue-50 border border-blue-200 rounded-full flex items-center justify-center text-blue-600">
+                <Upload className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-stone-900 leading-none">Nhập Playlist</h3>
+                <p className="text-[10px] text-stone-400 uppercase font-black tracking-widest mt-1">Import Shared Playlist</p>
+              </div>
+            </div>
+
+            <div className="bg-stone-50 border border-stone-200/85 rounded-xl p-4 my-4 font-sans text-xs">
+              <div className="flex justify-between">
+                <span className="text-stone-500 font-medium">Tên Playlist:</span>
+                <span className="font-bold text-stone-850">{importingPlaylist.name}</span>
+              </div>
+              <div className="flex justify-between mt-2">
+                <span className="text-stone-500 font-medium">Số lượng bài hát:</span>
+                <span className="font-bold text-stone-850">{importingPlaylist.songIds?.length || 0} bài</span>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-stone-500 text-center leading-relaxed mb-4">
+              Lưu playlist này vào thư viện Setlists của bạn để chơi nhạc dễ dàng hơn cùng bạn bè.
+            </p>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => setImportingPlaylist(null)}
+                className="w-1/2 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold rounded-xl transition cursor-pointer"
+              >
+                Hủy / Cancel
+              </button>
+              <button
+                onClick={handleConfirmImport}
+                className="w-1/2 py-2 bg-blue-600 hover:bg-blue-750 text-white text-xs font-bold rounded-xl transition shadow-md cursor-pointer"
+              >
+                Nhập / Import
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {sharePlaylistId && (
+        (() => {
+          const isSessionShare = sharePlaylistId === 'session';
+          const playlist = isSessionShare ? null : playlists.find(p => p.id === sharePlaylistId);
+          
+          let shareUrl = '';
+          let title = '';
+          let subtitle = '';
+
+          if (isSessionShare) {
+            shareUrl = `${window.location.origin}?joinSession=${sessionCode}`;
+            title = 'Jam Session: ' + sessionCode;
+            subtitle = 'Quét mã QR để tham gia phiên hát trực tiếp cùng host';
+          } else if (playlist) {
+            shareUrl = `${window.location.origin}?importPlaylist=${playlist.id}`;
+            title = 'Chia sẻ Playlist';
+            subtitle = `Quét mã QR để nhập danh sách "${playlist.name}"`;
+          } else {
+            return null;
+          }
+
+          const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(shareUrl)}`;
+
+          return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/60 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setSharePlaylistId(null)}>
+              <div className="bg-white border border-stone-200 rounded-2xl max-w-sm w-full shadow-2xl p-6 relative select-none flex flex-col items-center" onClick={(e) => e.stopPropagation()}>
+                <button
+                  onClick={() => setSharePlaylistId(null)}
+                  className="absolute right-4 top-4 p-1 hover:bg-stone-100 rounded-full text-stone-400 hover:text-stone-700 transition cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+                
+                <div className="flex flex-col items-center mb-4 text-center">
+                  <h3 className="text-base font-black text-stone-900 leading-none">{title}</h3>
+                  <p className="text-[10px] text-stone-500 mt-2 font-medium max-w-xs">{subtitle}</p>
+                </div>
+
+                <div className="bg-stone-50 border border-stone-200/80 rounded-xl p-3 mb-4 shadow-inner flex items-center justify-center">
+                  <img src={qrUrl} alt="QR Code Link" className="w-[180px] h-[180px]" />
+                </div>
+
+                <div className="w-full flex flex-col gap-2">
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(shareUrl);
+                      alert('Đã sao chép liên kết vào bộ nhớ tạm!');
+                    }}
+                    className="w-full py-2.5 bg-blue-600 hover:bg-blue-755 text-white font-bold text-xs rounded-xl transition shadow-md flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 animate-pulse"
+                  >
+                    Sao chép liên kết / Copy Link
+                  </button>
+                  <button
+                    onClick={() => setSharePlaylistId(null)}
+                    className="w-full py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs rounded-xl transition cursor-pointer"
+                  >
+                    Đóng / Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()
       )}
 
       {showAuthModal && (

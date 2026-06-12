@@ -557,6 +557,59 @@ app.delete('/api/playlists/:id', (req, res) => {
   res.json({ message: 'Playlist deleted' });
 });
 
+app.get('/api/playlists/:id', (req, res) => {
+  const playlists = getPlaylists();
+  const playlist = playlists.find(p => p.id === req.params.id);
+  if (!playlist) return res.status(404).json({ error: 'Playlist not found' });
+  res.json(playlist);
+});
+
+// ----------------------------------------------------
+// Collaborative Jam Sessions (Memory Store)
+// ----------------------------------------------------
+const activeSessions = {};
+
+function generateSessionCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
+
+app.post('/api/sessions/create', (req, res) => {
+  const { hostId, playlistId, currentSongId, currentKey } = req.body;
+  const code = generateSessionCode();
+  activeSessions[code] = {
+    sessionId: code,
+    hostId: hostId || 'anonymous_host',
+    playlistId: playlistId || null,
+    currentSongId: currentSongId || null,
+    currentKey: currentKey || null,
+    lastUpdated: Date.now()
+  };
+  res.json(activeSessions[code]);
+});
+
+app.post('/api/sessions/:id/update', (req, res) => {
+  const session = activeSessions[req.params.id.toUpperCase()];
+  if (!session) return res.status(404).json({ error: 'Session not found' });
+  
+  const { currentSongId, currentKey } = req.body;
+  if (currentSongId !== undefined) session.currentSongId = currentSongId;
+  if (currentKey !== undefined) session.currentKey = currentKey;
+  session.lastUpdated = Date.now();
+  
+  res.json(session);
+});
+
+app.get('/api/sessions/:id', (req, res) => {
+  const session = activeSessions[req.params.id.toUpperCase()];
+  if (!session) return res.status(404).json({ error: 'Session not found' });
+  res.json(session);
+});
+
 // Analytics API Routes
 app.post('/api/analytics/track', (req, res) => {
   const { type, userId, sessionId, featureName, durationSeconds } = req.body;
