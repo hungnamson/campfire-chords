@@ -585,7 +585,7 @@ export default function App() {
           autoGainControl: false
         }
       });
-      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 44100 });
       await audioCtx.resume();
       
       const source = audioCtx.createMediaStreamSource(stream);
@@ -2456,7 +2456,7 @@ export default function App() {
                       {/* Grid Selector Popover */}
                       <div className="absolute bottom-full left-4 right-4 sm:left-1/2 sm:-translate-x-1/2 sm:w-[325px] sm:max-w-sm mb-3.5 bg-white border border-stone-200 rounded-xl shadow-2xl p-4 z-50 animate-fade-in text-center select-none max-h-[82vh] overflow-y-auto no-scrollbar">
                         <div className="flex items-center justify-between border-b border-stone-100 pb-2 mb-3">
-                          <span className="text-[10px] uppercase font-extrabold tracking-widest text-stone-400">Quick Key Selection - v1.3.1</span>
+                          <span className="text-[10px] uppercase font-extrabold tracking-widest text-stone-400">Quick Key Selection - v1.3.2</span>
                           <button
                             onClick={() => {
                               setTransposeOffset(0);

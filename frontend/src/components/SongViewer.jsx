@@ -1010,7 +1010,7 @@ export default function SongViewer({
           autoGainControl: false
         }
       });
-      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 44100 });
       await audioCtx.resume();
       
       const source = audioCtx.createMediaStreamSource(stream);
@@ -2026,7 +2026,7 @@ export default function SongViewer({
             className="fixed bottom-20 left-1/2 -translate-x-1/2 w-[90vw] max-w-sm bg-white border border-stone-200 rounded-2xl shadow-2xl p-4 z-50 animate-fade-in-opacity text-center select-none pointer-events-auto"
           >
             <div className="flex items-center justify-between border-b border-stone-100 pb-2 mb-3">
-              <span className="text-[10px] uppercase font-black tracking-widest text-stone-400">Chọn tông (Key Selection - v1.3.1)</span>
+              <span className="text-[10px] uppercase font-black tracking-widest text-stone-400">Chọn tông (Key Selection - v1.3.2)</span>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
