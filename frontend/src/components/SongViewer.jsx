@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
-import { Heart, ArrowLeft, Plus, Check, Minimize2, Maximize2, Info, ExternalLink, X, Share2, Printer, Link, Play, Square, Search, MoreVertical, ChevronDown, LayoutGrid, Pause, Mic } from 'lucide-react';
+import { Heart, ArrowLeft, Plus, Check, Minimize2, Maximize2, Info, ExternalLink, X, Share2, Printer, Link, Play, Square, Search, MoreVertical, ChevronDown, LayoutGrid, Pause, Mic, ChevronLeft, ChevronRight } from 'lucide-react';
 import { transposeChord, NOTE_TO_SEMITONE } from '../utils/transposer';
 import ChordDiagram from './ChordDiagram';
 import BrandLogo from './BrandLogo';
