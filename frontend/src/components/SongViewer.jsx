@@ -1766,7 +1766,7 @@ export default function SongViewer({
             onClick={(e) => e.stopPropagation()} 
             onTouchStart={(e) => e.stopPropagation()}
             style={{ padding: '24px' }}
-            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-sm bg-white border border-stone-200 rounded-2xl shadow-2xl z-50 animate-fade-in text-left pointer-events-auto max-h-[70vh] overflow-y-auto select-none"
+            className="rhythm-menu-container fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-sm bg-white border border-stone-200 rounded-2xl shadow-2xl z-50 animate-fade-in text-left pointer-events-auto max-h-[70vh] overflow-y-auto select-none"
           >
             {/* Top Controller Panel (Play/Pause & BPM Slider) */}
             <div className="bg-stone-50 border border-stone-200/60 rounded-xl p-3 mb-4 flex flex-col gap-2">
