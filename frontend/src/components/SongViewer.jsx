@@ -561,6 +561,7 @@ export default function SongViewer({
   const [detectedKey, setDetectedKey] = useState(null);
   const [detectedConfidence, setDetectedConfidence] = useState(0);
   const [detectionErrorMsg, setDetectionErrorMsg] = useState('');
+  const [recordedAudioUrl, setRecordedAudioUrl] = useState(null);
 
   // Audio Context and Scheduling refs
   const audioContextRef = useRef(null);
@@ -1001,6 +1002,7 @@ export default function SongViewer({
   const startKeyDetection = async () => {
     try {
       setDetectionErrorMsg('');
+      setRecordedAudioUrl(null);
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: false,
@@ -1022,6 +1024,26 @@ export default function SongViewer({
       setDetectionState('listening');
       setDetectionCountdown(20);
       setDetectedKey(null);
+
+      // Start recording media recorder in parallel for debugging
+      let chunks = [];
+      let recorder;
+      try {
+        recorder = new MediaRecorder(stream);
+        recorder.ondataavailable = (e) => {
+          if (e.data && e.data.size > 0) {
+            chunks.push(e.data);
+          }
+        };
+        recorder.onstop = () => {
+          const blob = new Blob(chunks, { type: 'audio/webm' });
+          const url = URL.createObjectURL(blob);
+          setRecordedAudioUrl(url);
+        };
+        recorder.start();
+      } catch (recErr) {
+        console.warn('MediaRecorder not fully supported:', recErr);
+      }
 
       const pitchProfile = new Float32Array(12);
       let detectionActive = true;
@@ -1050,6 +1072,10 @@ export default function SongViewer({
         if (secondsLeft <= 0) {
           clearInterval(interval);
           detectionActive = false;
+          
+          if (recorder && recorder.state !== 'inactive') {
+            recorder.stop();
+          }
           
           stream.getTracks().forEach(t => t.stop());
           audioCtx.close();
@@ -2000,7 +2026,7 @@ export default function SongViewer({
             className="fixed bottom-20 left-1/2 -translate-x-1/2 w-[90vw] max-w-sm bg-white border border-stone-200 rounded-2xl shadow-2xl p-4 z-50 animate-fade-in-opacity text-center select-none pointer-events-auto"
           >
             <div className="flex items-center justify-between border-b border-stone-100 pb-2 mb-3">
-              <span className="text-[10px] uppercase font-black tracking-widest text-stone-400">Chọn tông (Key Selection)</span>
+              <span className="text-[10px] uppercase font-black tracking-widest text-stone-400">Chọn tông (Key Selection - v1.3.1)</span>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -2032,7 +2058,7 @@ export default function SongViewer({
               {detectionState === 'listening' && (
                 <div className="w-full flex flex-col items-center justify-center py-1.5 animate-pulse">
                   <Mic className="w-5 h-5 text-red-500 mb-1.5 animate-bounce" />
-                  <span className="text-xs font-bold text-stone-750">Đang lắng nghe giọng hát... {detectionCountdown}s</span>
+                  <span className="text-xs font-bold text-stone-755">Đang lắng nghe giọng hát... {detectionCountdown}s</span>
                   <span className="text-[10px] text-stone-400 mt-0.5">Hãy ngân nga hoặc hát một đoạn nhạc thật to</span>
                 </div>
               )}
@@ -2089,6 +2115,13 @@ export default function SongViewer({
                   >
                     Thử lại / Try Again
                   </button>
+                </div>
+              )}
+
+              {recordedAudioUrl && (
+                <div className="w-full mt-2.5 pt-2.5 border-t border-stone-200/60 flex flex-col items-center">
+                  <span className="text-[9px] uppercase tracking-wider text-stone-500 font-extrabold mb-1">Nghe lại giọng hát (Playback)</span>
+                  <audio src={recordedAudioUrl} controls className="w-full h-8" />
                 </div>
               )}
             </div>
