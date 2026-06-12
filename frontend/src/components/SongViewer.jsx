@@ -565,13 +565,31 @@ export default function SongViewer({
 
   // List of drum styles
   const [DRUM_STYLES, setDrumStyles] = useState([
-    { name: 'Slow / Slow Rock', bpm: 60, audioFile: 'slowrock_60bpm.m4a', originalBpm: 60 },
-    { name: 'Bolero / Rhumba', bpm: 80, audioFile: 'Bolero_80bpm.m4a', originalBpm: 80 },
-    { name: 'Tango', bpm: 80, audioFile: 'Tango_80bpm.m4a', originalBpm: 80 },
-    { name: 'Chachacha', bpm: 80, audioFile: 'Chachacha_80bpm.m4a', originalBpm: 80 },
+    { name: 'Boléro', bpm: 80, audioFile: 'Bolero_80bpm.m4a', originalBpm: 80 },
+    { name: 'Slow', bpm: 60, audioFile: 'slowrock_60bpm.m4a', originalBpm: 60 },
+    { name: 'Slow Rock', bpm: 60, audioFile: 'slowrock_60bpm.m4a', originalBpm: 60 },
+    { name: 'Slow Surf', bpm: 60, audioFile: 'slowrock_60bpm.m4a', originalBpm: 60 },
+    { name: 'Blues', bpm: 70, audioFile: 'Ballad_65bpm.m4a', originalBpm: 65 },
     { name: 'Ballad', bpm: 65, audioFile: 'Ballad_65bpm.m4a', originalBpm: 65 },
+    { name: 'Chachacha', bpm: 80, audioFile: 'Chachacha_80bpm.m4a', originalBpm: 80 },
     { name: 'Disco', bpm: 120, audioFile: 'Disco_120bpm.m4a', originalBpm: 120 },
-    { name: 'Waltz & 3/4', bpm: 80, audioFile: 'Waltz_80bpm.m4a', originalBpm: 80 }
+    { name: 'Rhumba', bpm: 80, audioFile: 'Bolero_80bpm.m4a', originalBpm: 80 },
+    { name: 'Tango', bpm: 80, audioFile: 'Tango_80bpm.m4a', originalBpm: 80 },
+    { name: 'Boston', bpm: 80, audioFile: 'Waltz_80bpm.m4a', originalBpm: 80 },
+    { name: 'Fox', bpm: 120, audioFile: 'Disco_120bpm.m4a', originalBpm: 120 },
+    { name: 'Rock', bpm: 110, audioFile: 'Disco_120bpm.m4a', originalBpm: 120 },
+    { name: 'Valse', bpm: 80, audioFile: 'Waltz_80bpm.m4a', originalBpm: 80 },
+    { name: 'Bossa Nova', bpm: 80, audioFile: 'Bolero_80bpm.m4a', originalBpm: 80 },
+    { name: 'Pop', bpm: 80, audioFile: 'Ballad_65bpm.m4a', originalBpm: 65 },
+    { name: 'Habanera', bpm: 80, audioFile: 'Tango_80bpm.m4a', originalBpm: 80 },
+    { name: 'Twist', bpm: 120, audioFile: 'Disco_120bpm.m4a', originalBpm: 120 },
+    { name: 'March', bpm: 100, audioFile: 'Chachacha_80bpm.m4a', originalBpm: 80 },
+    { name: 'Pasodoble', bpm: 110, audioFile: 'Tango_80bpm.m4a', originalBpm: 80 },
+    { name: 'Slow Ballad', bpm: 60, audioFile: 'Ballad_65bpm.m4a', originalBpm: 65 },
+    { name: 'Rap', bpm: 90, audioFile: 'Ballad_65bpm.m4a', originalBpm: 65 },
+    { name: 'Samba', bpm: 110, audioFile: 'Chachacha_80bpm.m4a', originalBpm: 80 },
+    { name: 'Pop Ballad', bpm: 65, audioFile: 'Ballad_65bpm.m4a', originalBpm: 65 },
+    { name: 'Rock Ballad', bpm: 75, audioFile: 'Ballad_65bpm.m4a', originalBpm: 65 }
   ]);
 
   // Helper sound synthesis functions using Web Audio API
@@ -872,13 +890,26 @@ export default function SongViewer({
     };
   }, [showRhythmMenu]);
 
+  const removeDiacritics = (str) => {
+    if (!str) return '';
+    return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  };
+
+  const findMatchingStyle = (rhythmStr) => {
+    if (!rhythmStr) return null;
+    const normalizedTarget = removeDiacritics(rhythmStr);
+    return DRUM_STYLES.find(s => {
+      const normalizedName = removeDiacritics(s.name);
+      return normalizedName.includes(normalizedTarget) || normalizedTarget.includes(normalizedName);
+    });
+  };
+
+  const hasRhythmMatch = !!findMatchingStyle(currentRhythm);
+
   // Update current style selection state if the song updates
   useEffect(() => {
-    const matchingStyle = DRUM_STYLES.find(s => 
-      s.name.toLowerCase().includes((song.rhythm || '').toLowerCase()) || 
-      (song.rhythm || '').toLowerCase().includes(s.name.toLowerCase())
-    );
-    setCurrentRhythm(matchingStyle ? matchingStyle.name : (song.rhythm || ''));
+    const matchingStyle = findMatchingStyle(song.rhythm);
+    setCurrentRhythm(matchingStyle ? matchingStyle.name : '');
     stopBeat();
   }, [song]);
 
@@ -905,6 +936,15 @@ export default function SongViewer({
           </div>
           
           <div className="flex items-center gap-2.5 shrink-0">
+            {hasRhythmMatch && (
+              <span 
+                onClick={(e) => { e.stopPropagation(); setShowRhythmMenu(true); }}
+                className="px-2 py-1 bg-orange-100 text-orange-800 text-[10px] font-black uppercase rounded-full tracking-wider border border-orange-200 select-none cursor-pointer active:scale-95 transition"
+              >
+                {currentRhythm}
+              </span>
+            )}
+
             {/* Play Button in mobile header (now opens the Rhythm Selector modal) */}
             <button
               onClick={(e) => {
@@ -912,9 +952,11 @@ export default function SongViewer({
                 setShowRhythmMenu(true);
               }}
               className={`w-8 h-8 flex items-center justify-center rounded-full transition-all active:scale-95 shadow-sm border ${
-                playingStyle 
-                  ? 'bg-red-500 text-white border-red-550' 
-                  : 'bg-orange-500 text-white border-orange-550'
+                !hasRhythmMatch
+                  ? 'bg-stone-200 text-stone-400 border-stone-300 opacity-60'
+                  : playingStyle 
+                    ? 'bg-red-500 text-white border-red-550' 
+                    : 'bg-orange-500 text-white border-orange-550'
               }`}
               title="Chọn điệu & Tốc độ"
             >
@@ -1123,6 +1165,7 @@ export default function SongViewer({
             <button
               onClick={(e) => {
                 e.stopPropagation();
+                if (!hasRhythmMatch) return;
                 if (playingStyle === currentRhythm) {
                   stopBeat();
                 } else {
@@ -1131,12 +1174,15 @@ export default function SongViewer({
                   }
                 }
               }}
+              disabled={!hasRhythmMatch}
               className={`w-7 h-7 flex items-center justify-center rounded-full transition-all active:scale-95 shadow-sm cursor-pointer border ${
-                playingStyle 
-                  ? 'bg-red-500 hover:bg-red-650 text-white border-red-550' 
-                  : 'bg-orange-500 hover:bg-orange-600 text-white border-orange-550'
+                !hasRhythmMatch
+                  ? 'bg-stone-200 text-stone-400 border-stone-300 opacity-50 cursor-not-allowed pointer-events-none'
+                  : playingStyle 
+                    ? 'bg-red-500 hover:bg-red-650 text-white border-red-550' 
+                    : 'bg-orange-500 hover:bg-orange-600 text-white border-orange-550'
               }`}
-              title={playingStyle ? "Dừng điệu" : "Phát điệu"}
+              title={hasRhythmMatch ? (playingStyle ? "Dừng điệu" : "Phát điệu") : "Không có điệu phù hợp"}
             >
               {playingStyle ? <Pause className="w-3.5 h-3.5 fill-white text-white" /> : <Play className="w-3.5 h-3.5 fill-white text-white ml-0.5" />}
             </button>
@@ -1145,7 +1191,7 @@ export default function SongViewer({
               onClick={() => setShowRhythmMenu(!showRhythmMenu)}
               className="rhythm-trigger-button px-2.5 py-1.5 bg-stone-200/60 hover:bg-stone-200 border border-stone-300/60 rounded-full text-[10px] font-black text-stone-600 uppercase tracking-wider select-none cursor-pointer flex items-center gap-1 transition-all duration-150 active:scale-95 shadow-sm"
             >
-              <span>{currentRhythm.trim() || 'SELECT STYLE'}</span>
+              <span>{hasRhythmMatch ? currentRhythm.trim() : 'SELECT STYLE'}</span>
               {playingStyle && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>}
             </button>
 
