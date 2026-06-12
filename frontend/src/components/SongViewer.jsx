@@ -119,7 +119,7 @@ export default function SongViewer({
     setActiveChord(null);
     setShowSongInfo(false);
     setKeepScreenAwake(true);
-
+    setOverrideFontSize(false);
   }, [song]);
 
 
@@ -201,13 +201,17 @@ export default function SongViewer({
 
     if (isMobile) {
       // Mobile Mode: 1 column, fit to screen size
-      const minFontSize = 14.66; // 11 pt in pixels (1pt = 1.333px)
-      let height = testLayout(1, fontSize, isCompact);
-
-      if (height > availableHeight) {
-        optimalFontSize = findOptimalSize(1, minFontSize, fontSize, isCompact);
-      } else {
+      if (overrideFontSize) {
         optimalFontSize = fontSize;
+      } else {
+        const minFontSize = 14.66; // 11 pt in pixels (1pt = 1.333px)
+        let height = testLayout(1, fontSize, isCompact);
+
+        if (height > availableHeight) {
+          optimalFontSize = findOptimalSize(1, minFontSize, fontSize, isCompact);
+        } else {
+          optimalFontSize = fontSize;
+        }
       }
       optimalIsCompact = isCompact;
     } else {
@@ -550,6 +554,7 @@ export default function SongViewer({
   const [currentRhythm, setCurrentRhythm] = useState(song.rhythm || '');
   const [playingStyle, setPlayingStyle] = useState(null); // name of style currently playing
   const [showBpmSelector, setShowBpmSelector] = useState(null); // Name of style showing BPM options
+  const [overrideFontSize, setOverrideFontSize] = useState(false);
 
   // Audio Context and Scheduling refs
   const audioContextRef = useRef(null);
@@ -1684,7 +1689,36 @@ export default function SongViewer({
             </button>
           </div>
 
-          {/* Button 2: Compact mode Grid Toggle */}
+          {/* Pill 2: Font Size Controls */}
+          <div 
+            onClick={(e) => { e.stopPropagation(); triggerShowControls(); }}
+            onTouchStart={(e) => { e.stopPropagation(); triggerShowControls(); }}
+            className="flex items-center gap-1 bg-white/95 border border-stone-200 rounded-full px-2.5 py-1 shadow-lg pointer-events-auto backdrop-blur-sm"
+          >
+            <button 
+              onClick={() => {
+                setFontSize(prev => Math.max(10, prev - 1));
+                setOverrideFontSize(true);
+              }}
+              className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-stone-100 text-stone-750 active:scale-90 transition font-bold text-sm"
+            >
+              A-
+            </button>
+            <span className="px-2.5 py-1 bg-stone-100 border border-stone-200/60 rounded-full text-xs font-mono font-black text-[#4B2E20] min-w-[38px] text-center">
+              {fontSize}px
+            </span>
+            <button 
+              onClick={() => {
+                setFontSize(prev => Math.min(30, prev + 1));
+                setOverrideFontSize(true);
+              }}
+              className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-stone-100 text-stone-750 active:scale-90 transition font-bold text-sm"
+            >
+              A+
+            </button>
+          </div>
+
+          {/* Button 3: Compact mode Grid Toggle */}
           <button
             onClick={(e) => { e.stopPropagation(); triggerShowControls(); setIsCompact(!isCompact); }}
             onTouchStart={(e) => { e.stopPropagation(); triggerShowControls(); }}
