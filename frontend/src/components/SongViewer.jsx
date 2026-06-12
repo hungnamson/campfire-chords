@@ -889,7 +889,7 @@ export default function SongViewer({
         triggerShowControls();
       }}
       onTouchStart={triggerShowControls}
-      className="song-viewer-container flex flex-col min-h-screen text-stone-900 bg-stone-100 md:bg-white pb-28 animate-fade-in w-full md:max-w-[96vw] self-center mx-auto md:shadow-lg md:border-x md:border-stone-200/80 cursor-default relative" 
+      className="song-viewer-container flex flex-col min-h-screen text-stone-900 bg-stone-100 md:bg-white pb-28 animate-fade-in-opacity w-full md:max-w-[96vw] self-center mx-auto md:shadow-lg md:border-x md:border-stone-200/80 cursor-default relative" 
       ref={songContainerRef}
     >
             {isMobile ? (
@@ -1736,7 +1736,7 @@ export default function SongViewer({
           <div 
             onClick={(e) => e.stopPropagation()} 
             onTouchStart={(e) => e.stopPropagation()}
-            className="fixed bottom-20 left-1/2 -translate-x-1/2 w-[90vw] max-w-sm bg-white border border-stone-200 rounded-2xl shadow-2xl p-4 z-50 animate-fade-in text-center select-none pointer-events-auto"
+            className="fixed bottom-20 left-1/2 -translate-x-1/2 w-[90vw] max-w-sm bg-white border border-stone-200 rounded-2xl shadow-2xl p-4 z-50 animate-fade-in-opacity text-center select-none pointer-events-auto"
           >
             <div className="flex items-center justify-between border-b border-stone-100 pb-2 mb-3">
               <span className="text-[10px] uppercase font-black tracking-widest text-stone-400">Chọn tông (Key Selection)</span>
@@ -1749,11 +1749,56 @@ export default function SongViewer({
                   }, 50);
                 }}
                 onTouchStart={(e) => e.stopPropagation()}
-                className="text-[10px] font-black uppercase text-orange-600"
+                className="text-[10px] font-black uppercase text-orange-600 animate-fade-in"
               >
                 Reset
               </button>
             </div>
+
+            {/* Reference Tones Group */}
+            <div className="grid grid-cols-3 gap-2 mb-4">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setTransposeOffset(0);
+                  setTimeout(() => setShowKeySelector(false), 50);
+                }}
+                onTouchStart={(e) => e.stopPropagation()}
+                className="flex flex-col items-center justify-center py-2.5 bg-[#fdfbf7] active:scale-95 transition-all rounded-xl border border-amber-250/70 cursor-pointer shadow-sm"
+              >
+                <span className="text-[9px] uppercase tracking-wider text-amber-805 font-extrabold mb-1">Tone Gốc</span>
+                <span className="font-mono font-black text-amber-900 text-sm leading-none">{song.key}</span>
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setTransposeOffset(-5);
+                  setTimeout(() => setShowKeySelector(false), 50);
+                }}
+                onTouchStart={(e) => e.stopPropagation()}
+                className="flex flex-col items-center justify-center py-2.5 bg-blue-50/45 active:scale-95 transition-all rounded-xl border border-blue-200/80 cursor-pointer shadow-sm"
+              >
+                <span className="text-[9px] uppercase tracking-wider text-blue-805 font-extrabold mb-1">Tông Nam</span>
+                <span className="font-mono font-black text-blue-900 text-sm leading-none">
+                  {transposeChord(song.key, -5)}
+                </span>
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setTransposeOffset(0);
+                  setTimeout(() => setShowKeySelector(false), 50);
+                }}
+                onTouchStart={(e) => e.stopPropagation()}
+                className="flex flex-col items-center justify-center py-2.5 bg-rose-50/45 active:scale-95 transition-all rounded-xl border border-rose-200/80 cursor-pointer shadow-sm"
+              >
+                <span className="text-[9px] uppercase tracking-wider text-rose-805 font-extrabold mb-1">Tông Nữ</span>
+                <span className="font-mono font-black text-rose-900 text-sm leading-none">
+                  {transposeChord(song.key, 0)}
+                </span>
+              </button>
+            </div>
+
             <div className="grid grid-cols-4 gap-2">
               {['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'].map(keyNote => {
                 const cleanSongKey = song.key.replace('m', '').replace(' ', '');
@@ -1777,7 +1822,7 @@ export default function SongViewer({
                       }, 50);
                     }}
                     onTouchStart={(e) => e.stopPropagation()}
-                    className={`py-2 px-1 text-xs font-mono font-bold rounded-lg border transition ${
+                    className={`py-3.5 px-2 text-sm font-mono font-black rounded-xl border transition ${
                       isSelected 
                         ? 'bg-orange-500 text-white border-orange-500' 
                         : 'bg-stone-50 border-stone-200/80 hover:bg-stone-100 text-stone-700'
