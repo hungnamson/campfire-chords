@@ -901,6 +901,28 @@ export default function SongViewer({
           </div>
           
           <div className="flex items-center gap-3 shrink-0">
+            {/* Quick Play Button in mobile header */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (playingStyle === currentRhythm) {
+                  stopBeat();
+                } else {
+                  if (currentRhythm) {
+                    startBeat(currentRhythm);
+                  }
+                }
+              }}
+              className={`w-8 h-8 flex items-center justify-center rounded-full transition-all active:scale-95 shadow-sm border ${
+                playingStyle 
+                  ? 'bg-red-500 text-white border-red-550' 
+                  : 'bg-orange-500 text-white border-orange-550'
+              }`}
+              title={playingStyle ? "Dừng điệu" : "Phát điệu"}
+            >
+              {playingStyle ? <Pause className="w-4 h-4 fill-white text-white" /> : <Play className="w-4 h-4 fill-white text-white ml-0.5" />}
+            </button>
+
             {/* Search Trigger Button */}
             <button
               onClick={() => {
@@ -1088,7 +1110,7 @@ export default function SongViewer({
           </div>
 
           {/* Dropdown Rhythm Button and Popover list */}
-          <div className="relative flex items-center justify-center mx-2 shrink-0">
+          <div className="relative flex items-center justify-center mx-2 shrink-0 gap-2">
             <button
               onClick={() => setShowRhythmMenu(!showRhythmMenu)}
               className="rhythm-trigger-button px-2.5 py-1.5 bg-stone-200/60 hover:bg-stone-200 border border-stone-300/60 rounded-full text-[10px] font-black text-stone-600 uppercase tracking-wider select-none cursor-pointer flex items-center gap-1 transition-all duration-150 active:scale-95 shadow-sm"
@@ -1096,9 +1118,31 @@ export default function SongViewer({
               <span>{currentRhythm.trim() || 'SELECT STYLE'}</span>
               {playingStyle && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>}
             </button>
+            
+            {/* Quick Play Button in desktop songview */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (playingStyle === currentRhythm) {
+                  stopBeat();
+                } else {
+                  if (currentRhythm) {
+                    startBeat(currentRhythm);
+                  }
+                }
+              }}
+              className={`w-7 h-7 flex items-center justify-center rounded-full transition-all active:scale-95 shadow-sm cursor-pointer border ${
+                playingStyle 
+                  ? 'bg-red-500 hover:bg-red-600 text-white border-red-550' 
+                  : 'bg-orange-500 hover:bg-orange-600 text-white border-orange-550'
+              }`}
+              title={playingStyle ? "Dừng điệu" : "Phát điệu"}
+            >
+              {playingStyle ? <Pause className="w-3.5 h-3.5 fill-white text-white" /> : <Play className="w-3.5 h-3.5 fill-white text-white ml-0.5" />}
+            </button>
 
              {showRhythmMenu && (
-               <div className="rhythm-menu-container absolute left-1/2 -translate-x-1/2 mt-2 w-80 bg-white border border-stone-200 rounded-xl shadow-2xl z-50 p-4 text-left top-full max-h-[420px] overflow-y-auto">
+               <div className="rhythm-menu-container absolute left-1/2 -translate-x-1/2 mt-2 w-96 bg-white border border-stone-200 rounded-2xl shadow-2xl z-50 p-5 text-left top-full max-h-[460px] overflow-y-auto">
                  {/* Top Controller Panel (Play/Pause & BPM Slider) */}
                  <div className="bg-stone-50 border border-stone-200/60 rounded-xl p-3 mb-3 flex flex-col gap-2">
                    <div className="flex items-center justify-between">
@@ -1188,7 +1232,7 @@ export default function SongViewer({
                  </div>
 
                  {/* List Container */}
-                 <div className="space-y-1.5 mt-1">
+                 <div className="flex flex-col gap-3 mt-2">
                    {DRUM_STYLES.map(style => {
                      const isSelected = currentRhythm === style.name;
                      return (
@@ -1202,7 +1246,7 @@ export default function SongViewer({
                                startBeat(style.name);
                              }
                            }}
-                           className={`w-full flex items-center justify-between py-3 px-3 rounded-xl transition-all cursor-pointer border ${
+                           className={`w-full flex items-center justify-between py-3.5 px-4 rounded-xl transition-all cursor-pointer border ${
                              isSelected 
                                ? 'bg-orange-50/50 border-orange-200 font-bold text-orange-950 shadow-sm' 
                                : 'bg-white border-stone-150 text-stone-700 hover:border-stone-200'
@@ -1756,7 +1800,7 @@ export default function SongViewer({
           <div 
             onClick={(e) => e.stopPropagation()} 
             onTouchStart={(e) => e.stopPropagation()}
-            className="fixed bottom-20 left-1/2 -translate-x-1/2 w-[95vw] max-w-sm bg-white border border-stone-200 rounded-2xl shadow-2xl p-5 z-50 animate-fade-in text-left pointer-events-auto max-h-[70vh] overflow-y-auto"
+            className="fixed bottom-20 left-1/2 -translate-x-1/2 w-[95vw] max-w-sm bg-white border border-stone-200 rounded-2xl shadow-2xl p-6 z-50 animate-fade-in text-left pointer-events-auto max-h-[75vh] overflow-y-auto"
           >
             {/* Top Controller Panel (Play/Pause & BPM Slider) */}
             <div className="bg-stone-50 border border-stone-200/60 rounded-xl p-3 mb-4 flex flex-col gap-2">
@@ -1847,7 +1891,7 @@ export default function SongViewer({
             </div>
 
             {/* Style list with highlighting, without play buttons on individual lines */}
-            <div className="space-y-2 mt-1">
+            <div className="flex flex-col gap-3 mt-2.5">
               {DRUM_STYLES.map(style => {
                 const isSelected = currentRhythm === style.name;
                 return (
@@ -1863,7 +1907,7 @@ export default function SongViewer({
                         }
                       }}
                       onTouchStart={(e) => e.stopPropagation()}
-                      className={`w-full flex items-center justify-between py-3.5 px-3 rounded-xl transition-all cursor-pointer border ${
+                      className={`w-full flex items-center justify-between py-3.5 px-4 rounded-xl transition-all cursor-pointer border ${
                         isSelected 
                           ? 'bg-orange-50/50 border-orange-200 font-bold text-orange-950 shadow-sm' 
                           : 'bg-white border-stone-150 text-stone-700 hover:border-stone-200'
