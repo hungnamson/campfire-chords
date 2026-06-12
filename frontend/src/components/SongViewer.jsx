@@ -868,45 +868,25 @@ export default function SongViewer({
       rms += buffer[i] * buffer[i];
     }
     rms = Math.sqrt(rms / bufferSize);
-    if (rms < 0.015) {
+    if (rms < 0.005) {
       return null;
     }
 
-    let r1 = 0;
-    let r2 = bufferSize - 1;
-    const threshold = 0.2;
-    for (let i = 0; i < bufferSize / 2; i++) {
-      if (Math.abs(buffer[i]) < threshold) {
-        r1 = i;
-        break;
-      }
-    }
-    for (let i = bufferSize - 1; i >= bufferSize / 2; i--) {
-      if (Math.abs(buffer[i]) < threshold) {
-        r2 = i;
-        break;
-      }
-    }
-
-    const trimmedBuffer = buffer.slice(r1, r2);
-    const size = trimmedBuffer.length;
-    if (size <= 0) return null;
-
-    const correlations = new Float32Array(size);
-    for (let i = 0; i < size; i++) {
-      for (let j = 0; j < size - i; j++) {
-        correlations[i] += trimmedBuffer[j] * trimmedBuffer[j + i];
+    const correlations = new Float32Array(bufferSize);
+    for (let i = 0; i < bufferSize; i++) {
+      for (let j = 0; j < bufferSize - i; j++) {
+        correlations[i] += buffer[j] * buffer[j + i];
       }
     }
 
     let d = 0;
-    while (correlations[d] > correlations[d + 1]) {
+    while (d < bufferSize - 1 && correlations[d] > correlations[d + 1]) {
       d++;
     }
     
     let maxVal = -1;
     let maxPos = -1;
-    for (let i = d; i < size / 2; i++) {
+    for (let i = d; i < bufferSize / 2; i++) {
       if (correlations[i] > correlations[i - 1] && correlations[i] > correlations[i + 1]) {
         if (correlations[i] > maxVal) {
           maxVal = correlations[i];
@@ -991,7 +971,7 @@ export default function SongViewer({
       const dataArray = new Float32Array(bufferLength);
       
       setDetectionState('listening');
-      setDetectionCountdown(5);
+      setDetectionCountdown(20);
       setDetectedKey(null);
 
       const pitchProfile = new Float32Array(12);
@@ -1014,7 +994,7 @@ export default function SongViewer({
 
       requestAnimationFrame(checkPitch);
 
-      let secondsLeft = 5;
+      let secondsLeft = 20;
       const interval = setInterval(() => {
         secondsLeft--;
         setDetectionCountdown(secondsLeft);
