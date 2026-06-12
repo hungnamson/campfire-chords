@@ -444,37 +444,75 @@ export default function App() {
       rms += buffer[i] * buffer[i];
     }
     rms = Math.sqrt(rms / bufferSize);
-    if (rms < 0.005) {
-      return null;
-    }
+    if (rms < 0.003) return null;
 
-    const correlations = new Float32Array(bufferSize);
-    for (let i = 0; i < bufferSize; i++) {
+    const maxLag = Math.min(bufferSize, Math.ceil(sampleRate / 70));
+    const minLag = Math.floor(sampleRate / 600);
+
+    const c = new Float32Array(maxLag);
+    for (let i = 0; i < maxLag; i++) {
+      let sum = 0;
       for (let j = 0; j < bufferSize - i; j++) {
-        correlations[i] += buffer[j] * buffer[j + i];
+        sum += buffer[j] * buffer[j + i];
       }
+      c[i] = sum;
     }
 
     let d = 0;
-    while (d < bufferSize - 1 && correlations[d] > correlations[d + 1]) {
+    while (d < maxLag - 1 && c[d] > c[d + 1]) {
       d++;
     }
-    
-    let maxVal = -1;
-    let maxPos = -1;
-    for (let i = d; i < bufferSize / 2; i++) {
-      if (correlations[i] > correlations[i - 1] && correlations[i] > correlations[i + 1]) {
-        if (correlations[i] > maxVal) {
-          maxVal = correlations[i];
-          maxPos = i;
+
+    let maxval = -1;
+    let maxpos_temp = -1;
+    for (let i = Math.max(d, minLag); i < maxLag; i++) {
+      if (c[i] > maxval) {
+        maxval = c[i];
+        maxpos_temp = i;
+      }
+    }
+
+    const estimatedFreq = maxpos_temp > 0 ? sampleRate / maxpos_temp : 0;
+    const thresholdRatio = estimatedFreq > 220 ? 0.35 : 0.50;
+
+    if (maxval < thresholdRatio * c[0]) {
+      return null;
+    }
+
+    let maxpos = -1;
+    const threshold = maxval * 0.80;
+    for (let i = Math.max(d, minLag, 1); i < maxLag - 1; i++) {
+      if (c[i] > c[i - 1] && c[i] > c[i + 1]) {
+        if (c[i] > threshold) {
+          maxpos = i;
+          break;
         }
       }
     }
 
-    if (maxPos !== -1) {
-      return sampleRate / maxPos;
+    if (maxpos === -1) {
+      let fallbackMax = -1;
+      for (let i = Math.max(d, minLag); i < maxLag; i++) {
+        if (c[i] > fallbackMax) {
+          fallbackMax = c[i];
+          maxpos = i;
+        }
+      }
     }
-    return null;
+
+    let T0 = maxpos;
+    if (T0 > 0 && T0 < maxLag - 1) {
+      const x1 = c[T0 - 1];
+      const x2 = c[T0];
+      const x3 = c[T0 + 1];
+      const a = (x1 + x3 - 2 * x2) / 2;
+      const b = (x3 - x1) / 2;
+      if (a) {
+        T0 = T0 - b / (2 * a);
+      }
+    }
+
+    return sampleRate / T0;
   };
 
   const pearsonCorrelation = (x, y) => {
@@ -538,7 +576,13 @@ export default function App() {
   const startKeyDetection = async () => {
     try {
       setDetectionErrorMsg('');
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false
+        }
+      });
       const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       await audioCtx.resume();
       
