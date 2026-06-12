@@ -542,10 +542,24 @@ export default function App() {
 
     const majorProfile = [6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88];
     const minorProfile = [6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17];
+    
+    // Scale-degree weights: Tonic (0) = 1.0, 5th (7) = 0.9, 3rd (3/4) = 0.8. In-scale = 0.5. Out-of-scale = -0.5.
+    const majorScaleWeights = [1.0, -0.5, 0.5, -0.5, 0.8, 0.5, -0.5, 0.9, -0.5, 0.5, -0.5, 0.5];
+    const minorScaleWeights = [1.0, -0.5, 0.5, 0.8, -0.5, 0.5, -0.5, 0.9, 0.5, -0.5, 0.5, -0.5];
+    
     const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
+    // Normalize pitch profile
+    const totalPitches = pitchProfile.reduce((sum, val) => sum + val, 0);
+    const normalizedProfile = new Float32Array(12);
+    if (totalPitches > 0) {
+      for (let i = 0; i < 12; i++) {
+        normalizedProfile[i] = pitchProfile[i] / totalPitches;
+      }
+    }
+
     let bestKey = '';
-    let maxCorr = -2;
+    let maxScore = -2;
 
     for (let keyIdx = 0; keyIdx < 12; keyIdx++) {
       const shiftedMajor = new Float32Array(12);
@@ -555,20 +569,34 @@ export default function App() {
         shiftedMinor[(i + keyIdx) % 12] = minorProfile[i];
       }
 
+      // Pearson correlation (good for polyphonic/accompaniment)
       const corrMajor = pearsonCorrelation(pitchProfile, shiftedMajor);
       const corrMinor = pearsonCorrelation(pitchProfile, shiftedMinor);
 
-      if (corrMajor > maxCorr) {
-        maxCorr = corrMajor;
+      // Scale-degree fit score (good for monophonic humming/singing)
+      let scoreMajor = 0;
+      let scoreMinor = 0;
+      for (let i = 0; i < 12; i++) {
+        const val = normalizedProfile[(i + keyIdx) % 12];
+        scoreMajor += val * majorScaleWeights[i];
+        scoreMinor += val * minorScaleWeights[i];
+      }
+
+      // Hybrid combination (40% correlation, 60% scale-degree fit)
+      const hybridMajor = 0.4 * corrMajor + 0.6 * scoreMajor;
+      const hybridMinor = 0.4 * corrMinor + 0.6 * scoreMinor;
+
+      if (hybridMajor > maxScore) {
+        maxScore = hybridMajor;
         bestKey = notes[keyIdx];
       }
-      if (corrMinor > maxCorr) {
-        maxCorr = corrMinor;
+      if (hybridMinor > maxScore) {
+        maxScore = hybridMinor;
         bestKey = notes[keyIdx] + 'm';
       }
     }
 
-    const confidence = Math.max(0, Math.min(100, Math.round(maxCorr * 100)));
+    const confidence = Math.max(0, Math.min(100, Math.round(maxScore * 100)));
     setDetectedKey(bestKey);
     setDetectedConfidence(confidence);
     setDetectionState('done');
@@ -590,15 +618,36 @@ export default function App() {
       const pitchProfile = new Float32Array(12);
       let captureCount = 0;
       
+      const pitchHistory = [];
+      const STABILITY_THRESHOLD = 0.5; // semitones
+      
       for (let offset = 0; offset < channelData.length - windowSize; offset += hopSize) {
         const windowBuffer = channelData.subarray(offset, offset + windowSize);
         const pitch = detectPitch(windowBuffer, sampleRate);
         
         if (pitch && pitch > 60 && pitch < 1000) {
           const midi = 12 * Math.log2(pitch / 440) + 69;
-          const noteIndex = Math.round(midi) % 12;
-          pitchProfile[noteIndex] += 1;
-          captureCount++;
+          pitchHistory.push(midi);
+        } else {
+          pitchHistory.push(null);
+        }
+        
+        // Pitch Stability Filter: Require pitch to be stable for 3 consecutive windows (~70ms)
+        const len = pitchHistory.length;
+        if (len >= 3) {
+          const p1 = pitchHistory[len - 1];
+          const p2 = pitchHistory[len - 2];
+          const p3 = pitchHistory[len - 3];
+          
+          if (p1 !== null && p2 !== null && p3 !== null) {
+            if (Math.abs(p1 - p2) <= STABILITY_THRESHOLD &&
+                Math.abs(p2 - p3) <= STABILITY_THRESHOLD &&
+                Math.abs(p1 - p3) <= STABILITY_THRESHOLD) {
+              const noteIndex = Math.round(p1) % 12;
+              pitchProfile[noteIndex] += 1;
+              captureCount++;
+            }
+          }
         }
       }
       
@@ -2467,7 +2516,7 @@ export default function App() {
                       {/* Grid Selector Popover */}
                       <div className="absolute bottom-full left-4 right-4 sm:left-1/2 sm:-translate-x-1/2 sm:w-[325px] sm:max-w-sm mb-3.5 bg-white border border-stone-200 rounded-xl shadow-2xl p-4 z-50 animate-fade-in text-center select-none max-h-[82vh] overflow-y-auto no-scrollbar">
                         <div className="flex items-center justify-between border-b border-stone-100 pb-2 mb-3">
-                          <span className="text-[10px] uppercase font-extrabold tracking-widest text-stone-400">Quick Key Selection - v1.4.0</span>
+                          <span className="text-[10px] uppercase font-extrabold tracking-widest text-stone-400">Quick Key Selection - v1.5.0</span>
                           <button
                             onClick={() => {
                               setTransposeOffset(0);
