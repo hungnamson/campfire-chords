@@ -999,6 +999,44 @@ export default function SongViewer({
     setDetectionState('done');
   };
 
+  const analyzeRecordedAudio = async (blob) => {
+    try {
+      setDetectionState('processing');
+      
+      const arrayBuffer = await blob.arrayBuffer();
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 44100 });
+      const decodedBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+      
+      const channelData = decodedBuffer.getChannelData(0); // mono
+      const sampleRate = decodedBuffer.sampleRate;
+      
+      const windowSize = 2048;
+      const hopSize = 1024; // 50% overlap
+      const pitchProfile = new Float32Array(12);
+      let captureCount = 0;
+      
+      for (let offset = 0; offset < channelData.length - windowSize; offset += hopSize) {
+        const windowBuffer = channelData.subarray(offset, offset + windowSize);
+        const pitch = detectPitch(windowBuffer, sampleRate);
+        
+        if (pitch && pitch > 60 && pitch < 1000) {
+          const midi = 12 * Math.log2(pitch / 440) + 69;
+          const noteIndex = Math.round(midi) % 12;
+          pitchProfile[noteIndex] += 1;
+          captureCount++;
+        }
+      }
+      
+      audioCtx.close();
+      estimateKey(pitchProfile, captureCount);
+      
+    } catch (err) {
+      console.error('Error in offline audio analysis:', err);
+      setDetectionErrorMsg(`Lỗi xử lý âm thanh: ${err.message}`);
+      setDetectionState('error');
+    }
+  };
+
   const startKeyDetection = async () => {
     try {
       setDetectionErrorMsg('');
@@ -1010,22 +1048,12 @@ export default function SongViewer({
           autoGainControl: false
         }
       });
-      const audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 44100 });
-      await audioCtx.resume();
-      
-      const source = audioCtx.createMediaStreamSource(stream);
-      const analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 2048;
-      source.connect(analyser);
-
-      const bufferLength = analyser.fftSize;
-      const dataArray = new Float32Array(bufferLength);
       
       setDetectionState('listening');
       setDetectionCountdown(20);
       setDetectedKey(null);
 
-      // Start recording media recorder in parallel for debugging
+      // Start recording media recorder
       let chunks = [];
       let recorder;
       try {
@@ -1039,31 +1067,18 @@ export default function SongViewer({
           const blob = new Blob(chunks, { type: 'audio/webm' });
           const url = URL.createObjectURL(blob);
           setRecordedAudioUrl(url);
+          
+          // Trigger offline post-processing analysis
+          analyzeRecordedAudio(blob);
         };
         recorder.start();
       } catch (recErr) {
-        console.warn('MediaRecorder not fully supported:', recErr);
+        console.error('MediaRecorder error:', recErr);
+        setDetectionErrorMsg('Trình duyệt không hỗ trợ ghi âm MediaRecorder.');
+        setDetectionState('error');
+        stream.getTracks().forEach(t => t.stop());
+        return;
       }
-
-      const pitchProfile = new Float32Array(12);
-      let detectionActive = true;
-      let captureCount = 0;
-
-      const checkPitch = () => {
-        if (!detectionActive) return;
-        analyser.getFloat32TimeDomainData(dataArray);
-        const pitch = detectPitch(dataArray, audioCtx.sampleRate);
-        
-        if (pitch && pitch > 60 && pitch < 1000) {
-          const midi = 12 * Math.log2(pitch / 440) + 69;
-          const noteIndex = Math.round(midi) % 12;
-          pitchProfile[noteIndex] += 1;
-          captureCount++;
-        }
-        requestAnimationFrame(checkPitch);
-      };
-
-      requestAnimationFrame(checkPitch);
 
       let secondsLeft = 20;
       const interval = setInterval(() => {
@@ -1071,16 +1086,12 @@ export default function SongViewer({
         setDetectionCountdown(secondsLeft);
         if (secondsLeft <= 0) {
           clearInterval(interval);
-          detectionActive = false;
           
           if (recorder && recorder.state !== 'inactive') {
             recorder.stop();
           }
           
           stream.getTracks().forEach(t => t.stop());
-          audioCtx.close();
-
-          estimateKey(pitchProfile, captureCount);
         }
       }, 1000);
 
@@ -2026,7 +2037,7 @@ export default function SongViewer({
             className="fixed bottom-20 left-1/2 -translate-x-1/2 w-[90vw] max-w-sm bg-white border border-stone-200 rounded-2xl shadow-2xl p-4 z-50 animate-fade-in-opacity text-center select-none pointer-events-auto"
           >
             <div className="flex items-center justify-between border-b border-stone-100 pb-2 mb-3">
-              <span className="text-[10px] uppercase font-black tracking-widest text-stone-400">Chọn tông (Key Selection - v1.3.2)</span>
+              <span className="text-[10px] uppercase font-black tracking-widest text-stone-400">Chọn tông (Key Selection - v1.4.0)</span>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -2053,6 +2064,14 @@ export default function SongViewer({
                   <Mic className="w-4.5 h-4.5" />
                   <span>Key Detection (Hum to Dò Tông)</span>
                 </button>
+              )}
+
+              {detectionState === 'processing' && (
+                <div className="w-full flex flex-col items-center justify-center py-3">
+                  <div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mb-2"></div>
+                  <span className="text-xs font-bold text-stone-750">Đang phân tích giọng hát...</span>
+                  <span className="text-[10px] text-stone-400 mt-0.5">Vui lòng đợi trong giây lát</span>
+                </div>
               )}
 
               {detectionState === 'listening' && (
