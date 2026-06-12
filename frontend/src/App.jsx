@@ -1320,13 +1320,13 @@ export default function App() {
               <div 
                 className="absolute left-0 right-0 top-full mt-4 bg-white border border-stone-200/80 rounded-2xl shadow-2xl z-50 select-none flex flex-col text-left animate-fade-in-opacity"
                 style={{
-                  padding: '20px 16px',
-                  gap: '12px',
+                  padding: '12px 10px',
+                  gap: '8px',
                   maxHeight: '380px'
                 }}
               >
                 {suggestions.length > 0 && (
-                  <div className="overflow-y-auto flex-grow no-scrollbar flex flex-col gap-2">
+                  <div className="overflow-y-auto flex-grow no-scrollbar flex flex-col gap-1">
                     {suggestions.map((song) => (
                       <div
                         key={song.id}
@@ -1342,16 +1342,13 @@ export default function App() {
                         }}
                         className="hover:bg-stone-50 active:bg-stone-100 flex items-center justify-between cursor-pointer group transition-colors rounded-xl"
                         style={{ 
-                          padding: '12px 20px', 
-                          lineHeight: '1.6' 
+                          padding: '6px 16px', 
+                          lineHeight: '1.2' 
                         }}
                       >
-                        <div className="min-w-0 flex-grow pr-3">
+                        <div className="min-w-0 flex-grow pr-3 flex items-center">
                           <div className="font-bold text-base text-stone-900 group-hover:text-red-750 transition-colors truncate">
                             {song.title}
-                          </div>
-                          <div className="text-xs text-stone-500 truncate mt-1 font-medium">
-                            {getSongMetaText(song)}{song.genre && getSongMetaText(song) ? ` • ${song.genre}` : song.genre || ''}
                           </div>
                         </div>
                         {(() => {
