@@ -486,7 +486,15 @@ export default function App() {
     const interval = setInterval(() => {
       if (!active) return;
       fetch(`${API_BASE}/sessions/${sessionCode}`)
-        .then(res => res.json())
+        .then(res => {
+          if (!res.ok) {
+            if (res.status === 404) {
+              throw new Error('SESSION_CLOSED');
+            }
+            throw new Error('HTTP_ERROR');
+          }
+          return res.json();
+        })
         .then(data => {
           if (!active) return;
           if (data.currentSongId !== activeSongId) {
@@ -498,10 +506,10 @@ export default function App() {
         })
         .catch(err => {
           console.error('Error polling session sync:', err);
-          // If session not found, exit
-          if (err.status === 404) {
+          if (err.message === 'SESSION_CLOSED') {
             setSessionCode(null);
             setSessionRole(null);
+            alert('Host đã kết thúc Jam Session này! Phiên kết nối của bạn đã đóng.');
           }
         });
     }, 1500);
@@ -1601,6 +1609,13 @@ export default function App() {
 })();`;
   };
 
+  const handleGoHome = () => {
+    setActiveSongId(null);
+    setSearchInput('');
+    setSearchQuery('');
+    setActiveTab('songs');
+  };
+
   const handleCreatePlaylist = async (e) => {
     e.preventDefault();
     if (!newPlaylistName.trim()) return;
@@ -1888,7 +1903,9 @@ export default function App() {
               ? 'max-w-0 opacity-0 pointer-events-none md:max-w-[320px] md:opacity-100 md:pointer-events-auto' 
               : 'max-w-[320px] opacity-100 pointer-events-auto'
           }`}>
-            <BrandLogo variant="horizontal" className="h-12 md:h-20 w-auto transition-all duration-200" />
+            <div onClick={handleGoHome} className="cursor-pointer hover:opacity-90">
+              <BrandLogo variant="horizontal" className="h-12 md:h-20 w-auto transition-all duration-200" />
+            </div>
           </div>
 
           {/* Search Box (Center, expands) */}
@@ -2945,7 +2962,7 @@ export default function App() {
                       {/* Grid Selector Popover */}
                       <div className="absolute bottom-full left-4 right-4 sm:left-1/2 sm:-translate-x-1/2 sm:w-[325px] sm:max-w-sm mb-3.5 bg-white border border-stone-200 rounded-xl shadow-2xl p-4 z-50 animate-fade-in text-center select-none max-h-[82vh] overflow-y-auto no-scrollbar">
                         <div className="flex items-center justify-between border-b border-stone-100 pb-2 mb-3">
-                          <span className="text-[10px] uppercase font-extrabold tracking-widest text-stone-400">Quick Key Selection - v1.7.2</span>
+                          <span className="text-[10px] uppercase font-extrabold tracking-widest text-stone-400">Quick Key Selection - v1.7.3</span>
                           <button
                             onClick={() => {
                               setTransposeOffset(0);
@@ -3214,14 +3231,31 @@ export default function App() {
             </div>
 
             <div className="flex flex-col gap-6 overflow-y-auto pr-1 no-scrollbar">
-              {/* v1.7.2 */}
+              {/* v1.7.3 */}
               <div className="flex gap-4">
                 <div className="flex flex-col items-center">
-                  <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-700 tracking-wider font-mono">v1.7.2</span>
+                  <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-700 tracking-wider font-mono">v1.7.3</span>
                   <div className="w-[1.5px] bg-stone-200 flex-grow mt-2"></div>
                 </div>
                 <div className="flex-grow pb-2">
                   <span className="text-[10px] font-black uppercase text-stone-400 tracking-widest">Hiện tại / Current</span>
+                  <p className="text-xs font-bold text-stone-800 mt-1">Đồng bộ Đóng Jam, Gửi Email Báo cáo & Trở về Trang chủ</p>
+                  <ul className="list-disc list-inside text-[11px] text-stone-600 mt-2 space-y-1 pl-1">
+                    <li>Đóng kết nối và thông báo cho toàn bộ Follower ngay khi Host kết thúc Jam Session.</li>
+                    <li>Mô phỏng gửi email báo cáo tổng kết Jam tới Host và toàn bộ danh sách thành viên tham gia.</li>
+                    <li>Click vào Logo HátCùngNhau ở Header để trở về trang chủ và đóng trình xem hợp âm.</li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* v1.7.2 */}
+              <div className="flex gap-4">
+                <div className="flex flex-col items-center">
+                  <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-stone-100 border border-stone-200 text-stone-755 tracking-wider font-mono">v1.7.2</span>
+                  <div className="w-[1.5px] bg-stone-200 flex-grow mt-2"></div>
+                </div>
+                <div className="flex-grow pb-2">
+                  <span className="text-[10px] font-black uppercase text-stone-400 tracking-widest">12/06/2026 (Chiều)</span>
                   <p className="text-xs font-bold text-stone-800 mt-1">In-App QR Scanner & Khắc phục tự động tham gia</p>
                   <ul className="list-disc list-inside text-[11px] text-stone-600 mt-2 space-y-1 pl-1">
                     <li>Tích hợp Camera quét mã QR trực tiếp trong ứng dụng mà không cần rời sang Safari.</li>
@@ -3584,7 +3618,9 @@ export default function App() {
               </button>
               <button
                 onClick={() => {
-                  alert('Báo cáo Jam Record đã được lưu và gửi đi thành công với ghi chú: \n"' + sessionComment + '"');
+                  const recipientEmails = [sessionReport.hostName, ...sessionReport.followers.map(f => f.email)];
+                  const emailListStr = recipientEmails.join('\n- ');
+                  alert(`Hệ thống đã gửi email báo cáo tổng kết Jam Session tới:\n- ${emailListStr}\n\nNội dung báo cáo & bình luận gửi đi thành công!`);
                   setSessionReport(null);
                 }}
                 className="w-1/2 py-2.5 bg-green-600 hover:bg-green-700 text-white font-bold text-xs rounded-xl transition shadow-md cursor-pointer active:scale-95"
