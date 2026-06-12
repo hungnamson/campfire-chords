@@ -900,24 +900,18 @@ export default function SongViewer({
           </div>
           
           <div className="flex items-center gap-2.5 shrink-0">
-            {/* Quick Play Button in mobile header */}
+            {/* Play Button in mobile header (now opens the Rhythm Selector modal) */}
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                if (playingStyle === currentRhythm) {
-                  stopBeat();
-                } else {
-                  if (currentRhythm) {
-                    startBeat(currentRhythm);
-                  }
-                }
+                setShowRhythmMenu(true);
               }}
               className={`w-8 h-8 flex items-center justify-center rounded-full transition-all active:scale-95 shadow-sm border ${
                 playingStyle 
                   ? 'bg-red-500 text-white border-red-550' 
                   : 'bg-orange-500 text-white border-orange-550'
               }`}
-              title={playingStyle ? "Dừng điệu" : "Phát điệu"}
+              title="Chọn điệu & Tốc độ"
             >
               {playingStyle ? <Pause className="w-3.5 h-3.5 fill-white text-white" /> : <Play className="w-3.5 h-3.5 fill-white text-white ml-0.5" />}
             </button>
