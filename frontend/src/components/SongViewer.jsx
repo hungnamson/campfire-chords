@@ -560,6 +560,7 @@ export default function SongViewer({
   const [detectionCountdown, setDetectionCountdown] = useState(5);
   const [detectedKey, setDetectedKey] = useState(null);
   const [detectedConfidence, setDetectedConfidence] = useState(0);
+  const [detectionErrorMsg, setDetectionErrorMsg] = useState('');
 
   // Audio Context and Scheduling refs
   const audioContextRef = useRef(null);
@@ -920,6 +921,7 @@ export default function SongViewer({
 
   const estimateKey = (pitchProfile, captureCount) => {
     if (captureCount < 10) {
+      setDetectionErrorMsg('Không nghe rõ giọng hát/ngân nga. Hãy thử đặt micro gần hơn và hát to hơn!');
       setDetectionState('error');
       return;
     }
@@ -960,8 +962,11 @@ export default function SongViewer({
 
   const startKeyDetection = async () => {
     try {
+      setDetectionErrorMsg('');
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      await audioCtx.resume();
+      
       const source = audioCtx.createMediaStreamSource(stream);
       const analyser = audioCtx.createAnalyser();
       analyser.fftSize = 2048;
@@ -1011,6 +1016,13 @@ export default function SongViewer({
 
     } catch (err) {
       console.error('Error starting key detection:', err);
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        setDetectionErrorMsg('Trình duyệt bị từ chối quyền truy cập Micro. Hãy cấp quyền trong cài đặt!');
+      } else if (err.name === 'SecurityError' || !window.isSecureContext) {
+        setDetectionErrorMsg('Trình duyệt yêu cầu kết nối bảo mật (HTTPS) để sử dụng Micro trên điện thoại.');
+      } else {
+        setDetectionErrorMsg(`Không thể kết nối Micro: ${err.message || err.name}`);
+      }
       setDetectionState('error');
     }
   };
@@ -2025,7 +2037,7 @@ export default function SongViewer({
 
               {detectionState === 'error' && (
                 <div className="w-full flex flex-col items-center gap-2 py-1">
-                  <span className="text-xs text-red-500 font-semibold text-center">Không nghe rõ, hãy hát to hơn hoặc kiểm tra Micro!</span>
+                  <span className="text-xs text-red-500 font-semibold text-center">{detectionErrorMsg || 'Không nghe rõ, hãy hát to hơn hoặc kiểm tra Micro!'}</span>
                   <button
                     onClick={(e) => { e.stopPropagation(); startKeyDetection(); }}
                     onTouchStart={(e) => e.stopPropagation()}
