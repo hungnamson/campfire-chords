@@ -1317,9 +1317,16 @@ export default function App() {
               </button>
             )}
             {isSearchFocused && (suggestions.length > 0 || searchInput.trim().length > 0) && (
-              <div className="absolute left-0 right-0 top-full mt-2 bg-white/90 backdrop-blur-md border border-stone-200/80 rounded-xl shadow-xl z-50 select-none max-h-80 flex flex-col text-left animate-fade-in p-2.5 gap-1.5">
+              <div 
+                className="absolute left-0 right-0 top-full mt-4 bg-white border border-stone-200/80 rounded-2xl shadow-2xl z-50 select-none flex flex-col text-left animate-fade-in-opacity"
+                style={{
+                  padding: '20px 16px',
+                  gap: '12px',
+                  maxHeight: '380px'
+                }}
+              >
                 {suggestions.length > 0 && (
-                  <div className="overflow-y-auto flex-grow no-scrollbar py-1 flex flex-col gap-1">
+                  <div className="overflow-y-auto flex-grow no-scrollbar flex flex-col gap-2">
                     {suggestions.map((song) => (
                       <div
                         key={song.id}
@@ -1333,14 +1340,17 @@ export default function App() {
                             searchInputRef.current.blur();
                           }
                         }}
-                        className="px-5 py-3 hover:bg-stone-50 active:bg-stone-100 flex items-center justify-between cursor-pointer group transition-colors rounded-lg"
-                        style={{ lineHeight: '1.8' }}
+                        className="hover:bg-stone-50 active:bg-stone-100 flex items-center justify-between cursor-pointer group transition-colors rounded-xl"
+                        style={{ 
+                          padding: '16px 20px', 
+                          lineHeight: '2.0' 
+                        }}
                       >
                         <div className="min-w-0 flex-grow pr-3">
-                          <div className="font-bold text-sm text-stone-900 group-hover:text-red-750 transition-colors truncate">
+                          <div className="font-bold text-base text-stone-900 group-hover:text-red-750 transition-colors truncate">
                             {song.title}
                           </div>
-                          <div className="text-xs text-stone-500 truncate mt-0.5 font-medium">
+                          <div className="text-xs text-stone-500 truncate mt-1 font-medium">
                             {getSongMetaText(song)}{song.genre && getSongMetaText(song) ? ` • ${song.genre}` : song.genre || ''}
                           </div>
                         </div>
@@ -1365,8 +1375,11 @@ export default function App() {
                         searchInputRef.current.blur();
                       }
                     }}
-                    className="px-5 py-3.5 hover:bg-blue-50 active:bg-blue-100 flex items-center gap-3 cursor-pointer text-blue-700 transition-colors font-bold text-sm min-h-[48px] shrink-0 rounded-lg"
-                    style={{ lineHeight: '1.8' }}
+                    className="hover:bg-blue-50 active:bg-blue-100 flex items-center gap-3 cursor-pointer text-blue-700 transition-colors font-bold text-sm min-h-[52px] shrink-0 rounded-xl"
+                    style={{ 
+                      padding: '16px 20px', 
+                      lineHeight: '2.0' 
+                    }}
                   >
                     <Globe className="w-5 h-5 text-blue-600 animate-pulse shrink-0" />
                     <span>Tìm trực tuyến cho "{searchInput}"...</span>
