@@ -1342,8 +1342,8 @@ export default function App() {
                         }}
                         className="hover:bg-stone-50 active:bg-stone-100 flex items-center justify-between cursor-pointer group transition-colors rounded-xl"
                         style={{ 
-                          padding: '16px 20px', 
-                          lineHeight: '2.0' 
+                          padding: '12px 20px', 
+                          lineHeight: '1.6' 
                         }}
                       >
                         <div className="min-w-0 flex-grow pr-3">
@@ -1354,11 +1354,17 @@ export default function App() {
                             {getSongMetaText(song)}{song.genre && getSongMetaText(song) ? ` • ${song.genre}` : song.genre || ''}
                           </div>
                         </div>
-                        {song.key && (
-                          <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded border bg-stone-50 border-stone-200 text-stone-600 shrink-0 font-mono">
-                            {song.key}
-                          </span>
-                        )}
+                        {(() => {
+                          const cleanComposer = (song.composer && song.composer.trim() !== '0-9' && song.composer.toLowerCase().trim() !== 'khuyết danh') ? song.composer.trim() : '';
+                          const cleanArtist = (song.artist && song.artist.trim() !== '0-9' && song.artist.toLowerCase().trim() !== 'khuyết danh') ? song.artist.trim() : '';
+                          const rightText = cleanComposer || cleanArtist;
+                          if (!rightText) return null;
+                          return (
+                            <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg bg-stone-55 border border-stone-200/60 text-stone-500 shrink-0 select-none truncate max-w-[120px]">
+                              {rightText}
+                            </span>
+                          );
+                        })()}
                       </div>
                     ))}
                   </div>
