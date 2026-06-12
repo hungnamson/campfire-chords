@@ -1670,10 +1670,14 @@ export default function SongViewer({
             <div className="flex items-center justify-between border-b border-stone-100 pb-2 mb-3">
               <span className="text-[10px] uppercase font-black tracking-widest text-stone-400">Chọn tông (Key Selection)</span>
               <button
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   setTransposeOffset(0);
-                  setShowKeySelector(false);
+                  setTimeout(() => {
+                    setShowKeySelector(false);
+                  }, 50);
                 }}
+                onTouchStart={(e) => e.stopPropagation()}
                 className="text-[10px] font-black uppercase text-orange-600"
               >
                 Reset
@@ -1694,10 +1698,14 @@ export default function SongViewer({
                 return (
                   <button
                     key={keyNote}
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setTransposeOffset(diff);
-                      setShowKeySelector(false);
+                      setTimeout(() => {
+                        setShowKeySelector(false);
+                      }, 50);
                     }}
+                    onTouchStart={(e) => e.stopPropagation()}
                     className={`py-2 px-1 text-xs font-mono font-bold rounded-lg border transition ${
                       isSelected 
                         ? 'bg-orange-500 text-white border-orange-500' 
@@ -1727,6 +1735,7 @@ export default function SongViewer({
               {playingStyle && (
                 <button 
                   onClick={(e) => { e.stopPropagation(); stopBeat(); }} 
+                  onTouchStart={(e) => e.stopPropagation()}
                   className="text-[10px] font-black uppercase text-red-500 hover:text-red-700"
                 >
                   Dừng
@@ -1742,9 +1751,12 @@ export default function SongViewer({
                       onClick={(e) => {
                         e.stopPropagation();
                         setCurrentRhythm(style.name);
-                        setShowRhythmMenu(false);
-                        setShowBpmSelector(null);
+                        setTimeout(() => {
+                          setShowRhythmMenu(false);
+                          setShowBpmSelector(null);
+                        }, 50);
                       }}
+                      onTouchStart={(e) => e.stopPropagation()}
                       className={`w-full flex items-center justify-between py-4.5 px-3 hover:bg-stone-50 text-sm rounded-xl transition-colors cursor-pointer text-stone-700 ${
                         currentRhythm === style.name ? 'bg-stone-100/70 font-semibold' : ''
                       }`}
@@ -1759,6 +1771,7 @@ export default function SongViewer({
                                startBeat(style.name);
                              }
                            }}
+                           onTouchStart={(e) => e.stopPropagation()}
                            className={`p-2.5 rounded-full transition-all active:scale-90 ${
                              isStylePlaying 
                                ? 'bg-red-500 text-white shadow-sm' 
@@ -1780,6 +1793,7 @@ export default function SongViewer({
                           e.stopPropagation();
                           setShowBpmSelector(showBpmSelector === style.name ? null : style.name);
                         }}
+                        onTouchStart={(e) => e.stopPropagation()}
                         className="font-mono text-[10px] font-bold text-stone-500 bg-stone-100 hover:bg-stone-200 border border-stone-250 px-2.5 py-1 rounded-full transition-colors active:scale-95 shrink-0"
                       >
                         {style.bpm} BPM
@@ -1790,6 +1804,7 @@ export default function SongViewer({
                     {showBpmSelector === style.name && (
                       <div 
                         onClick={(e) => e.stopPropagation()}
+                        onTouchStart={(e) => e.stopPropagation()}
                         className="absolute right-0 top-full mt-1.5 w-32 bg-white border border-stone-250 rounded-xl shadow-xl z-55 max-h-40 overflow-y-auto p-1.5 divide-y divide-stone-100"
                       >
                         {Array.from({ length: 21 }, (_, idx) => 40 + idx * 5).map(bpmVal => (
@@ -1806,6 +1821,7 @@ export default function SongViewer({
                                 }
                               }
                             }}
+                            onTouchStart={(e) => e.stopPropagation()}
                             className={`w-full text-left px-3.5 py-2.5 text-xs font-semibold hover:bg-stone-100 transition-colors ${
                               style.bpm === bpmVal ? 'text-orange-600 font-bold bg-orange-50/50' : 'text-stone-700'
                             }`}
