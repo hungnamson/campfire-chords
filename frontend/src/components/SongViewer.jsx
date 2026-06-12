@@ -1099,7 +1099,7 @@ export default function SongViewer({
       });
       
       setDetectionState('listening');
-      setDetectionCountdown(20);
+      setDetectionCountdown(10);
       setDetectedKey(null);
 
       // Start recording media recorder
@@ -1129,7 +1129,7 @@ export default function SongViewer({
         return;
       }
 
-      let secondsLeft = 20;
+      let secondsLeft = 10;
       const interval = setInterval(() => {
         secondsLeft--;
         setDetectionCountdown(secondsLeft);
@@ -2086,7 +2086,7 @@ export default function SongViewer({
             className="fixed bottom-20 left-1/2 -translate-x-1/2 w-[90vw] max-w-sm bg-white border border-stone-200 rounded-2xl shadow-2xl p-4 z-50 animate-fade-in-opacity text-center select-none pointer-events-auto"
           >
             <div className="flex items-center justify-between border-b border-stone-100 pb-2 mb-3">
-              <span className="text-[10px] uppercase font-black tracking-widest text-stone-400">Chọn tông (Key Selection - v1.5.0)</span>
+              <span className="text-[10px] uppercase font-black tracking-widest text-stone-400">Chọn tông (Key Selection - v1.6.0)</span>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -2183,13 +2183,6 @@ export default function SongViewer({
                   >
                     Thử lại / Try Again
                   </button>
-                </div>
-              )}
-
-              {recordedAudioUrl && (
-                <div className="w-full mt-2.5 pt-2.5 border-t border-stone-200/60 flex flex-col items-center">
-                  <span className="text-[9px] uppercase tracking-wider text-stone-500 font-extrabold mb-1">Nghe lại giọng hát (Playback)</span>
-                  <audio src={recordedAudioUrl} controls className="w-full h-8" />
                 </div>
               )}
             </div>

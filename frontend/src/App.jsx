@@ -181,6 +181,7 @@ export default function App() {
   const [detectionErrorMsg, setDetectionErrorMsg] = useState('');
   const [recordedAudioUrl, setRecordedAudioUrl] = useState(null);
   const [showTuner, setShowTuner] = useState(false);
+  const [showVersionTracker, setShowVersionTracker] = useState(false);
   const [cleanupResult, setCleanupResult] = useState(null);
   const [isCleaningDb, setIsCleaningDb] = useState(false);
 
@@ -674,7 +675,7 @@ export default function App() {
       });
       
       setDetectionState('listening');
-      setDetectionCountdown(20);
+      setDetectionCountdown(10);
       setDetectedKey(null);
 
       // Start recording media recorder
@@ -704,7 +705,7 @@ export default function App() {
         return;
       }
 
-      let secondsLeft = 20;
+      let secondsLeft = 10;
       const interval = setInterval(() => {
         secondsLeft--;
         setDetectionCountdown(secondsLeft);
@@ -1825,6 +1826,17 @@ export default function App() {
                     <span>Bộ lên dây / Instrument Tuner</span>
                   </button>
 
+                  <button
+                    onClick={() => {
+                      setShowVersionTracker(true);
+                      setShowSettingsMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3.5 text-sm font-bold rounded-xl transition-all text-left text-stone-800 hover:bg-stone-50 hover:text-stone-950 cursor-pointer"
+                  >
+                    <Info className="w-4.5 h-4.5 text-stone-500 shrink-0" />
+                    <span>Nhật ký phiên bản / Version Tracker</span>
+                  </button>
+
                   {currentUser?.role === 'admin' && (
                     <>
                       <button
@@ -2516,7 +2528,7 @@ export default function App() {
                       {/* Grid Selector Popover */}
                       <div className="absolute bottom-full left-4 right-4 sm:left-1/2 sm:-translate-x-1/2 sm:w-[325px] sm:max-w-sm mb-3.5 bg-white border border-stone-200 rounded-xl shadow-2xl p-4 z-50 animate-fade-in text-center select-none max-h-[82vh] overflow-y-auto no-scrollbar">
                         <div className="flex items-center justify-between border-b border-stone-100 pb-2 mb-3">
-                          <span className="text-[10px] uppercase font-extrabold tracking-widest text-stone-400">Quick Key Selection - v1.5.0</span>
+                          <span className="text-[10px] uppercase font-extrabold tracking-widest text-stone-400">Quick Key Selection - v1.6.0</span>
                           <button
                             onClick={() => {
                               setTransposeOffset(0);
@@ -2605,13 +2617,6 @@ export default function App() {
                               >
                                 Thử lại / Try Again
                               </button>
-                            </div>
-                          )}
-
-                          {recordedAudioUrl && (
-                            <div className="w-full mt-2.5 pt-2.5 border-t border-stone-200/60 flex flex-col items-center">
-                              <span className="text-[9px] uppercase tracking-wider text-stone-500 font-extrabold mb-1">Nghe lại giọng hát (Playback)</span>
-                              <audio src={recordedAudioUrl} controls className="w-full h-8" />
                             </div>
                           )}
                         </div>
@@ -2767,6 +2772,138 @@ export default function App() {
             >
               Đóng / Close
             </button>
+          </div>
+        </div>
+      )}
+
+      {showVersionTracker && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/60 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setShowVersionTracker(false)}>
+          <div className="bg-white border border-stone-200 rounded-2xl max-w-lg w-full max-h-[80vh] overflow-y-auto shadow-2xl p-6 relative select-none flex flex-col no-scrollbar" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setShowVersionTracker(false)}
+              className="absolute right-4 top-4 p-1 hover:bg-stone-100 rounded-full text-stone-400 hover:text-stone-700 transition cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            
+            <div className="flex items-center gap-3 mb-6 pb-4 border-b border-stone-100">
+              <div className="w-10 h-10 bg-amber-50 border border-amber-255/60 rounded-full flex items-center justify-center text-amber-600">
+                <Info className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-stone-900 leading-none">Nhật ký phiên bản</h3>
+                <p className="text-[10px] text-stone-400 uppercase font-black tracking-widest mt-1">Version History & Changelog</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-6 overflow-y-auto pr-1 no-scrollbar">
+              {/* v1.6.0 */}
+              <div className="flex gap-4">
+                <div className="flex flex-col items-center">
+                  <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-700 tracking-wider font-mono">v1.6.0</span>
+                  <div className="w-[1.5px] bg-stone-200 flex-grow mt-2"></div>
+                </div>
+                <div className="flex-grow pb-2">
+                  <span className="text-[10px] font-black uppercase text-stone-400 tracking-widest">Hiện tại / Current</span>
+                  <p className="text-xs font-bold text-stone-800 mt-1">Tối ưu hóa Tone Detector & App Version Tracker</p>
+                  <ul className="list-disc list-inside text-[11px] text-stone-600 mt-2 space-y-1 pl-1">
+                    <li>Rút ngắn thời gian ghi âm Tone Detector từ 20 giây xuống còn 10 giây.</li>
+                    <li>Loại bỏ công cụ nghe lại (Playback player) giúp giao diện sạch và tập trung hơn.</li>
+                    <li>Tích hợp bảng theo dõi lịch sử cập nhật phiên bản (Version Tracker) trong Menu.</li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* v1.5.0 */}
+              <div className="flex gap-4">
+                <div className="flex flex-col items-center">
+                  <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-stone-100 border border-stone-200 text-stone-755 tracking-wider font-mono">v1.5.0</span>
+                  <div className="w-[1.5px] bg-stone-200 flex-grow mt-2"></div>
+                </div>
+                <div className="flex-grow pb-2">
+                  <span className="text-[10px] font-black uppercase text-stone-400 tracking-widest">12/06/2026</span>
+                  <p className="text-xs font-bold text-stone-800 mt-1">Cải tiến bộ lọc và thuật toán nhận diện Tone</p>
+                  <ul className="list-disc list-inside text-[11px] text-stone-600 mt-2 space-y-1 pl-1">
+                    <li>Thêm bộ lọc độ ổn định cao độ (Pitch Stability Filter) thời gian ~70ms để loại bỏ tạp âm và tiếng thở.</li>
+                    <li>Áp dụng thuật toán Hybrid Key Scoring kết hợp tương quan Pearson với tính điểm bậc âm (Scale Degree Fit) để tối ưu nhận diện giọng hát mộc / ngân nga.</li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* v1.4.0 */}
+              <div className="flex gap-4">
+                <div className="flex flex-col items-center">
+                  <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-stone-100 border border-stone-200 text-stone-755 tracking-wider font-mono">v1.4.0</span>
+                  <div className="w-[1.5px] bg-stone-200 flex-grow mt-2"></div>
+                </div>
+                <div className="flex-grow pb-2">
+                  <span className="text-[10px] font-black uppercase text-stone-400 tracking-widest">11/06/2026</span>
+                  <p className="text-xs font-bold text-stone-800 mt-1">Thu âm offline & Xử lý client-side PCM</p>
+                  <ul className="list-disc list-inside text-[11px] text-stone-600 mt-2 space-y-1 pl-1">
+                    <li>Chuyển sang ghi âm trước rồi giải mã ngoại tuyến (offline audio decoding) để tránh giật lag CPU trên trình duyệt.</li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* v1.3.0 */}
+              <div className="flex gap-4">
+                <div className="flex flex-col items-center">
+                  <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-stone-100 border border-stone-200 text-stone-755 tracking-wider font-mono">v1.3.0</span>
+                  <div className="w-[1.5px] bg-stone-200 flex-grow mt-2"></div>
+                </div>
+                <div className="flex-grow pb-2">
+                  <span className="text-[10px] font-black uppercase text-stone-400 tracking-widest">10/06/2026</span>
+                  <p className="text-xs font-bold text-stone-800 mt-1">Chế độ thu gọn & Tự động khớp màn hình</p>
+                  <ul className="list-disc list-inside text-[11px] text-stone-600 mt-2 space-y-1 pl-1">
+                    <li>Thêm chế độ xem hợp âm rút gọn (chỉ hiển thị hợp âm và từ gợi ý).</li>
+                    <li>Thuật toán tự động co giãn font chữ (fit-to-screen) giúp hiển thị toàn bộ bài hát trên một màn hình điện thoại.</li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* v1.2.0 */}
+              <div className="flex gap-4">
+                <div className="flex flex-col items-center">
+                  <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-stone-100 border border-stone-200 text-stone-755 tracking-wider font-mono">v1.2.0</span>
+                  <div className="w-[1.5px] bg-stone-200 flex-grow mt-2"></div>
+                </div>
+                <div className="flex-grow pb-2">
+                  <span className="text-[10px] font-black uppercase text-stone-400 tracking-widest">08/06/2026</span>
+                  <p className="text-xs font-bold text-stone-800 mt-1">Cải tiến Tuner UI chuyên nghiệp</p>
+                  <ul className="list-disc list-inside text-[11px] text-stone-600 mt-2 space-y-1 pl-1">
+                    <li>Thiết kế lại bảng pegboard dạng lưới và mô phỏng cần đàn (fretboard) cho Guitar/Ukulele.</li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* v1.1.0 */}
+              <div className="flex gap-4">
+                <div className="flex flex-col items-center">
+                  <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-stone-100 border border-stone-200 text-stone-755 tracking-wider font-mono">v1.1.0</span>
+                  <div className="w-[1.5px] bg-stone-200 flex-grow mt-2"></div>
+                </div>
+                <div className="flex-grow pb-2">
+                  <span className="text-[10px] font-black uppercase text-stone-400 tracking-widest">04/06/2026</span>
+                  <p className="text-xs font-bold text-stone-800 mt-1">Hộp hợp âm & Lưu bài hát yêu thích</p>
+                  <ul className="list-disc list-inside text-[11px] text-stone-600 mt-2 space-y-1 pl-1">
+                    <li>Hỗ trợ hiển thị sơ đồ thế bấm khi rê chuột vào tên hợp âm.</li>
+                    <li>Cho phép lưu danh sách yêu thích và đồng bộ hóa cài đặt tông giọng cho từng bài.</li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* v1.0.0 */}
+              <div className="flex gap-4 font-black">
+                <div className="flex flex-col items-center">
+                  <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-stone-100 border border-stone-200 text-stone-755 tracking-wider font-mono">v1.0.0</span>
+                </div>
+                <div className="flex-grow">
+                  <span className="text-[10px] font-black uppercase text-stone-400 tracking-widest">03/06/2026</span>
+                  <p className="text-xs font-bold text-stone-800 mt-1">Phiên bản đầu tiên</p>
+                  <p className="text-[11px] text-stone-600 mt-1">Khởi chạy ứng dụng đọc hợp âm Campfire Chords.</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
