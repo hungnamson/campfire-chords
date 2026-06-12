@@ -2827,7 +2827,7 @@ export default function App() {
                       {/* Grid Selector Popover */}
                       <div className="absolute bottom-full left-4 right-4 sm:left-1/2 sm:-translate-x-1/2 sm:w-[325px] sm:max-w-sm mb-3.5 bg-white border border-stone-200 rounded-xl shadow-2xl p-4 z-50 animate-fade-in text-center select-none max-h-[82vh] overflow-y-auto no-scrollbar">
                         <div className="flex items-center justify-between border-b border-stone-100 pb-2 mb-3">
-                          <span className="text-[10px] uppercase font-extrabold tracking-widest text-stone-400">Quick Key Selection - v1.6.0</span>
+                          <span className="text-[10px] uppercase font-extrabold tracking-widest text-stone-400">Quick Key Selection - v1.7.0</span>
                           <button
                             onClick={() => {
                               setTransposeOffset(0);
@@ -3096,14 +3096,31 @@ export default function App() {
             </div>
 
             <div className="flex flex-col gap-6 overflow-y-auto pr-1 no-scrollbar">
-              {/* v1.6.0 */}
+              {/* v1.7.0 */}
               <div className="flex gap-4">
                 <div className="flex flex-col items-center">
-                  <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-700 tracking-wider font-mono">v1.6.0</span>
+                  <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-700 tracking-wider font-mono">v1.7.0</span>
                   <div className="w-[1.5px] bg-stone-200 flex-grow mt-2"></div>
                 </div>
                 <div className="flex-grow pb-2">
                   <span className="text-[10px] font-black uppercase text-stone-400 tracking-widest">Hiện tại / Current</span>
+                  <p className="text-xs font-bold text-stone-800 mt-1">Playlist Autoplay, Chia sẻ QR & Collaborative Session</p>
+                  <ul className="list-disc list-inside text-[11px] text-stone-600 mt-2 space-y-1 pl-1">
+                    <li>Tự động chuyển bài kế tiếp (Autoplay) với bảng đếm ngược 3 giây sinh động.</li>
+                    <li>Chia sẻ playlist tiện lợi qua QR Code và liên kết nhập playlist một chạm.</li>
+                    <li>Chế độ Jam Session trực tuyến: theo dõi danh sách thành viên tham gia, đồng bộ hóa bài hát/tông giọng từ Host theo thời gian thực và ghi lại báo cáo tổng kết Jam kèm đánh giá bình luận.</li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* v1.6.0 */}
+              <div className="flex gap-4">
+                <div className="flex flex-col items-center">
+                  <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-stone-100 border border-stone-200 text-stone-755 tracking-wider font-mono">v1.6.0</span>
+                  <div className="w-[1.5px] bg-stone-200 flex-grow mt-2"></div>
+                </div>
+                <div className="flex-grow pb-2">
+                  <span className="text-[10px] font-black uppercase text-stone-400 tracking-widest">12/06/2026 (Sáng)</span>
                   <p className="text-xs font-bold text-stone-800 mt-1">Tối ưu hóa Tone Detector & App Version Tracker</p>
                   <ul className="list-disc list-inside text-[11px] text-stone-600 mt-2 space-y-1 pl-1">
                     <li>Rút ngắn thời gian ghi âm Tone Detector từ 20 giây xuống còn 10 giây.</li>
