@@ -1111,14 +1111,6 @@ export default function SongViewer({
 
           {/* Dropdown Rhythm Button and Popover list */}
           <div className="relative flex items-center justify-center mx-2 shrink-0 gap-2">
-            <button
-              onClick={() => setShowRhythmMenu(!showRhythmMenu)}
-              className="rhythm-trigger-button px-2.5 py-1.5 bg-stone-200/60 hover:bg-stone-200 border border-stone-300/60 rounded-full text-[10px] font-black text-stone-600 uppercase tracking-wider select-none cursor-pointer flex items-center gap-1 transition-all duration-150 active:scale-95 shadow-sm"
-            >
-              <span>{currentRhythm.trim() || 'SELECT STYLE'}</span>
-              {playingStyle && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>}
-            </button>
-            
             {/* Quick Play Button in desktop songview */}
             <button
               onClick={(e) => {
@@ -1133,7 +1125,7 @@ export default function SongViewer({
               }}
               className={`w-7 h-7 flex items-center justify-center rounded-full transition-all active:scale-95 shadow-sm cursor-pointer border ${
                 playingStyle 
-                  ? 'bg-red-500 hover:bg-red-600 text-white border-red-550' 
+                  ? 'bg-red-500 hover:bg-red-650 text-white border-red-550' 
                   : 'bg-orange-500 hover:bg-orange-600 text-white border-orange-550'
               }`}
               title={playingStyle ? "Dừng điệu" : "Phát điệu"}
@@ -1141,8 +1133,19 @@ export default function SongViewer({
               {playingStyle ? <Pause className="w-3.5 h-3.5 fill-white text-white" /> : <Play className="w-3.5 h-3.5 fill-white text-white ml-0.5" />}
             </button>
 
+            <button
+              onClick={() => setShowRhythmMenu(!showRhythmMenu)}
+              className="rhythm-trigger-button px-2.5 py-1.5 bg-stone-200/60 hover:bg-stone-200 border border-stone-300/60 rounded-full text-[10px] font-black text-stone-600 uppercase tracking-wider select-none cursor-pointer flex items-center gap-1 transition-all duration-150 active:scale-95 shadow-sm"
+            >
+              <span>{currentRhythm.trim() || 'SELECT STYLE'}</span>
+              {playingStyle && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>}
+            </button>
+
              {showRhythmMenu && (
-               <div className="rhythm-menu-container absolute left-1/2 -translate-x-1/2 mt-2 w-96 bg-white border border-stone-200 rounded-2xl shadow-2xl z-50 p-5 text-left top-full max-h-[460px] overflow-y-auto">
+               <div 
+                 style={{ padding: '24px' }}
+                 className="rhythm-menu-container absolute left-1/2 -translate-x-1/2 mt-2 w-96 bg-white border border-stone-200 rounded-2xl shadow-2xl z-50 text-left top-full max-h-[460px] overflow-y-auto"
+               >
                  {/* Top Controller Panel (Play/Pause & BPM Slider) */}
                  <div className="bg-stone-50 border border-stone-200/60 rounded-xl p-3 mb-3 flex flex-col gap-2">
                    <div className="flex items-center justify-between">
@@ -1232,37 +1235,36 @@ export default function SongViewer({
                  </div>
 
                  {/* List Container */}
-                 <div className="flex flex-col gap-3 mt-2">
+                 <div className="flex flex-col gap-1 mt-2">
                    {DRUM_STYLES.map(style => {
                      const isSelected = currentRhythm === style.name;
                      return (
-                       <div key={style.name} className="relative">
-                         <div 
-                           onClick={(e) => {
-                             e.stopPropagation();
-                             setCurrentRhythm(style.name);
-                             
-                             if (playingStyle) {
-                               startBeat(style.name);
-                             }
-                           }}
-                           className={`w-full flex items-center justify-between py-3.5 px-4 rounded-xl transition-all cursor-pointer border ${
-                             isSelected 
-                               ? 'bg-orange-50/50 border-orange-200 font-bold text-orange-950 shadow-sm' 
-                               : 'bg-white border-stone-150 text-stone-700 hover:border-stone-200'
-                           }`}
-                         >
-                           <span className="text-sm font-semibold">{style.name}</span>
-                           <div className="flex items-center gap-2">
-                             <span className="font-mono text-[10px] text-stone-400 bg-stone-100/80 px-2 py-0.5 rounded border border-stone-200/40">
-                               {style.bpm} BPM
-                             </span>
-                             {isSelected && (
-                               <Check className="w-4 h-4 text-orange-600 shrink-0" />
-                             )}
-                           </div>
-                         </div>
-                       </div>
+                        <div 
+                          key={style.name}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCurrentRhythm(style.name);
+                            
+                            if (playingStyle) {
+                              startBeat(style.name);
+                            }
+                          }}
+                          className={`w-full flex items-center justify-between py-2.5 px-1 cursor-pointer transition-all ${
+                            isSelected 
+                              ? 'font-bold text-orange-600' 
+                              : 'text-stone-700 hover:font-bold hover:text-stone-900'
+                          }`}
+                        >
+                          <span className="text-sm">{style.name}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-[10px] text-stone-400">
+                              {style.bpm} BPM
+                            </span>
+                            {isSelected && (
+                              <Check className="w-4 h-4 text-orange-600 shrink-0 font-bold" />
+                            )}
+                          </div>
+                        </div>
                      );
                    })}
                  </div>
@@ -1800,7 +1802,8 @@ export default function SongViewer({
           <div 
             onClick={(e) => e.stopPropagation()} 
             onTouchStart={(e) => e.stopPropagation()}
-            className="fixed bottom-20 left-1/2 -translate-x-1/2 w-[95vw] max-w-sm bg-white border border-stone-200 rounded-2xl shadow-2xl p-6 z-50 animate-fade-in text-left pointer-events-auto max-h-[75vh] overflow-y-auto"
+            style={{ padding: '24px' }}
+            className="fixed bottom-20 left-1/2 -translate-x-1/2 w-[95vw] max-w-sm bg-white border border-stone-200 rounded-2xl shadow-2xl z-50 animate-fade-in text-left pointer-events-auto max-h-[75vh] overflow-y-auto"
           >
             {/* Top Controller Panel (Play/Pause & BPM Slider) */}
             <div className="bg-stone-50 border border-stone-200/60 rounded-xl p-3 mb-4 flex flex-col gap-2">
@@ -1907,19 +1910,19 @@ export default function SongViewer({
                         }
                       }}
                       onTouchStart={(e) => e.stopPropagation()}
-                      className={`w-full flex items-center justify-between py-3.5 px-4 rounded-xl transition-all cursor-pointer border ${
+                      className={`w-full flex items-center justify-between py-2.5 px-1 cursor-pointer transition-all ${
                         isSelected 
-                          ? 'bg-orange-50/50 border-orange-200 font-bold text-orange-950 shadow-sm' 
-                          : 'bg-white border-stone-150 text-stone-700 hover:border-stone-200'
+                          ? 'font-bold text-orange-600' 
+                          : 'text-stone-700 hover:font-bold hover:text-stone-900'
                       }`}
                     >
-                      <span className="text-sm font-semibold">{style.name}</span>
+                      <span className="text-sm">{style.name}</span>
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-[10px] text-stone-400 bg-stone-100/80 px-2 py-0.5 rounded border border-stone-200/40">
+                        <span className="font-mono text-[10px] text-stone-400">
                           {style.bpm} BPM
                         </span>
                         {isSelected && (
-                          <Check className="w-4 h-4 text-orange-600 shrink-0" />
+                          <Check className="w-4 h-4 text-orange-600 shrink-0 font-bold" />
                         )}
                       </div>
                     </div>
