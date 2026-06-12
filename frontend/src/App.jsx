@@ -5,6 +5,7 @@ import {
   Heart, 
   ListMusic, 
   PlusCircle, 
+  Camera,
   Wifi, 
   WifiOff, 
   Flame, 
@@ -27,6 +28,7 @@ import {
   BarChart3
 } from 'lucide-react';
 import SongViewer from './components/SongViewer';
+import { Html5Qrcode } from 'html5-qrcode';
 import InstrumentTuner from './components/InstrumentTuner';
 import AdminStatsView from './components/AdminStatsView';
 import { transposeChord, NOTE_TO_SEMITONE } from './utils/transposer';
@@ -191,6 +193,8 @@ export default function App() {
   const [sharePlaylistId, setSharePlaylistId] = useState(null);
   const [sessionReport, setSessionReport] = useState(null);
   const [sessionComment, setSessionComment] = useState('');
+  const [showQrScanner, setShowQrScanner] = useState(false);
+  const qrScannerRef = useRef(null);
 
   // Authentication & User profile states
   const [currentUser, setCurrentUser] = useState(() => {
@@ -347,13 +351,118 @@ export default function App() {
 
     const joinCode = params.get('joinSession');
     if (joinCode) {
-      // Automatically join session
-      setSessionCode(joinCode.toUpperCase());
-      setSessionRole('follower');
-      // Clear URL params so it doesn't prompt again on refresh
+      const cleanCode = joinCode.trim().toUpperCase();
+      const savedUser = localStorage.getItem('campfire_user');
+      const parsedUser = savedUser ? JSON.parse(savedUser) : null;
+      if (parsedUser) {
+        fetch(`${API_BASE}/sessions/${cleanCode}/join`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: parsedUser.id,
+            email: parsedUser.email
+          })
+        })
+        .then(res => {
+          if (res.ok) return res.json();
+          throw new Error('Session not found or expired');
+        })
+        .then(data => {
+          setSessionCode(data.sessionId);
+          setSessionRole('follower');
+          if (data.currentSongId) {
+            setActiveSongId(data.currentSongId);
+          }
+          if (data.currentKey !== null && data.currentKey !== undefined) {
+            setTransposeOffset(parseInt(data.currentKey, 10) || 0);
+          }
+        })
+        .catch(err => console.error('Error auto-joining session:', err));
+      } else {
+        setSessionInputCode(cleanCode);
+        setActiveTab('setlists');
+        alert('Vui lòng Đăng nhập để tự động tham gia Jam Session!');
+      }
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, []);
+
+  // In-App QR Scanner camera lifecycle management
+  useEffect(() => {
+    let active = true;
+    if (!showQrScanner) {
+      if (qrScannerRef.current) {
+        qrScannerRef.current.stop()
+          .then(() => { if (qrScannerRef.current) qrScannerRef.current = null; })
+          .catch(err => console.error('Error stopping QR scanner:', err));
+      }
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      if (!active) return;
+      try {
+        const html5QrCode = new Html5Qrcode("qr-reader-target");
+        qrScannerRef.current = html5QrCode;
+        
+        html5QrCode.start(
+          { facingMode: "environment" },
+          {
+            fps: 10,
+            qrbox: { width: 220, height: 220 }
+          },
+          (decodedText) => {
+            if (!active) return;
+            try {
+              const url = new URL(decodedText);
+              const joinCode = url.searchParams.get('joinSession');
+              const importId = url.searchParams.get('importPlaylist');
+              
+              if (joinCode) {
+                handleJoinJamSession(joinCode);
+                setShowQrScanner(false);
+              } else if (importId) {
+                fetch(`${API_BASE}/playlists/${importId}`)
+                  .then(res => res.json())
+                  .then(data => {
+                    setImportingPlaylist(data);
+                    setShowQrScanner(false);
+                  })
+                  .catch(err => console.error(err));
+              } else {
+                alert('Mã QR không đúng định dạng HátCùngNhau!');
+              }
+            } catch (e) {
+              if (decodedText && decodedText.trim().length === 6) {
+                handleJoinJamSession(decodedText.trim());
+                setShowQrScanner(false);
+              } else {
+                alert('Quét thành công văn bản: ' + decodedText);
+              }
+            }
+          },
+          (errorMessage) => {
+            // Ignore error
+          }
+        ).catch(err => {
+          console.error("Camera access error:", err);
+          alert('Không thể truy cập camera. Vui lòng cấp quyền camera trong cài đặt!');
+          setShowQrScanner(false);
+        });
+      } catch (err) {
+        console.error("Scanner creation error:", err);
+      }
+    }, 150);
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+      if (qrScannerRef.current) {
+        qrScannerRef.current.stop().catch(err => console.error(err));
+        qrScannerRef.current = null;
+      }
+    };
+  }, [showQrScanner]);
 
   // Host Session sync effect
   useEffect(() => {
@@ -2628,14 +2737,23 @@ export default function App() {
                         <p className="text-[11px] text-stone-500">Đồng bộ hóa bài hát & tông giọng theo thời gian thực với Host.</p>
                       </div>
                     </div>
-                    <div className="flex gap-2 w-full md:w-auto shrink-0">
-                      <input
-                        type="text"
-                        placeholder="Mã Session (E.g. JAMX4)"
-                        value={sessionInputCode}
-                        onChange={(e) => setSessionInputCode(e.target.value)}
-                        className="px-3 py-2 bg-white border border-stone-200 rounded-xl text-xs placeholder-stone-400 font-mono font-black uppercase w-full md:w-44 shadow-inner"
-                      />
+                    <div className="flex items-center gap-2 w-full md:w-auto shrink-0">
+                      <div className="relative flex-grow md:flex-grow-0">
+                        <input
+                          type="text"
+                          placeholder="Mã Session (E.g. JAMX4)"
+                          value={sessionInputCode}
+                          onChange={(e) => setSessionInputCode(e.target.value)}
+                          className="pl-3 pr-8 py-2 bg-white border border-stone-200 rounded-xl text-xs placeholder-stone-400 font-mono font-black uppercase w-full md:w-44 shadow-inner"
+                        />
+                        <button
+                          onClick={() => setShowQrScanner(true)}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-stone-400 hover:text-green-600 rounded transition cursor-pointer"
+                          title="Quét mã QR từ camera"
+                        >
+                          <Camera className="w-4 h-4" />
+                        </button>
+                      </div>
                       <button
                         onClick={() => handleJoinJamSession(sessionInputCode)}
                         className="px-5 py-2 bg-green-600 hover:bg-green-750 text-white font-bold text-xs rounded-xl transition shrink-0 shadow-md active:scale-95 cursor-pointer"
@@ -2827,7 +2945,7 @@ export default function App() {
                       {/* Grid Selector Popover */}
                       <div className="absolute bottom-full left-4 right-4 sm:left-1/2 sm:-translate-x-1/2 sm:w-[325px] sm:max-w-sm mb-3.5 bg-white border border-stone-200 rounded-xl shadow-2xl p-4 z-50 animate-fade-in text-center select-none max-h-[82vh] overflow-y-auto no-scrollbar">
                         <div className="flex items-center justify-between border-b border-stone-100 pb-2 mb-3">
-                          <span className="text-[10px] uppercase font-extrabold tracking-widest text-stone-400">Quick Key Selection - v1.7.1</span>
+                          <span className="text-[10px] uppercase font-extrabold tracking-widest text-stone-400">Quick Key Selection - v1.7.2</span>
                           <button
                             onClick={() => {
                               setTransposeOffset(0);
@@ -3096,14 +3214,30 @@ export default function App() {
             </div>
 
             <div className="flex flex-col gap-6 overflow-y-auto pr-1 no-scrollbar">
-              {/* v1.7.1 */}
+              {/* v1.7.2 */}
               <div className="flex gap-4">
                 <div className="flex flex-col items-center">
-                  <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-700 tracking-wider font-mono">v1.7.1</span>
+                  <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-700 tracking-wider font-mono">v1.7.2</span>
                   <div className="w-[1.5px] bg-stone-200 flex-grow mt-2"></div>
                 </div>
                 <div className="flex-grow pb-2">
                   <span className="text-[10px] font-black uppercase text-stone-400 tracking-widest">Hiện tại / Current</span>
+                  <p className="text-xs font-bold text-stone-800 mt-1">In-App QR Scanner & Khắc phục tự động tham gia</p>
+                  <ul className="list-disc list-inside text-[11px] text-stone-600 mt-2 space-y-1 pl-1">
+                    <li>Tích hợp Camera quét mã QR trực tiếp trong ứng dụng mà không cần rời sang Safari.</li>
+                    <li>Tự động đăng ký và kết nối với server ngay khi quét mã tham gia Jam hoặc Playlist.</li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* v1.7.1 */}
+              <div className="flex gap-4">
+                <div className="flex flex-col items-center">
+                  <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-stone-100 border border-stone-200 text-stone-755 tracking-wider font-mono">v1.7.1</span>
+                  <div className="w-[1.5px] bg-stone-200 flex-grow mt-2"></div>
+                </div>
+                <div className="flex-grow pb-2">
+                  <span className="text-[10px] font-black uppercase text-stone-400 tracking-widest">12/06/2026 (Trưa)</span>
                   <p className="text-xs font-bold text-stone-800 mt-1">Sửa lỗi giao diện trắng (White Screen Fix)</p>
                   <ul className="list-disc list-inside text-[11px] text-stone-600 mt-2 space-y-1 pl-1">
                     <li>Sửa lỗi thiếu biểu tượng Chevron trong import khiến ứng dụng crash khi mở bài hát từ playlist.</li>
@@ -3459,6 +3593,49 @@ export default function App() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {showQrScanner && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-stone-900/90 backdrop-blur-md p-4 animate-fade-in text-white select-none">
+          <style>{`
+            @keyframes scan {
+              0% { top: 0%; }
+              50% { top: 100%; }
+              100% { top: 0%; }
+            }
+            .animate-scanner-line {
+              position: absolute;
+              animation: scan 2s linear infinite;
+            }
+          `}</style>
+          <button
+            onClick={() => setShowQrScanner(false)}
+            className="absolute right-6 top-6 p-2 bg-stone-800 hover:bg-stone-750 rounded-full border border-stone-700 text-stone-300 transition cursor-pointer"
+          >
+            <X className="w-5 h-5" />
+          </button>
+
+          <div className="text-center mb-6">
+            <h3 className="text-base font-black tracking-wide">Quét mã QR</h3>
+            <p className="text-xs text-stone-400 mt-1.5 max-w-xs font-medium">Đặt mã QR của Jam Session hoặc Playlist vào khung quét để tự động tham gia hoặc nhập danh sách.</p>
+          </div>
+
+          <div className="relative w-[260px] h-[260px] border-2 border-stone-700 rounded-3xl overflow-hidden bg-black/45 shadow-2xl flex items-center justify-center">
+            <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-green-500 rounded-tl-xl animate-pulse"></div>
+            <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-green-500 rounded-tr-xl animate-pulse"></div>
+            <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-green-500 rounded-bl-xl animate-pulse"></div>
+            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-green-500 rounded-br-xl animate-pulse"></div>
+            <div className="absolute left-0 right-0 h-0.5 bg-green-400 opacity-60 shadow-[0_0_10px_rgba(34,197,94,0.8)] top-4 animate-scanner-line pointer-events-none"></div>
+            <div id="qr-reader-target" className="w-full h-full object-cover"></div>
+          </div>
+
+          <button
+            onClick={() => setShowQrScanner(false)}
+            className="mt-8 px-6 py-2.5 bg-stone-800 border border-stone-700 hover:bg-stone-750 text-stone-300 font-bold text-xs rounded-xl transition cursor-pointer active:scale-95"
+          >
+            Hủy bỏ / Cancel
+          </button>
         </div>
       )}
 
