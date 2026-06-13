@@ -1147,16 +1147,7 @@ export default function SongViewer({
     }
   };
 
-  // Auto-focus hidden input on iPad mapping triggers to capture physical key events
-  useEffect(() => {
-    if (recordingAction && hiddenInputRef.current) {
-      setTimeout(() => {
-        if (hiddenInputRef.current) {
-          hiddenInputRef.current.focus();
-        }
-      }, 50);
-    }
-  }, [recordingAction]);
+
 
   // Bluetooth Pedal Keydown Event Listener
   useEffect(() => {
@@ -2920,7 +2911,7 @@ export default function SongViewer({
                   }
                 }
               }}
-              className="opacity-0 absolute pointer-events-none w-0 h-0"
+              className="absolute w-1 h-1 p-0 -m-px overflow-hidden whitespace-nowrap border-0 opacity-[0.01] pointer-events-none"
               aria-hidden="true"
             />
 
@@ -2971,7 +2962,11 @@ export default function SongViewer({
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          setRecordingAction(isListening ? null : item.key);
+                          const nextAction = isListening ? null : item.key;
+                          setRecordingAction(nextAction);
+                          if (nextAction && hiddenInputRef.current) {
+                            hiddenInputRef.current.focus();
+                          }
                         }}
                         className={`px-3 py-1.5 rounded-lg text-xs font-bold transition select-none cursor-pointer ${
                           isListening
