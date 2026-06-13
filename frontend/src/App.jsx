@@ -195,6 +195,10 @@ export default function App() {
   const [sessionComment, setSessionComment] = useState('');
   const [showQrScanner, setShowQrScanner] = useState(false);
   const qrScannerRef = useRef(null);
+  const [setlistFilter, setSetlistFilter] = useState('all');
+  const [setlistSearch, setSetlistSearch] = useState('');
+  const [setlistSort, setSetlistSort] = useState('newest');
+  const [setlistViewMode, setSetlistViewMode] = useState('grid');
 
   // Authentication & User profile states
   const [currentUser, setCurrentUser] = useState(() => {
@@ -1635,6 +1639,21 @@ export default function App() {
     }
   };
 
+  const handleCreateFromTemplate = async (templateName) => {
+    try {
+      const res = await fetch(`${API_BASE}/playlists`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: templateName })
+      });
+      if (res.ok) {
+        fetchPlaylists();
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const handleAddSongToPlaylist = async (playlistId, songId) => {
     try {
       const res = await fetch(`${API_BASE}/playlists/${playlistId}/songs`, {
@@ -2124,7 +2143,7 @@ export default function App() {
                     }`}
                   >
                     <ListMusic className="w-4.5 h-4.5 shrink-0" />
-                    <span>Campfire Setlists</span>
+                    <span>Setlists / Danh sách bài hát</span>
                   </button>
 
                   {currentUser && (
@@ -2388,131 +2407,291 @@ export default function App() {
                     </div>
                   ) : filteredSongs.length === 0 && !searchQuery.trim() ? (
                     <div className="flex flex-col gap-8 max-w-6xl mx-auto w-full">
-                      {/* Hero Header Card */}
-                      <div className="text-center py-10 px-6 bg-gradient-to-br from-amber-500/[0.04] via-orange-500/[0.02] to-transparent border border-[#EBDDCB] rounded-2xl shadow-xs select-none animate-fade-in relative overflow-hidden">
-                        <div className="flex justify-center w-full mb-1">
-                          <BrandLogo variant="vertical" className="h-32 md:h-40 w-auto" />
+                      {/* Chào mừng & Welcome Header */}
+                      <div className="text-left py-4 px-1 animate-fade-in flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-stone-200 pb-4">
+                        <div>
+                          <h1 className="text-2xl font-black text-stone-900 font-display">Chào mừng trở lại! 👋</h1>
+                          <p className="text-sm font-bold text-stone-600 mt-1">Hôm nay bạn muốn hát bài gì? 🎵</p>
                         </div>
-                        {songs.length > 0 ? (
-                          <>
-                            <p className="text-sm font-bold text-stone-600 mt-3.5">
-                              Thư viện hiện có <span className="text-[#FF8A00] font-black">{songs.length}</span> bài hát
+                        <div className="text-xs font-bold text-stone-500 bg-stone-100/80 border border-stone-200 px-3.5 py-1.5 rounded-xl shrink-0 select-none">
+                          Thư viện có <span className="text-[#FF8A00] font-black">{songs.length}</span> bài hát &middot; <span className="text-[#FF8A00] font-black">{playlists.length}</span> setlists
+                        </div>
+                      </div>
+
+                      {/* Quick Action Grid */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 select-none">
+                        {/* Action Card 1: Tìm bài hát */}
+                        <div className="bg-white border border-stone-200/80 rounded-2xl p-5 shadow-xs flex flex-col h-40 transition-all hover:shadow-md hover:border-orange-500/20 text-left">
+                          <h4 className="text-sm font-black text-stone-900 font-display flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-orange-500"></span>
+                            Tìm bài hát
+                          </h4>
+                          <p className="text-xs text-stone-500 mt-2 leading-relaxed flex-grow">Tìm nhanh lời nhạc, hợp âm cho bài hát bạn yêu thích.</p>
+                          <div className="flex gap-1.5 mt-auto">
+                            <input
+                              type="text"
+                              placeholder="Tên bài hát..."
+                              value={searchInput}
+                              onChange={(e) => setSearchInput(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  setSearchQuery(searchInput);
+                                }
+                              }}
+                              className="w-full px-2.5 py-1.5 bg-stone-50 border border-stone-200 rounded-lg text-xs font-semibold focus:outline-none"
+                            />
+                            <button 
+                              onClick={() => setSearchQuery(searchInput)}
+                              className="px-3 py-1.5 bg-[#FF8A00] hover:bg-orange-600 text-white rounded-lg text-xs font-bold transition active:scale-95 cursor-pointer shrink-0"
+                            >
+                              Tìm
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Action Card 2: Jam Session (Light green themed) */}
+                        <div className="bg-white border border-stone-200/80 rounded-2xl p-5 shadow-xs flex flex-col h-40 transition-all hover:shadow-md hover:border-green-500/20 text-left">
+                          <h4 className="text-sm font-black text-stone-900 font-display flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                            Tham gia Jam Session
+                          </h4>
+                          <p className="text-xs text-stone-500 mt-2 leading-relaxed flex-grow">Nhập mã hoặc quét QR để hát cùng nhóm ngay bây giờ!</p>
+                          <div className="flex gap-1.5 mt-auto">
+                            <input
+                              type="text"
+                              placeholder="Mã..."
+                              value={sessionInputCode}
+                              onChange={(e) => setSessionInputCode(e.target.value)}
+                              className="w-full px-2.5 py-1.5 bg-stone-50 border border-stone-200 rounded-lg text-xs font-mono font-black uppercase focus:outline-none"
+                            />
+                            <button 
+                              onClick={() => handleJoinJamSession(sessionInputCode)}
+                              className="px-2.5 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-bold transition active:scale-95 cursor-pointer shrink-0"
+                            >
+                              Vào
+                            </button>
+                            <button 
+                              onClick={() => setShowQrScanner(true)}
+                              className="p-1.5 bg-green-50 hover:bg-green-100 border border-green-200 text-green-700 rounded-lg transition active:scale-95 flex items-center justify-center cursor-pointer shrink-0"
+                              title="Quét QR Code"
+                            >
+                              <Camera className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Action Card 3: Tạo Setlist (Orange themed) */}
+                        <div className="bg-white border border-stone-200/80 rounded-2xl p-5 shadow-xs flex flex-col h-40 transition-all hover:shadow-md hover:border-orange-500/20 text-left">
+                          <h4 className="text-sm font-black text-stone-900 font-display flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-orange-400"></span>
+                            Tạo Setlist
+                          </h4>
+                          <p className="text-xs text-stone-500 mt-2 leading-relaxed flex-grow">Tạo danh sách bài hát cho mọi dịp hát cùng nhau.</p>
+                          <button 
+                            onClick={() => {
+                              setActiveTab('setlists');
+                            }}
+                            className="mt-auto w-full py-2 bg-[#FF8A00] hover:bg-orange-600 text-white rounded-xl text-xs font-bold transition active:scale-95 flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+                          >
+                            <span>Tạo mới</span>
+                          </button>
+                        </div>
+
+                        {/* Action Card 4: Tuner & Công cụ */}
+                        <div className="bg-white border border-stone-200/80 rounded-2xl p-5 shadow-xs flex flex-col h-40 transition-all hover:shadow-md hover:border-stone-500/20 text-left">
+                          <h4 className="text-sm font-black text-stone-900 font-display flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-stone-500"></span>
+                            Tuner & Công cụ
+                          </h4>
+                          <p className="text-xs text-stone-500 mt-2 leading-relaxed flex-grow">Lên dây đàn, nhịp điệu trống, hướng dẫn và nhiều hơn nữa.</p>
+                          <button 
+                            onClick={() => setShowTuner(true)}
+                            className="mt-auto w-full py-2 bg-stone-850 hover:bg-stone-800 text-white rounded-xl text-xs font-bold transition active:scale-95 flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+                          >
+                            <span>Mở công cụ</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Khám phá theo thể loại */}
+                      <div className="text-left animate-fade-in mt-1 select-none">
+                        <h3 className="text-xs uppercase font-black tracking-widest text-stone-500 mb-3 flex items-center gap-1.5 font-sans">
+                          <ListMusic className="w-4 h-4 text-orange-500" />
+                          Khám phá theo thể loại / Genres
+                        </h3>
+                        <div className="flex gap-2 overflow-x-auto pb-1.5 no-scrollbar shrink-0">
+                          {['Bolero', 'Acoustic', 'Nhạc Trẻ', 'Nhạc Trữ Tình', 'Nhạc Vàng', 'Worship', 'Thiếu Nhi', 'Quốc Tế'].map(g => (
+                            <button
+                              key={g}
+                              onClick={() => {
+                                setSearchInput(g);
+                                setSearchQuery(g);
+                              }}
+                              className="px-4 py-2 bg-white border border-stone-200/85 rounded-full text-xs font-bold text-stone-700 transition hover:border-[#FF8A00] hover:text-[#FF8A00] active:scale-95 shrink-0 shadow-sm cursor-pointer"
+                            >
+                              {g}
+                            </button>
+                          ))}
+                          <button
+                            onClick={() => {
+                              searchInputRef.current?.focus();
+                            }}
+                            className="px-4 py-2 bg-stone-50 border border-stone-200/80 rounded-full text-xs font-bold text-stone-500 transition hover:bg-stone-100 shrink-0 cursor-pointer"
+                          >
+                            Xem thêm...
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Bài hát thịnh hành / Trending */}
+                      <div className="text-left animate-fade-in mt-1">
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className="text-xs uppercase font-black tracking-widest text-stone-500 flex items-center gap-1.5 font-sans">
+                            <Flame className="w-4 h-4 text-red-500 fill-red-500/25" />
+                            Bài hát thịnh hành / Trending 🔥
+                          </h3>
+                          <button onClick={() => searchInputRef.current?.focus()} className="text-[11px] font-bold text-red-700 hover:text-red-800 transition cursor-pointer">
+                            Xem tất cả &rarr;
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                          {[
+                            { id: 'trend_1', title: 'Có Chàng Trai Viết Lên Cây', artist: 'Phan Mạnh Quỳnh', key: 'Am', genre: 'Ballad' },
+                            { id: 'trend_2', title: 'Chỉ Cần Là Anh', artist: 'Phương Ly', key: 'G', genre: 'Pop' },
+                            { id: 'trend_3', title: 'Nơi Này Có Anh', artist: 'Sơn Tùng M-TP', key: 'Em', genre: 'Pop' },
+                            { id: 'trend_4', title: 'Dẫu Có Lỗi Lầm', artist: 'Bùi Anh Tuấn', key: 'C', genre: 'Ballad' }
+                          ].map((song, idx) => (
+                            <div
+                              key={song.id}
+                              onClick={() => {
+                                const found = songs.find(s => s.title.toLowerCase().includes(song.title.toLowerCase()));
+                                if (found) {
+                                  setActiveSongId(found.id);
+                                } else {
+                                  setSearchInput(song.title);
+                                  setSearchQuery(song.title);
+                                }
+                              }}
+                              className="bg-white border border-stone-200/80 hover:border-orange-500/30 rounded-xl p-4 cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99] flex items-center gap-4 relative overflow-hidden group shadow-sm"
+                            >
+                              <span className="text-2xl font-black text-orange-200/70 group-hover:text-orange-500/40 transition-colors select-none w-6 text-center">
+                                {idx + 1}
+                              </span>
+                              <div className="truncate flex-grow text-left">
+                                <h4 className="font-bold text-sm text-stone-900 group-hover:text-orange-600 transition-colors truncate">{song.title}</h4>
+                                <p className="text-[11px] text-stone-500 truncate mt-0.5">{song.artist}</p>
+                              </div>
+                              <div className="flex flex-col items-end gap-1 shrink-0 select-none">
+                                <span className="font-mono text-[9px] font-black text-stone-500 bg-stone-100 px-1.5 py-0.5 rounded">
+                                  {song.key}
+                                </span>
+                                <span className="text-[9px] font-bold text-stone-400">
+                                  {song.genre}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Setlists gần đây */}
+                      <div className="text-left animate-fade-in mt-1 select-none">
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className="text-xs uppercase font-black tracking-widest text-stone-500 flex items-center gap-1.5 font-sans">
+                            <ListMusic className="w-4 h-4 text-amber-500" />
+                            Setlists gần đây / Recent Setlists ⚡
+                          </h3>
+                          <button onClick={() => setActiveTab('setlists')} className="text-[11px] font-bold text-[#FF8A00] hover:text-orange-750 transition cursor-pointer">
+                            Xem tất cả &rarr;
+                          </button>
+                        </div>
+                        
+                        {playlists.length === 0 ? (
+                          <div className="text-center py-8 bg-white border border-stone-200 border-dashed rounded-xl select-none px-4">
+                            <p className="text-xs text-stone-400">
+                              Chưa có setlist nào. Click "Tạo mới" ở trên để chuẩn bị danh sách bài hát của bạn.
                             </p>
-                            <p className="text-xs text-stone-400 mt-2 max-w-xs mx-auto leading-relaxed">
-                              Nhập tên bài hát, ca sĩ, tác giả hoặc lời nhạc vào thanh tìm kiếm ở trên để tìm hợp âm.
-                            </p>
-                          </>
+                          </div>
                         ) : (
-                          <>
-                            <p className="text-xs text-stone-400 mt-2 max-w-xs mx-auto leading-relaxed">
-                              Thư viện của bạn hiện chưa có bài hát nào. Hãy tìm kiếm tên bài hát hoặc ca sĩ ở thanh tìm kiếm phía trên để tìm và lưu bài hát mới trực tuyến!
-                            </p>
-                          </>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            {playlists.slice(0, 4).map((pl, idx) => {
+                              // Custom colorful gradient classes for setlist card banner
+                              const gradients = [
+                                'from-orange-400 to-amber-500',
+                                'from-rose-400 to-orange-500',
+                                'from-indigo-400 to-purple-500',
+                                'from-emerald-400 to-teal-500'
+                              ];
+                              const grad = gradients[idx % gradients.length];
+                              return (
+                                <div
+                                  key={pl.id}
+                                  onClick={() => {
+                                    setSelectedPlaylistId(pl.id);
+                                    setActiveTab('setlists');
+                                  }}
+                                  className="bg-white border border-stone-200/80 hover:border-[#FF8A00]/30 rounded-xl p-4 cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99] flex flex-col justify-between h-28 relative overflow-hidden group shadow-sm text-left"
+                                >
+                                  <div className={`absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r ${grad}`}></div>
+                                  <div className="mt-2 truncate">
+                                    <h4 className="font-bold text-sm text-stone-900 group-hover:text-[#FF8A00] transition-colors truncate">{pl.name}</h4>
+                                    <p className="text-[10px] text-stone-500 mt-1">{pl.songs?.length || 0} bài hát</p>
+                                  </div>
+                                  <div className="flex items-center justify-between mt-auto">
+                                    <span className="text-[9px] font-black uppercase text-stone-400">
+                                      Mở setlist &rarr;
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
                         )}
                       </div>
 
-                      {/* SECTION 1: Most Popular Today */}
-                      {popularSongs.length > 0 && (
-                        <div className="text-left animate-fade-in">
-                          <h3 className="text-xs uppercase font-black tracking-widest text-stone-500 mb-3.5 flex items-center gap-1.5 font-sans">
-                            <Sparkles className="w-4 h-4 text-amber-500 fill-amber-500/20" />
-                            Thịnh hành hôm nay / Most Popular Today
-                          </h3>
-                          <div className="songs-grid">
-                            {popularSongs.map(song => (
-                              <div 
-                                key={song.id}
-                                onClick={() => setActiveSongId(song.id)}
-                                className="bg-white border border-stone-200/80 hover:border-red-600/30 rounded-xl p-4 cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99] flex items-center justify-between group"
-                              >
-                                <div className="truncate pr-4">
-                                  <h3 className="font-bold text-sm text-stone-900 group-hover:text-red-750 transition-colors truncate">{song.title}</h3>
-                                  <p className="text-xs text-stone-500 truncate mt-1">{getSongMetaText(song) || 'Khuyết danh'}</p>
-                                </div>
-                                <div className="flex items-center gap-2 shrink-0">
-                                  {isSongFavorited(song) && <Heart className="w-3.5 h-3.5 fill-red-600 text-red-600" />}
-                                  <span className="font-mono text-[10px] font-bold text-stone-500 bg-stone-100 px-1.5 py-0.5 rounded">
-                                    {song.key}
-                                  </span>
-                                </div>
-                              </div>
-                            ))}
+                      {/* Footer features helper card */}
+                      <div className="bg-[#FFF6E9] border border-[#F1E4D2] rounded-2xl p-6 select-none text-left animate-fade-in mt-2">
+                        <h4 className="text-sm font-black text-[#4B2E20] mb-4 flex items-center gap-2">
+                          <BrandLogo className="w-5 h-5" />
+                          HátCùngNhau giúp bạn làm gì?
+                        </h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                          <div className="flex items-start gap-2.5">
+                            <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-[#FF8A00] shrink-0 font-bold text-sm">1</div>
+                            <div>
+                              <h5 className="text-xs font-black text-[#4B2E20]">Gom bài mọi dịp</h5>
+                              <p className="text-[10px] text-stone-500 mt-0.5 leading-tight">Tạo setlist cho tiệc tùng, sự kiện hay buổi tập riêng.</p>
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-2.5">
+                            <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-[#FF8A00] shrink-0 font-bold text-sm">2</div>
+                            <div>
+                              <h5 className="text-xs font-black text-[#4B2E20]">Sắp xếp thứ tự</h5>
+                              <p className="text-[10px] text-stone-500 mt-0.5 leading-tight">Kéo thả để sắp xếp trình tự bài hát biểu diễn trơn tru.</p>
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-2.5">
+                            <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-[#FF8A00] shrink-0 font-bold text-sm">3</div>
+                            <div>
+                              <h5 className="text-xs font-black text-[#4B2E20]">Mở trình chiếu</h5>
+                              <p className="text-[10px] text-stone-500 mt-0.5 leading-tight">Trình chiếu lời bài hát cỡ lớn lên TV, iPad cho cả nhóm.</p>
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-2.5">
+                            <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-[#FF8A00] shrink-0 font-bold text-sm">4</div>
+                            <div>
+                              <h5 className="text-xs font-black text-[#4B2E20]">Chia sẻ QR Code</h5>
+                              <p className="text-[10px] text-stone-500 mt-0.5 leading-tight">Gửi danh sách bài hát một chạm qua link hoặc quét mã QR.</p>
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-2.5">
+                            <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-[#FF8A00] shrink-0 font-bold text-sm">5</div>
+                            <div>
+                              <h5 className="text-xs font-black text-[#4B2E20]">Jam đồng bộ</h5>
+                              <p className="text-[10px] text-stone-500 mt-0.5 leading-tight">Đồng bộ cuộn trang, đổi tông trực tuyến cùng các thành viên.</p>
+                            </div>
                           </div>
                         </div>
-                      )}
-
-                      {/* SECTION 2: New Songs */}
-                      {newSongs.length > 0 && (
-                        <div className="text-left animate-fade-in">
-                          <h3 className="text-xs uppercase font-black tracking-widest text-stone-500 mb-3.5 flex items-center gap-1.5 font-sans">
-                            <Flame className="w-4 h-4 text-red-500 fill-red-500/25" />
-                            Mới cập nhật / New Songs
-                          </h3>
-                          <div className="songs-grid">
-                            {newSongs.map(song => (
-                              <div 
-                                key={song.id}
-                                onClick={() => setActiveSongId(song.id)}
-                                className="bg-white border border-stone-200/80 hover:border-red-600/30 rounded-xl p-4 cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99] flex items-center justify-between group"
-                              >
-                                <div className="truncate pr-4">
-                                  <h3 className="font-bold text-sm text-stone-900 group-hover:text-red-750 transition-colors truncate">{song.title}</h3>
-                                  <p className="text-xs text-stone-500 truncate mt-1">{getSongMetaText(song) || 'Khuyết danh'}</p>
-                                </div>
-                                <div className="flex items-center gap-2 shrink-0">
-                                  {isSongFavorited(song) && <Heart className="w-3.5 h-3.5 fill-red-600 text-red-600" />}
-                                  <span className="font-mono text-[10px] font-bold text-stone-500 bg-stone-100 px-1.5 py-0.5 rounded">
-                                    {song.key}
-                                  </span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* SECTION 3: Your Favorites */}
-                      <div className="text-left animate-fade-in mb-6">
-                        <h3 className="text-xs uppercase font-black tracking-widest text-stone-500 mb-3.5 flex items-center gap-1.5 font-sans">
-                          <Heart className="w-4 h-4 text-red-600 fill-red-600" />
-                          Hợp âm yêu thích / Your Favorites ({favoriteSongs.length})
-                        </h3>
-                        {favoriteSongs.length > 0 ? (
-                          <div className="songs-grid">
-                            {favoriteSongs.map(song => (
-                              <div 
-                                key={song.id}
-                                onClick={() => setActiveSongId(song.id)}
-                                className="bg-white border border-stone-200/80 hover:border-red-600/30 rounded-xl p-4 cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99] flex items-center justify-between group"
-                              >
-                                <div className="truncate pr-4">
-                                  <h3 className="font-bold text-sm text-stone-900 group-hover:text-red-750 transition-colors truncate">{song.title}</h3>
-                                  <p className="text-xs text-stone-500 truncate mt-1">{getSongMetaText(song) || 'Khuyết danh'}</p>
-                                </div>
-                                <div className="flex items-center gap-2 shrink-0">
-                                  <button 
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleToggleFavorite(song.id);
-                                    }}
-                                    className="p-1 hover:bg-stone-100 rounded text-red-600 transition"
-                                  >
-                                    <Heart className="w-3.5 h-3.5 fill-red-600" />
-                                  </button>
-                                  <span className="font-mono text-[10px] font-bold text-stone-500 bg-stone-100 px-1.5 py-0.5 rounded">
-                                    {song.key}
-                                  </span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-center py-8 bg-white border border-stone-200/80 border-dashed rounded-2xl select-none px-4">
-                            <p className="text-xs text-stone-400">
-                              Chưa có bài hát yêu thích nào. Bấm nút thả tim ❤️ khi xem hợp âm để lưu vào đây.
-                            </p>
-                          </div>
-                        )}
                       </div>
                     </div>
                   ) : (filteredSongs.length === 0 || forceOnlineSearch) ? (
@@ -2736,90 +2915,402 @@ export default function App() {
               ) : (
                 // Playlist listing dashboard
                 <div className="flex flex-col gap-6 animate-fade-in">
-                  <div className="border-b border-stone-200 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="border-b border-stone-200 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4 select-none">
                     <div>
-                      <h2 className="text-lg font-bold text-stone-900 font-display">Campfire Setlists</h2>
-                      <p className="text-xs text-stone-500">Organize lists of songs to swipe through during a campfire night.</p>
+                      <h2 className="text-lg font-bold text-stone-900 font-display flex items-center gap-2">
+                        Setlists / Danh sách bài hát 🎵
+                      </h2>
+                      <p className="text-xs text-stone-500">Tạo, sắp xếp và chia sẻ bài hát cho mọi dịp hát cùng nhau.</p>
                     </div>
+                    <button
+                      onClick={() => {
+                        const name = prompt('Nhập tên setlist mới:');
+                        if (name && name.trim()) {
+                          handleCreateFromTemplate(name.trim());
+                        }
+                      }}
+                      className="px-4 py-2 bg-[#FF8A00] hover:bg-orange-600 text-white font-bold text-xs rounded-xl transition shadow-md cursor-pointer active:scale-95 shrink-0"
+                    >
+                      + Tạo Setlist
+                    </button>
                   </div>
 
-                  {/* Join Collaborative Session Panel */}
-                  <div className="bg-[#f5fbf7] border border-green-200 rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm select-none">
-                    <div className="flex items-center gap-3 text-left">
-                      <div className="w-10 h-10 rounded-full bg-green-150/40 border border-green-200 flex items-center justify-center text-green-700 shrink-0">
-                        <Wifi className="w-5 h-5 animate-pulse text-green-650" />
+                  {/* Dashboard Actions Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 select-none">
+                    {/* Card 1: Join Jam (Green themed) */}
+                    <div className="bg-[#f5fbf7] border border-green-200 rounded-2xl p-5 flex flex-col justify-between shadow-xs text-left">
+                      <div className="flex items-start gap-3.5">
+                        <div className="w-10 h-10 rounded-full bg-green-150/40 border border-green-200 flex items-center justify-center text-green-700 shrink-0">
+                          <Wifi className="w-5 h-5 animate-pulse text-green-650" />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-black text-stone-900 leading-tight">Tham gia phiên hát chung</h4>
+                          <p className="text-xs text-stone-500 mt-1 leading-normal">Nhập mã hoặc quét QR để theo dõi bài hát cùng nhóm.</p>
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="text-sm font-black text-stone-900 leading-tight">Tham gia Jam Session</h4>
-                        <p className="text-[11px] text-stone-500">Đồng bộ hóa bài hát & tông giọng theo thời gian thực với Host.</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 w-full md:w-auto shrink-0">
-                      <div className="relative flex-grow md:flex-grow-0">
-                        <input
-                          type="text"
-                          placeholder="Mã Session (E.g. JAMX4)"
-                          value={sessionInputCode}
-                          onChange={(e) => setSessionInputCode(e.target.value)}
-                          className="pl-3 pr-8 py-2 bg-white border border-stone-200 rounded-xl text-xs placeholder-stone-400 font-mono font-black uppercase w-full md:w-44 shadow-inner"
-                        />
+                      <div className="flex items-center gap-2 mt-4">
+                        <div className="relative flex-grow">
+                          <input
+                            type="text"
+                            placeholder="Nhập mã session (E.g. JAMX4)"
+                            value={sessionInputCode}
+                            onChange={(e) => setSessionInputCode(e.target.value)}
+                            className="pl-3 pr-8 py-2 bg-white border border-stone-200 rounded-xl text-xs placeholder-stone-400 font-mono font-black uppercase w-full shadow-inner outline-none focus:ring-1 focus:ring-green-500/30"
+                          />
+                          <button
+                            onClick={() => setShowQrScanner(true)}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-stone-400 hover:text-green-655 rounded transition cursor-pointer"
+                            title="Quét QR"
+                          >
+                            <Camera className="w-4 h-4" />
+                          </button>
+                        </div>
                         <button
-                          onClick={() => setShowQrScanner(true)}
-                          className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-stone-400 hover:text-green-600 rounded transition cursor-pointer"
-                          title="Quét mã QR từ camera"
+                          onClick={() => handleJoinJamSession(sessionInputCode)}
+                          className="px-5 py-2 bg-green-600 hover:bg-green-700 text-white font-bold text-xs rounded-xl transition shadow-md active:scale-95 cursor-pointer shrink-0"
                         >
-                          <Camera className="w-4 h-4" />
+                          Tham gia
                         </button>
                       </div>
-                      <button
-                        onClick={() => handleJoinJamSession(sessionInputCode)}
-                        className="px-5 py-2 bg-green-600 hover:bg-green-750 text-white font-bold text-xs rounded-xl transition shrink-0 shadow-md active:scale-95 cursor-pointer"
-                      >
-                        Tham gia
-                      </button>
+                    </div>
+
+                    {/* Card 2: Create Setlist (Orange themed) */}
+                    <div className="bg-[#fffcf8] border border-amber-200 rounded-2xl p-5 flex flex-col justify-between shadow-xs text-left">
+                      <div className="flex items-start gap-3.5">
+                        <div className="w-10 h-10 rounded-full bg-amber-100/40 border border-amber-200 flex items-center justify-center text-[#FF8A00] shrink-0">
+                          <FolderPlus className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-black text-stone-900 leading-tight">Tạo Setlist mới</h4>
+                          <p className="text-xs text-stone-500 mt-1 leading-normal">Chuẩn bị danh sách bài hát cho bất kỳ dịp nào.</p>
+                        </div>
+                      </div>
+                      <form onSubmit={handleCreatePlaylist} className="flex items-center gap-2 mt-4">
+                        <input
+                          type="text"
+                          placeholder="Ví dụ: Tiệc Gia Đình, Đêm Acoustic, Nhạc Bolero..."
+                          value={newPlaylistName}
+                          onChange={(e) => setNewPlaylistName(e.target.value)}
+                          className="flex-grow px-3 py-2 bg-white border border-stone-200 rounded-xl text-xs placeholder-stone-400 font-semibold shadow-inner outline-none focus:ring-1 focus:ring-[#FF8A00]/30"
+                        />
+                        <button
+                          type="submit"
+                          className="px-5 py-2 bg-[#FF8A00] hover:bg-orange-600 text-white font-bold text-xs rounded-xl transition shadow-md active:scale-95 cursor-pointer shrink-0"
+                        >
+                          Tạo Setlist
+                        </button>
+                      </form>
                     </div>
                   </div>
 
-                  {/* Create Playlist Form */}
-                  <form onSubmit={handleCreatePlaylist} className="flex gap-2 max-w-md">
-                    <input
-                      type="text"
-                      placeholder="E.g. Acoustic Night, Pop Favorites..."
-                      value={newPlaylistName}
-                      onChange={(e) => setNewPlaylistName(e.target.value)}
-                      className="flex-grow px-3 py-2 bg-white border border-stone-200 rounded text-sm placeholder-stone-400 shadow-sm"
-                    />
-                    <button
-                      type="submit"
-                      className="px-4 py-2 bg-red-600 text-white font-semibold text-xs rounded hover:bg-red-750 transition flex items-center gap-1.5 shadow-md"
-                    >
-                      <FolderPlus className="w-4 h-4" /> Create Setlist
-                    </button>
-                  </form>
-
-                  {/* Playlists grid */}
-                  {playlists.length === 0 ? (
-                    <p className="text-stone-500 text-sm italic py-4">No setlists created yet.</p>
-                  ) : (
-                    <div className="songs-grid">
-                      {playlists.map(pl => (
-                        <div
-                          key={pl.id}
-                          onClick={() => setSelectedPlaylistId(pl.id)}
-                          className="bg-white hover:bg-stone-50 border border-stone-200 rounded-lg p-5 cursor-pointer transition flex flex-col justify-between h-32 group shadow-sm hover:shadow"
+                  {/* Occasion Templates Row */}
+                  <div className="text-left animate-fade-in select-none">
+                    <h3 className="text-xs uppercase font-black tracking-widest text-stone-500 mb-3 flex items-center gap-1.5 font-sans">
+                      <Sparkles className="w-4 h-4 text-[#FF8A00] fill-orange-500/10" />
+                      Tạo nhanh từ mẫu / Templates
+                    </h3>
+                    <div className="flex gap-2.5 overflow-x-auto pb-2 no-scrollbar shrink-0">
+                      {[
+                        { name: 'Tiệc gia đình', icon: '👪' },
+                        { name: 'Đêm Acoustic', icon: '🎸' },
+                        { name: 'Karaoke', icon: '🎤' },
+                        { name: 'Biểu diễn', icon: '🎪' },
+                        { name: 'Nhà thờ / Worship', icon: '⛪' },
+                        { name: 'Sinh nhật / Đám cưới', icon: '🎂' },
+                        { name: 'Luyện tập', icon: '📖' },
+                        { name: 'Tùy chỉnh', icon: '➕' }
+                      ].map(tpl => (
+                        <button
+                          key={tpl.name}
+                          onClick={() => {
+                            const defaultName = tpl.name === 'Tùy chỉnh' ? 'Setlist mới' : tpl.name;
+                            handleCreateFromTemplate(defaultName);
+                          }}
+                          className="px-4 py-3 bg-white border border-stone-200/80 rounded-xl text-xs font-bold text-stone-850 hover:border-[#FF8A00] hover:text-[#FF8A00] transition active:scale-95 shrink-0 shadow-sm cursor-pointer flex items-center gap-2"
                         >
-                          <div>
-                            <h3 className="font-bold text-base text-stone-900 group-hover:text-red-600 transition-colors">{pl.name}</h3>
-                            <p className="text-xs text-stone-500 mt-1">{pl.songIds.length} songs</p>
-                          </div>
-                          <div className="flex items-center justify-between text-xs text-stone-500 font-semibold">
-                            <span>Open Setlist</span>
-                            <ArrowRight className="w-4 h-4 text-red-600 transition-transform group-hover:translate-x-1" />
-                          </div>
-                        </div>
+                          <span>{tpl.icon}</span>
+                          <span>{tpl.name}</span>
+                        </button>
                       ))}
                     </div>
-                  )}
+                  </div>
+
+                  {/* Setlists của tôi section */}
+                  <div className="text-left flex flex-col gap-4">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-t border-stone-200 pt-4 pb-2">
+                      <h3 className="text-sm font-black text-stone-900 font-display">Setlists của tôi</h3>
+                      
+                      <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                        {/* Search setlists */}
+                        <div className="relative flex-grow md:flex-grow-0">
+                          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+                          <input
+                            type="text"
+                            placeholder="Tìm setlist..."
+                            value={setlistSearch}
+                            onChange={(e) => setSetlistSearch(e.target.value)}
+                            className="pl-8 pr-3 py-1.5 bg-white border border-stone-200 rounded-xl text-xs placeholder-stone-400 font-semibold shadow-inner outline-none w-full md:w-44 focus:ring-1 focus:ring-[#FF8A00]/30"
+                          />
+                        </div>
+
+                        {/* Sort setlists */}
+                        <select
+                          value={setlistSort}
+                          onChange={(e) => setSetlistSort(e.target.value)}
+                          className="px-3 py-1.5 bg-white border border-stone-200 rounded-xl text-xs font-semibold shadow-sm text-stone-700 cursor-pointer outline-none focus:ring-1 focus:ring-[#FF8A00]/30"
+                        >
+                          <option value="newest">Mới nhất</option>
+                          <option value="name">Tên A-Z</option>
+                          <option value="songsCount">Nhiều bài nhất</option>
+                        </select>
+
+                        {/* Grid/List toggle layout */}
+                        <div className="flex bg-stone-100 p-0.5 border border-stone-200 rounded-xl shrink-0">
+                          <button
+                            onClick={() => setSetlistViewMode('grid')}
+                            className={`p-1.5 rounded-lg transition-all cursor-pointer ${setlistViewMode === 'grid' ? 'bg-white text-stone-950 shadow-sm' : 'text-stone-450 hover:text-stone-850'}`}
+                            title="Dạng lưới / Grid"
+                          >
+                            <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M4 4h4v4H4V4zm6 0h4v4h-4V4zm6 0h4v4h-4V4zM4 10h4v4H4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4zM4 16h4v4H4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4z"/></svg>
+                          </button>
+                          <button
+                            onClick={() => setSetlistViewMode('list')}
+                            className={`p-1.5 rounded-lg transition-all cursor-pointer ${setlistViewMode === 'list' ? 'bg-white text-stone-950 shadow-sm' : 'text-stone-450 hover:text-stone-850'}`}
+                            title="Dạng danh sách / List"
+                          >
+                            <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M4 6h16v2H4V6zm0 5h16v2H4v-2zm0 5h16v2H4v-2z"/></svg>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Filter chips */}
+                    <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar shrink-0 select-none">
+                      {[
+                        { id: 'all', name: 'Tất cả' },
+                        { id: 'recent', name: 'Gần đây' },
+                        { id: 'favorite', name: 'Yêu thích' },
+                        { id: 'shared', name: 'Đã chia sẻ' },
+                        { id: 'offline', name: 'Offline' }
+                      ].map(chip => (
+                        <button
+                          key={chip.id}
+                          onClick={() => setSetlistFilter(chip.id)}
+                          className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition cursor-pointer shrink-0 border ${
+                            setlistFilter === chip.id
+                              ? 'bg-[#FF8A00] text-white border-[#FF8A00]'
+                              : 'bg-white text-stone-600 border-stone-200/80 hover:bg-stone-50'
+                          }`}
+                        >
+                          {chip.name}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Filtered Playlists listing logic */}
+                    {(() => {
+                      let filteredPlaylists = [...playlists];
+                      if (setlistSearch.trim()) {
+                        filteredPlaylists = filteredPlaylists.filter(pl => pl.name.toLowerCase().includes(setlistSearch.toLowerCase()));
+                      }
+                      if (setlistSort === 'name') {
+                        filteredPlaylists.sort((a, b) => a.name.localeCompare(b.name));
+                      } else if (setlistSort === 'songsCount') {
+                        filteredPlaylists.sort((a, b) => (b.songIds?.length || 0) - (a.songIds?.length || 0));
+                      } else {
+                        filteredPlaylists.sort((a, b) => b.id - a.id);
+                      }
+
+                      if (filteredPlaylists.length === 0) {
+                        return (
+                          <div className="text-center py-16 bg-white border border-stone-200 border-dashed rounded-2xl select-none px-6">
+                            <ListMusic className="w-10 h-10 text-stone-300 mx-auto mb-3" />
+                            <h4 className="text-sm font-bold text-stone-850">Chưa có Setlist nào</h4>
+                            <p className="text-xs text-stone-500 mt-2 max-w-sm mx-auto leading-relaxed">
+                              Tạo setlist đầu tiên để chuẩn bị bài hát cho tiệc gia đình, đêm acoustic, karaoke, worship hoặc buổi luyện tập.
+                            </p>
+                            <div className="flex justify-center gap-2 mt-4">
+                              <button
+                                onClick={() => {
+                                  const name = prompt('Nhập tên setlist mới:');
+                                  if (name && name.trim()) handleCreateFromTemplate(name.trim());
+                                }}
+                                className="px-4 py-2 bg-[#FF8A00] hover:bg-orange-600 text-white font-bold text-xs rounded-xl transition shadow-md active:scale-95 cursor-pointer"
+                              >
+                                + Tạo Setlist
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      if (setlistViewMode === 'grid') {
+                        return (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 select-none">
+                            {filteredPlaylists.map((pl, idx) => {
+                              const gradients = [
+                                'from-orange-400 to-amber-500',
+                                'from-rose-400 to-orange-500',
+                                'from-indigo-400 to-purple-500',
+                                'from-emerald-400 to-teal-500'
+                              ];
+                              const grad = gradients[idx % gradients.length];
+                              const duration = (pl.songIds?.length || 0) * 4;
+                              
+                              return (
+                                <div
+                                  key={pl.id}
+                                  onClick={() => setSelectedPlaylistId(pl.id)}
+                                  className="bg-white border border-stone-200/80 hover:border-orange-500/25 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col group text-left cursor-pointer relative"
+                                >
+                                  <div className={`h-16 bg-gradient-to-r ${grad} relative flex items-end p-3 text-white`}>
+                                    <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5">
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleStartJamSession(pl.id);
+                                        }}
+                                        className="p-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-white transition backdrop-blur-xs active:scale-90 cursor-pointer"
+                                        title="Bắt đầu Jam Session"
+                                      >
+                                        <Wifi className="w-3.5 h-3.5" />
+                                      </button>
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setSharePlaylistId(pl.id);
+                                        }}
+                                        className="p-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-white transition backdrop-blur-xs active:scale-90 cursor-pointer"
+                                        title="Chia sẻ setlist"
+                                      >
+                                        <Upload className="w-3.5 h-3.5" />
+                                      </button>
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          if (confirm('Bạn có chắc chắn muốn xóa setlist này?')) {
+                                            handleDeletePlaylist(pl.id, e);
+                                          }
+                                        }}
+                                        className="p-1.5 bg-white/20 hover:bg-red-650/40 rounded-lg text-white transition backdrop-blur-xs active:scale-90 cursor-pointer"
+                                        title="Xóa setlist"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  <div className="p-4 flex-grow flex flex-col justify-between">
+                                    <div>
+                                      <h4 className="font-bold text-sm text-stone-900 group-hover:text-[#FF8A00] transition-colors truncate">{pl.name}</h4>
+                                      <p className="text-[11px] text-stone-500 mt-1">{pl.songIds?.length || 0} bài hát &middot; ~{duration} phút</p>
+                                      <div className="flex gap-1.5 mt-2 flex-wrap">
+                                        <span className="text-[9px] font-black uppercase text-stone-500 bg-stone-100 px-2 py-0.5 rounded-full">Setlist</span>
+                                        <span className="text-[9px] font-black uppercase text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full">Acoustic</span>
+                                      </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-2 mt-4 pt-3 border-t border-stone-100">
+                                      <button
+                                        onClick={() => setSelectedPlaylistId(pl.id)}
+                                        className="w-1/2 py-2 bg-stone-100 hover:bg-stone-200 text-stone-850 text-[11px] font-bold rounded-xl transition cursor-pointer text-center"
+                                      >
+                                        Mở
+                                      </button>
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleStartJamSession(pl.id);
+                                        }}
+                                        className="w-1/2 py-2 bg-green-600 hover:bg-green-755 text-white text-[11px] font-bold rounded-xl transition cursor-pointer text-center shadow-xs"
+                                      >
+                                        Bắt đầu Jam
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div className="flex flex-col gap-2 select-none">
+                          {filteredPlaylists.map((pl, idx) => (
+                            <div
+                              key={pl.id}
+                              onClick={() => setSelectedPlaylistId(pl.id)}
+                              className="bg-white hover:bg-stone-50/50 border border-stone-200/80 rounded-xl p-4 flex items-center justify-between cursor-pointer transition shadow-sm hover:shadow group text-left"
+                            >
+                              <div className="flex items-center gap-4 min-w-0 flex-grow">
+                                <div className="w-1.5 h-10 bg-[#FF8A00] rounded-full shrink-0"></div>
+                                <div className="min-w-0 pr-4">
+                                  <h4 className="font-bold text-sm text-stone-900 group-hover:text-[#FF8A00] transition-colors truncate">{pl.name}</h4>
+                                  <p className="text-[11px] text-stone-500 mt-0.5">{pl.songIds?.length || 0} bài hát &middot; Chỉnh sửa: Hôm nay</p>
+                                </div>
+                              </div>
+                              
+                              <div className="flex items-center gap-2 shrink-0">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleStartJamSession(pl.id);
+                                  }}
+                                  className="px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 text-[11px] font-bold rounded-xl transition flex items-center gap-1 border border-green-200 cursor-pointer"
+                                >
+                                  <Wifi className="w-3.5 h-3.5" />
+                                  Jam
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (confirm('Bạn có chắc chắn muốn xóa setlist này?')) {
+                                      handleDeletePlaylist(pl.id, e);
+                                    }
+                                  }}
+                                  className="p-2 bg-stone-100 hover:bg-red-50 text-stone-500 hover:text-red-650 rounded-xl transition cursor-pointer"
+                                  title="Xóa setlist"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
+
+                    {/* Setlist help panel helper */}
+                    <div className="bg-[#FFF6E9] border border-[#F1E4D2] rounded-2xl p-5 select-none text-left animate-fade-in mt-4">
+                      <h4 className="text-xs uppercase font-black tracking-widest text-[#4B2E20] mb-3 flex items-center gap-2">
+                        <BrandLogo className="w-4.5 h-4.5" />
+                        Setlist giúp bạn làm gì?
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+                        <div className="flex items-start gap-2">
+                          <span className="text-[#FF8A00] font-black text-xs mt-0.5">&middot;</span>
+                          <p className="text-[10px] text-stone-500 leading-tight">Gom bài cho mọi dịp hát</p>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="text-[#FF8A00] font-black text-xs mt-0.5">&middot;</span>
+                          <p className="text-[10px] text-stone-500 leading-tight">Sắp xếp thứ tự danh sách bài</p>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="text-[#FF8A00] font-black text-xs mt-0.5">&middot;</span>
+                          <p className="text-[10px] text-stone-500 leading-tight">Mở trình chiếu màn hình lớn</p>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="text-[#FF8A00] font-black text-xs mt-0.5">&middot;</span>
+                          <p className="text-[10px] text-stone-500 leading-tight">Chia sẻ với bạn bè bằng link/QR</p>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="text-[#FF8A00] font-black text-xs mt-0.5">&middot;</span>
+                          <p className="text-[10px] text-stone-500 leading-tight">Dùng trực tiếp trong Jam Session</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -2962,7 +3453,7 @@ export default function App() {
                       {/* Grid Selector Popover */}
                       <div className="absolute bottom-full left-4 right-4 sm:left-1/2 sm:-translate-x-1/2 sm:w-[325px] sm:max-w-sm mb-3.5 bg-white border border-stone-200 rounded-xl shadow-2xl p-4 z-50 animate-fade-in text-center select-none max-h-[82vh] overflow-y-auto no-scrollbar">
                         <div className="flex items-center justify-between border-b border-stone-100 pb-2 mb-3">
-                          <span className="text-[10px] uppercase font-extrabold tracking-widest text-stone-400">Quick Key Selection - v1.7.3</span>
+                          <span className="text-[10px] uppercase font-extrabold tracking-widest text-stone-400">Quick Key Selection - v1.8.0</span>
                           <button
                             onClick={() => {
                               setTransposeOffset(0);
@@ -3231,14 +3722,31 @@ export default function App() {
             </div>
 
             <div className="flex flex-col gap-6 overflow-y-auto pr-1 no-scrollbar">
-              {/* v1.7.3 */}
+              {/* v1.8.0 */}
               <div className="flex gap-4">
                 <div className="flex flex-col items-center">
-                  <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-700 tracking-wider font-mono">v1.7.3</span>
+                  <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-700 tracking-wider font-mono">v1.8.0</span>
                   <div className="w-[1.5px] bg-stone-200 flex-grow mt-2"></div>
                 </div>
                 <div className="flex-grow pb-2">
                   <span className="text-[10px] font-black uppercase text-stone-400 tracking-widest">Hiện tại / Current</span>
+                  <p className="text-xs font-bold text-stone-800 mt-1">Giao diện Trang chủ & Setlists mới</p>
+                  <ul className="list-disc list-inside text-[11px] text-stone-600 mt-2 space-y-1 pl-1">
+                    <li>Trang chủ mới: Thêm 4 thẻ Thao tác nhanh, thanh cuộn Khám phá thể loại và Xếp hạng Bài hát thịnh hành.</li>
+                    <li>Nâng cấp Setlists: Bố cục 2 cột, bảng Tạo nhanh từ mẫu (Templates), bộ lọc Tìm kiếm, Sắp xếp và tùy chọn Xem Lưới/Danh sách.</li>
+                    <li>Định vị thương hiệu HátCùngNhau cho mọi dịp ca hát (Tiệc gia đình, Acoustic, Worship, Karaoke, Biểu diễn...).</li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* v1.7.3 */}
+              <div className="flex gap-4">
+                <div className="flex flex-col items-center">
+                  <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-stone-100 border border-stone-200 text-stone-755 tracking-wider font-mono">v1.7.3</span>
+                  <div className="w-[1.5px] bg-stone-200 flex-grow mt-2"></div>
+                </div>
+                <div className="flex-grow pb-2">
+                  <span className="text-[10px] font-black uppercase text-stone-400 tracking-widest">12/06/2026 (Tối)</span>
                   <p className="text-xs font-bold text-stone-800 mt-1">Đồng bộ Đóng Jam, Gửi Email Báo cáo & Trở về Trang chủ</p>
                   <ul className="list-disc list-inside text-[11px] text-stone-600 mt-2 space-y-1 pl-1">
                     <li>Đóng kết nối và thông báo cho toàn bộ Follower ngay khi Host kết thúc Jam Session.</li>
