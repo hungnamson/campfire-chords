@@ -1169,16 +1169,56 @@ export default function SongViewer({
       }
 
       const key = e.key;
-      if (key === pedalMappings.pageDown) {
+
+      // Detect if key matches any of the custom mapped actions
+      const isMappedPageDown = key === pedalMappings.pageDown;
+      const isMappedPageUp = key === pedalMappings.pageUp;
+      const isMappedKeyUp = key === pedalMappings.keyUp;
+      const isMappedKeyDown = key === pedalMappings.keyDown;
+      const isMappedStyleNext = key === pedalMappings.styleNext;
+      const isMappedStylePrev = key === pedalMappings.stylePrev;
+      const isMappedTempoFast = key === pedalMappings.tempoFast;
+      const isMappedTempoSlow = key === pedalMappings.tempoSlow;
+      const isMappedStyleToggle = key === pedalMappings.styleToggle;
+
+      // Check if key is used by any custom mappings to avoid conflicts
+      const isKeyUnusedByCustomMappings = (
+        key !== pedalMappings.pageDown &&
+        key !== pedalMappings.pageUp &&
+        key !== pedalMappings.keyUp &&
+        key !== pedalMappings.keyDown &&
+        key !== pedalMappings.styleNext &&
+        key !== pedalMappings.stylePrev &&
+        key !== pedalMappings.tempoFast &&
+        key !== pedalMappings.tempoSlow &&
+        key !== pedalMappings.styleToggle
+      );
+
+      // Support JOYO JSP-01 modes 1, 2, 3, and 5 out-of-the-box
+      const isJoyoDefaultScrollDown = isKeyUnusedByCustomMappings && (
+        key === 'PageDown' || 
+        key === 'ArrowDown' || 
+        key === 'ArrowRight' || 
+        key === 'Enter'
+      );
+      
+      const isJoyoDefaultScrollUp = isKeyUnusedByCustomMappings && (
+        key === 'PageUp' || 
+        key === 'ArrowUp' || 
+        key === 'ArrowLeft' || 
+        key === ' '
+      );
+
+      if (isMappedPageDown || isJoyoDefaultScrollDown) {
         e.preventDefault();
         window.scrollBy({ top: window.innerHeight * 0.4, behavior: 'smooth' });
-      } else if (key === pedalMappings.pageUp) {
+      } else if (isMappedPageUp || isJoyoDefaultScrollUp) {
         e.preventDefault();
         window.scrollBy({ top: -window.innerHeight * 0.4, behavior: 'smooth' });
-      } else if (key === pedalMappings.keyUp) {
+      } else if (isMappedKeyUp) {
         e.preventDefault();
         setTransposeOffset(prev => prev + 1);
-      } else if (key === pedalMappings.keyDown) {
+      } else if (isMappedKeyDown) {
         e.preventDefault();
         setTransposeOffset(prev => prev - 1);
       } else if (key === pedalMappings.styleNext) {
