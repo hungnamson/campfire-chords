@@ -1659,9 +1659,11 @@ export default function SongViewer({
             {hasRhythmMatch && (
               <span 
                 onClick={(e) => { e.stopPropagation(); setShowRhythmMenu(true); }}
-                className="px-2 py-1 bg-orange-100 text-orange-800 text-[10px] font-black uppercase rounded-full tracking-wider border border-orange-200 select-none cursor-pointer active:scale-95 transition"
+                className="px-2 py-1 bg-orange-100 text-orange-800 text-[10px] font-black uppercase rounded-full tracking-wider border border-orange-200 select-none cursor-pointer active:scale-95 transition flex items-center gap-1"
               >
-                {currentRhythm}
+                <span>{currentRhythm}</span>
+                <span className="opacity-40">•</span>
+                <span className="font-mono text-[9px]">{(DRUM_STYLES.find(s => s.name === currentRhythm) || DRUM_STYLES[0]).bpm} BPM</span>
               </span>
             )}
 
@@ -1909,9 +1911,15 @@ export default function SongViewer({
 
             <button
               onClick={() => setShowRhythmMenu(!showRhythmMenu)}
-              className="rhythm-trigger-button px-2.5 py-1.5 bg-stone-200/60 hover:bg-stone-200 border border-stone-300/60 rounded-full text-[10px] font-black text-stone-600 uppercase tracking-wider select-none cursor-pointer flex items-center gap-1 transition-all duration-150 active:scale-95 shadow-sm"
+              className="rhythm-trigger-button px-2.5 py-1.5 bg-stone-200/60 hover:bg-stone-200 border border-stone-300/60 rounded-full text-[10px] font-black text-stone-600 uppercase tracking-wider select-none cursor-pointer flex items-center gap-1.5 transition-all duration-150 active:scale-95 shadow-sm"
             >
               <span>{hasRhythmMatch ? currentRhythm.trim() : 'SELECT STYLE'}</span>
+              {hasRhythmMatch && (
+                <>
+                  <span className="opacity-40">•</span>
+                  <span className="font-mono text-[9px]">{(DRUM_STYLES.find(s => s.name === currentRhythm) || DRUM_STYLES[0]).bpm} BPM</span>
+                </>
+              )}
               {playingStyle && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>}
             </button>
 
