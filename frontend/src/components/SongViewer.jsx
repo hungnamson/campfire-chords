@@ -3016,7 +3016,9 @@ export default function SongViewer({
                           setRecordingAction(nextAction);
                           e.currentTarget.blur();
                           if (nextAction && hiddenInputRef.current) {
+                            hiddenInputRef.current.value = "   ";
                             hiddenInputRef.current.focus();
+                            hiddenInputRef.current.setSelectionRange(1, 1);
                           }
                         }}
                         className={`px-3 py-1.5 rounded-lg text-xs font-bold transition select-none cursor-pointer ${
