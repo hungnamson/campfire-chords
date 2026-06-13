@@ -620,6 +620,18 @@ export default function SongViewer({
       styleToggle: ' '
     };
   });
+  const handleClosePedalConfig = () => {
+    setShowPedalConfig(false);
+    setRecordingAction(null);
+    if (songContainerRef.current) {
+      songContainerRef.current.focus();
+    }
+    setTimeout(() => {
+      if (songContainerRef.current) {
+        songContainerRef.current.focus();
+      }
+    }, 50);
+  };
   const [importCode, setImportCode] = useState('');
   const [importStatus, setImportStatus] = useState('');
   const hiddenInputRef = useRef(null);
@@ -2938,8 +2950,8 @@ export default function SongViewer({
         <>
           <div 
             className="fixed inset-0 z-45 bg-black/40 backdrop-blur-xs" 
-            onClick={() => { setShowPedalConfig(false); setRecordingAction(null); }}
-            onTouchStart={(e) => { e.stopPropagation(); setShowPedalConfig(false); setRecordingAction(null); }}
+            onClick={handleClosePedalConfig}
+            onTouchStart={(e) => { e.stopPropagation(); handleClosePedalConfig(); }}
           ></div>
           <div 
             onClick={(e) => e.stopPropagation()} 
@@ -2987,7 +2999,7 @@ export default function SongViewer({
                 <h3 className="text-base font-black text-stone-900 mt-0.5">Cài đặt Bàn đạp Pedal</h3>
               </div>
               <button 
-                onClick={() => { setShowPedalConfig(false); setRecordingAction(null); }} 
+                onClick={handleClosePedalConfig} 
                 className="text-stone-400 hover:text-stone-600 transition"
               >
                 <X className="w-5 h-5" />
@@ -3168,7 +3180,7 @@ export default function SongViewer({
                 Khôi phục Mặc định
               </button>
               <button
-                onClick={(e) => { e.stopPropagation(); setShowPedalConfig(false); }}
+                onClick={(e) => { e.stopPropagation(); handleClosePedalConfig(); }}
                 className="px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-lg transition cursor-pointer shadow-sm"
               >
                 Hoàn tất
