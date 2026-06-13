@@ -3504,7 +3504,7 @@ export default function App() {
                       {/* Grid Selector Popover */}
                       <div className="absolute bottom-full left-4 right-4 sm:left-1/2 sm:-translate-x-1/2 sm:w-[325px] sm:max-w-sm mb-3.5 bg-white border border-stone-200 rounded-xl shadow-2xl p-4 z-50 animate-fade-in text-center select-none max-h-[82vh] overflow-y-auto no-scrollbar">
                         <div className="flex items-center justify-between border-b border-stone-100 pb-2 mb-3">
-                          <span className="text-[10px] uppercase font-extrabold tracking-widest text-stone-400">Quick Key Selection - v1.11.4</span>
+                          <span className="text-[10px] uppercase font-extrabold tracking-widest text-stone-400">Quick Key Selection - v1.11.5</span>
                           <button
                             onClick={() => {
                               setTransposeOffset(0);
@@ -3773,14 +3773,30 @@ export default function App() {
             </div>
 
             <div className="flex flex-col gap-6 overflow-y-auto pr-1 no-scrollbar">
-              {/* v1.11.4 */}
+              {/* v1.11.5 */}
               <div className="flex gap-4">
                 <div className="flex flex-col items-center">
-                  <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-700 tracking-wider font-mono">v1.11.4</span>
+                  <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-700 tracking-wider font-mono">v1.11.5</span>
                   <div className="w-[1.5px] bg-stone-200 flex-grow mt-2"></div>
                 </div>
                 <div className="flex-grow pb-2">
                   <span className="text-[10px] font-black uppercase text-stone-400 tracking-widest">Hiện tại / Current</span>
+                  <p className="text-xs font-bold text-stone-800 mt-1">Cải tiến cơ chế nhận diện phím gán trên iPad/iOS Safari</p>
+                  <ul className="list-disc list-inside text-[11px] text-stone-600 mt-2 space-y-1 pl-1">
+                    <li>Định vị thẻ nhập ngoài màn hình: Định vị thẻ nhập ẩn sang toạ độ âm ngoài màn hình thay vì tắt pointer-events, giúp trình duyệt Safari của iPadOS cho phép focus và truyền sự kiện phím chuẩn xác.</li>
+                    <li>Làm sạch focus nút: Tự động huỷ focus của nút Map ngay khi click để tránh sự kiện phím bị nuốt bởi cơ chế trợ năng mặc định của nút trên hệ điều hành iOS.</li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* v1.11.4 */}
+              <div className="flex gap-4">
+                <div className="flex flex-col items-center">
+                  <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-stone-100 border border-stone-200 text-stone-755 tracking-wider font-mono">v1.11.4</span>
+                  <div className="w-[1.5px] bg-stone-200 flex-grow mt-2"></div>
+                </div>
+                <div className="flex-grow pb-2">
+                  <span className="text-[10px] font-black uppercase text-stone-400 tracking-widest">13/06/2026 (Chiều)</span>
                   <p className="text-xs font-bold text-stone-800 mt-1">Đồng bộ tiêu điểm đồng thì (iOS synchronous focus enforcement)</p>
                   <ul className="list-disc list-inside text-[11px] text-stone-600 mt-2 space-y-1 pl-1">
                     <li>Gọi tiêu điểm đồng bộ: Chuyển hoạt động focus sang dạng đồng bộ trực tiếp trong chuỗi sự kiện click của nút Map để tuân thủ chính sách bảo mật Safari/iOS.</li>

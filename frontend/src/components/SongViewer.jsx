@@ -2911,7 +2911,15 @@ export default function SongViewer({
                   }
                 }
               }}
-              className="absolute w-1 h-1 p-0 -m-px overflow-hidden whitespace-nowrap border-0 opacity-[0.01] pointer-events-none"
+              style={{
+                position: 'absolute',
+                left: '-9999px',
+                top: '-9999px',
+                width: '10px',
+                height: '10px',
+                opacity: 0.01,
+                border: 'none',
+              }}
               aria-hidden="true"
             />
 
@@ -2964,6 +2972,7 @@ export default function SongViewer({
                           e.stopPropagation();
                           const nextAction = isListening ? null : item.key;
                           setRecordingAction(nextAction);
+                          e.currentTarget.blur();
                           if (nextAction && hiddenInputRef.current) {
                             hiddenInputRef.current.focus();
                           }
