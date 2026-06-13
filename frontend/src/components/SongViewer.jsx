@@ -2895,7 +2895,6 @@ export default function SongViewer({
               </div>
               <button 
                 onClick={() => { setShowPedalConfig(false); setRecordingAction(null); }} 
-                onTouchStart={(e) => { e.stopPropagation(); setShowPedalConfig(false); setRecordingAction(null); }}
                 className="text-stone-400 hover:text-stone-600 transition"
               >
                 <X className="w-5 h-5" />
@@ -2906,7 +2905,7 @@ export default function SongViewer({
               Hầu hết các bàn đạp Bluetooth (như PageTurner) hoạt động như bàn phím không dây. Nhấp vào <strong>Ghi nhận (Map)</strong>, sau đó nhấn nút trên Pedal của bạn để gán lệnh tương ứng.
             </p>
 
-            <div className="flex flex-col gap-3.5 max-h-[45vh] overflow-y-auto pr-1">
+            <div className="flex flex-col gap-3.5 max-h-[40vh] overflow-y-auto pr-1">
               {[
                 { key: 'pageDown', label: 'Cuộn xuống / Page Down', desc: 'Cuộn sheet nhạc xuống dưới' },
                 { key: 'pageUp', label: 'Cuộn lên / Page Up', desc: 'Cuộn sheet nhạc lên trên' },
@@ -2938,10 +2937,6 @@ export default function SongViewer({
                           e.stopPropagation();
                           setRecordingAction(isListening ? null : item.key);
                         }}
-                        onTouchStart={(e) => {
-                          e.stopPropagation();
-                          setRecordingAction(isListening ? null : item.key);
-                        }}
                         className={`px-3 py-1.5 rounded-lg text-xs font-bold transition select-none cursor-pointer ${
                           isListening
                             ? 'bg-stone-800 hover:bg-stone-900 text-white'
@@ -2966,7 +2961,6 @@ export default function SongViewer({
                   value={importCode}
                   onChange={(e) => setImportCode(e.target.value)}
                   onClick={(e) => e.stopPropagation()}
-                  onTouchStart={(e) => e.stopPropagation()}
                   className="flex-grow text-[11px] px-2.5 py-1.5 border border-stone-200 rounded-lg bg-stone-50 text-stone-700 font-mono outline-none"
                 />
                 <button
@@ -2988,33 +2982,47 @@ export default function SongViewer({
                       setTimeout(() => setImportStatus(''), 3000);
                     }
                   }}
-                  onTouchStart={(e) => e.stopPropagation()}
                   className="px-3 py-1.5 bg-[#FFF6E9] border border-[#FFE8CC] text-[#FF8A00] text-xs font-bold rounded-lg transition active:scale-95 cursor-pointer shrink-0"
                 >
                   Nhập / Import
                 </button>
               </div>
-              <div className="flex items-center justify-between mt-2">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    try {
-                      const code = btoa(JSON.stringify(pedalMappings));
-                      navigator.clipboard.writeText(code);
-                      setImportStatus('Đã sao chép mã cấu hình!');
-                      setTimeout(() => setImportStatus(''), 3000);
-                    } catch (err) {
-                      setImportStatus('Không thể tự động sao chép!');
-                      setTimeout(() => setImportStatus(''), 3000);
-                    }
-                  }}
-                  onTouchStart={(e) => e.stopPropagation()}
-                  className="text-[10px] font-black uppercase text-[#FF8A00] hover:underline cursor-pointer"
-                >
-                  Sao chép mã / Copy Config Code
-                </button>
+              
+              <div className="mt-3">
+                <span className="text-[9px] font-bold text-stone-400 block mb-1">Mã cấu hình hiện tại / Current Config Code:</span>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={btoa(JSON.stringify(pedalMappings))}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.target.select();
+                    }}
+                    className="flex-grow text-[9px] px-2.5 py-1 border border-stone-250 rounded-lg bg-stone-50 text-stone-500 font-mono outline-none select-all"
+                  />
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      try {
+                        const code = btoa(JSON.stringify(pedalMappings));
+                        navigator.clipboard.writeText(code);
+                        setImportStatus('Đã sao chép!');
+                        setTimeout(() => setImportStatus(''), 3000);
+                      } catch (err) {
+                        setImportStatus('Hãy bôi đen và sao chép thủ công!');
+                        setTimeout(() => setImportStatus(''), 3000);
+                      }
+                    }}
+                    className="px-2.5 py-1 bg-stone-100 hover:bg-stone-200 border border-stone-250 text-stone-700 text-[10px] font-bold rounded-lg transition shrink-0 cursor-pointer"
+                  >
+                    Sao chép / Copy
+                  </button>
+                </div>
                 {importStatus && (
-                  <span className="text-[10px] font-bold text-green-600 animate-pulse">{importStatus}</span>
+                  <div className="text-right mt-1.5">
+                    <span className="text-[10px] font-bold text-green-600 animate-pulse">{importStatus}</span>
+                  </div>
                 )}
               </div>
             </div>
@@ -3037,14 +3045,12 @@ export default function SongViewer({
                   setPedalMappings(defaults);
                   localStorage.setItem('campfire_pedal_mappings', JSON.stringify(defaults));
                 }}
-                onTouchStart={(e) => e.stopPropagation()}
                 className="px-3.5 py-2 text-stone-500 hover:text-stone-850 hover:bg-stone-50 text-xs font-bold rounded-lg border border-stone-250 transition cursor-pointer"
               >
                 Khôi phục Mặc định
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); setShowPedalConfig(false); }}
-                onTouchStart={(e) => e.stopPropagation()}
                 className="px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-lg transition cursor-pointer shadow-sm"
               >
                 Hoàn tất
