@@ -1281,12 +1281,16 @@ export default function SongViewer({
     };
   }, [pedalMappings, recordingAction, currentRhythm, playingStyle, DRUM_STYLES]);
 
-  // Clear any background input focus when SongViewer opens to let window receive keypresses
+  // Clear any background input focus and focus the main viewer container on iOS Safari
   useEffect(() => {
     if (document.activeElement && ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
       document.activeElement.blur();
     }
-  }, [song]);
+    // Set focus to the main container so window/document receives keydowns
+    if (!showPedalConfig && songContainerRef.current) {
+      songContainerRef.current.focus();
+    }
+  }, [song, showPedalConfig]);
 
   // Session Recording Handlers & Cleanups
   useEffect(() => {
@@ -1508,7 +1512,8 @@ export default function SongViewer({
         triggerShowControls();
       }}
       onTouchStart={triggerShowControls}
-      className="song-viewer-container flex flex-col min-h-screen text-stone-900 bg-stone-100 md:bg-white pb-28 animate-fade-in-opacity w-full md:max-w-[96vw] self-center mx-auto md:shadow-lg md:border-x md:border-stone-200/80 cursor-default relative" 
+      tabIndex={0}
+      className="song-viewer-container outline-none flex flex-col min-h-screen text-stone-900 bg-stone-100 md:bg-white pb-28 animate-fade-in-opacity w-full md:max-w-[96vw] self-center mx-auto md:shadow-lg md:border-x md:border-stone-200/80 cursor-default relative" 
       ref={songContainerRef}
     >
             {isMobile ? (
