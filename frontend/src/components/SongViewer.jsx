@@ -2891,11 +2891,10 @@ export default function SongViewer({
             style={{ padding: '24px' }}
             className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-md bg-white border border-stone-200 rounded-2xl shadow-2xl z-50 animate-fade-in text-left pointer-events-auto max-h-[85vh] overflow-y-auto select-none"
           >
-            {/* Hidden input to capture physical keyboard keys on iPad Safari */}
-            <input
+            {/* Hidden div to capture physical keyboard keys on iPad Safari */}
+            <div
               ref={hiddenInputRef}
-              type="text"
-              inputMode="none"
+              tabIndex={0}
               onKeyDown={(e) => {
                 if (recordingAction) {
                   e.preventDefault();
@@ -2919,6 +2918,7 @@ export default function SongViewer({
                 height: '10px',
                 opacity: 0.01,
                 border: 'none',
+                outline: 'none',
               }}
               aria-hidden="true"
             />
