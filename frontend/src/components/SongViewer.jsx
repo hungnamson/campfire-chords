@@ -620,6 +620,8 @@ export default function SongViewer({
       styleToggle: ' '
     };
   });
+  const [importCode, setImportCode] = useState('');
+  const [importStatus, setImportStatus] = useState('');
 
   // Audio Context and Scheduling refs
   const audioContextRef = useRef(null);
@@ -2952,6 +2954,69 @@ export default function SongViewer({
                   </div>
                 );
               })}
+            </div>
+
+            {/* Sync Configuration between devices */}
+            <div className="mt-4 pt-3 border-t border-stone-150">
+              <span className="text-[10px] uppercase font-black tracking-widest text-stone-400 block mb-1">Đồng bộ giữa các thiết bị / Sync across devices</span>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Dán mã cấu hình tại đây..."
+                  value={importCode}
+                  onChange={(e) => setImportCode(e.target.value)}
+                  onClick={(e) => e.stopPropagation()}
+                  onTouchStart={(e) => e.stopPropagation()}
+                  className="flex-grow text-[11px] px-2.5 py-1.5 border border-stone-200 rounded-lg bg-stone-50 text-stone-700 font-mono outline-none"
+                />
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    try {
+                      const decoded = JSON.parse(atob(importCode.trim()));
+                      if (decoded && typeof decoded === 'object') {
+                        setPedalMappings(decoded);
+                        localStorage.setItem('campfire_pedal_mappings', JSON.stringify(decoded));
+                        setImportStatus('Đã đồng bộ thành công!');
+                        setImportCode('');
+                        setTimeout(() => setImportStatus(''), 3000);
+                      } else {
+                        throw new Error();
+                      }
+                    } catch (err) {
+                      setImportStatus('Mã cấu hình không hợp lệ!');
+                      setTimeout(() => setImportStatus(''), 3000);
+                    }
+                  }}
+                  onTouchStart={(e) => e.stopPropagation()}
+                  className="px-3 py-1.5 bg-[#FFF6E9] border border-[#FFE8CC] text-[#FF8A00] text-xs font-bold rounded-lg transition active:scale-95 cursor-pointer shrink-0"
+                >
+                  Nhập / Import
+                </button>
+              </div>
+              <div className="flex items-center justify-between mt-2">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    try {
+                      const code = btoa(JSON.stringify(pedalMappings));
+                      navigator.clipboard.writeText(code);
+                      setImportStatus('Đã sao chép mã cấu hình!');
+                      setTimeout(() => setImportStatus(''), 3000);
+                    } catch (err) {
+                      setImportStatus('Không thể tự động sao chép!');
+                      setTimeout(() => setImportStatus(''), 3000);
+                    }
+                  }}
+                  onTouchStart={(e) => e.stopPropagation()}
+                  className="text-[10px] font-black uppercase text-[#FF8A00] hover:underline cursor-pointer"
+                >
+                  Sao chép mã / Copy Config Code
+                </button>
+                {importStatus && (
+                  <span className="text-[10px] font-bold text-green-600 animate-pulse">{importStatus}</span>
+                )}
+              </div>
             </div>
 
             <div className="flex justify-between items-center mt-5 pt-3 border-t border-stone-150 gap-3">
