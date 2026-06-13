@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
-import { Heart, ArrowLeft, Plus, Check, Minimize2, Maximize2, Info, ExternalLink, X, Share2, Printer, Link, Play, Square, Search, MoreVertical, ChevronDown, LayoutGrid, Pause, Mic, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Heart, ArrowLeft, Plus, Check, Minimize2, Maximize2, Info, ExternalLink, X, Share2, Printer, Link, Play, Square, Search, MoreVertical, ChevronDown, LayoutGrid, Pause, Mic, ChevronLeft, ChevronRight, Keyboard } from 'lucide-react';
 import { transposeChord, NOTE_TO_SEMITONE } from '../utils/transposer';
 import ChordDiagram from './ChordDiagram';
 import BrandLogo from './BrandLogo';
@@ -603,6 +603,24 @@ export default function SongViewer({
   const sessionTimerRef = useRef(null);
   const sessionMimeTypeRef = useRef('audio/webm');
 
+  // Bluetooth Pedal Configuration States
+  const [showPedalConfig, setShowPedalConfig] = useState(false);
+  const [recordingAction, setRecordingAction] = useState(null);
+  const [pedalMappings, setPedalMappings] = useState(() => {
+    const saved = localStorage.getItem('campfire_pedal_mappings');
+    return saved ? JSON.parse(saved) : {
+      pageUp: 'PageUp',
+      pageDown: 'PageDown',
+      keyUp: 'ArrowRight',
+      keyDown: 'ArrowLeft',
+      styleNext: ']',
+      stylePrev: '[',
+      tempoFast: '=',
+      tempoSlow: '-',
+      styleToggle: ' '
+    };
+  });
+
   // Audio Context and Scheduling refs
   const audioContextRef = useRef(null);
   const schedulerIntervalRef = useRef(null);
@@ -1125,6 +1143,94 @@ export default function SongViewer({
       setDetectionState('error');
     }
   };
+
+  // Bluetooth Pedal Keydown Event Listener
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (recordingAction) {
+        e.preventDefault();
+        const mappedKey = e.key;
+        setPedalMappings(prev => {
+          const updated = { ...prev, [recordingAction]: mappedKey };
+          localStorage.setItem('campfire_pedal_mappings', JSON.stringify(updated));
+          return updated;
+        });
+        setRecordingAction(null);
+        return;
+      }
+
+      if (document.activeElement && ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+        return;
+      }
+
+      const key = e.key;
+      if (key === pedalMappings.pageDown) {
+        e.preventDefault();
+        window.scrollBy({ top: window.innerHeight * 0.4, behavior: 'smooth' });
+      } else if (key === pedalMappings.pageUp) {
+        e.preventDefault();
+        window.scrollBy({ top: -window.innerHeight * 0.4, behavior: 'smooth' });
+      } else if (key === pedalMappings.keyUp) {
+        e.preventDefault();
+        setTransposeOffset(prev => prev + 1);
+      } else if (key === pedalMappings.keyDown) {
+        e.preventDefault();
+        setTransposeOffset(prev => prev - 1);
+      } else if (key === pedalMappings.styleNext) {
+        e.preventDefault();
+        const currentIndex = DRUM_STYLES.findIndex(s => s.name === currentRhythm);
+        if (currentIndex !== -1) {
+          const nextIndex = (currentIndex + 1) % DRUM_STYLES.length;
+          const nextStyle = DRUM_STYLES[nextIndex];
+          setCurrentRhythm(nextStyle.name);
+          if (playingStyle) startBeat(nextStyle.name);
+        }
+      } else if (key === pedalMappings.stylePrev) {
+        e.preventDefault();
+        const currentIndex = DRUM_STYLES.findIndex(s => s.name === currentRhythm);
+        if (currentIndex !== -1) {
+          const prevIndex = (currentIndex - 1 + DRUM_STYLES.length) % DRUM_STYLES.length;
+          const prevStyle = DRUM_STYLES[prevIndex];
+          setCurrentRhythm(prevStyle.name);
+          if (playingStyle) startBeat(prevStyle.name);
+        }
+      } else if (key === pedalMappings.tempoFast) {
+        e.preventDefault();
+        const activeStyleName = currentRhythm || DRUM_STYLES[0].name;
+        const targetStyle = DRUM_STYLES.find(s => s.name === activeStyleName);
+        if (targetStyle) {
+          const newBpm = Math.min(200, targetStyle.bpm + 5);
+          setDrumStyles(prev => prev.map(s => s.name === activeStyleName ? { ...s, bpm: newBpm } : s));
+          if (playingStyle === activeStyleName && targetStyle.audioFile && audioPlayerRef.current) {
+            audioPlayerRef.current.playbackRate = newBpm / targetStyle.originalBpm;
+          }
+        }
+      } else if (key === pedalMappings.tempoSlow) {
+        e.preventDefault();
+        const activeStyleName = currentRhythm || DRUM_STYLES[0].name;
+        const targetStyle = DRUM_STYLES.find(s => s.name === activeStyleName);
+        if (targetStyle) {
+          const newBpm = Math.max(40, targetStyle.bpm - 5);
+          setDrumStyles(prev => prev.map(s => s.name === activeStyleName ? { ...s, bpm: newBpm } : s));
+          if (playingStyle === activeStyleName && targetStyle.audioFile && audioPlayerRef.current) {
+            audioPlayerRef.current.playbackRate = newBpm / targetStyle.originalBpm;
+          }
+        }
+      } else if (key === pedalMappings.styleToggle) {
+        e.preventDefault();
+        if (playingStyle === currentRhythm) {
+          stopBeat();
+        } else if (currentRhythm) {
+          startBeat(currentRhythm);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [pedalMappings, recordingAction, currentRhythm, playingStyle, DRUM_STYLES]);
 
   // Session Recording Handlers & Cleanups
   useEffect(() => {
@@ -1835,6 +1941,15 @@ export default function SongViewer({
               <Youtube className="w-4.5 h-4.5" />
             </button>
 
+            {/* Bluetooth Pedal Settings Trigger */}
+            <button
+              onClick={() => setShowPedalConfig(true)}
+              className="p-1.5 rounded-full hover:bg-stone-200 text-stone-400 hover:text-stone-700 transition-colors"
+              title="Bluetooth Pedal Settings"
+            >
+              <Keyboard className="w-4.5 h-4.5" />
+            </button>
+
             {/* Share/Print Menu Trigger */}
             <div className="relative">
               <button
@@ -2315,6 +2430,16 @@ export default function SongViewer({
           >
             <LayoutGrid className="w-5 h-5" />
           </button>
+
+          {/* Button 4: Bluetooth Pedal Config Modal Toggle */}
+          <button
+            onClick={(e) => { e.stopPropagation(); triggerShowControls(); setShowPedalConfig(true); }}
+            onTouchStart={(e) => { e.stopPropagation(); triggerShowControls(); }}
+            className={`w-11 h-11 flex items-center justify-center bg-white/95 border border-stone-200 rounded-full shadow-lg hover:bg-stone-100 text-stone-700 active:scale-90 transition pointer-events-auto backdrop-blur-sm`}
+            title="Bluetooth Pedal Settings"
+          >
+            <Keyboard className="w-5 h-5" />
+          </button>
         </div>
       )}
 
@@ -2747,6 +2872,123 @@ export default function SongViewer({
         <BrandLogo className="w-24 h-24 mb-2" />
         <span className="text-[10px] font-black uppercase tracking-widest text-[#4B2E20] font-display">HátCùngNhau</span>
       </div>
+      {/* Bluetooth Pedal Mapping Settings Modal */}
+      {showPedalConfig && (
+        <>
+          <div 
+            className="fixed inset-0 z-45 bg-black/40 backdrop-blur-xs" 
+            onClick={() => { setShowPedalConfig(false); setRecordingAction(null); }}
+            onTouchStart={(e) => { e.stopPropagation(); setShowPedalConfig(false); setRecordingAction(null); }}
+          ></div>
+          <div 
+            onClick={(e) => e.stopPropagation()} 
+            onTouchStart={(e) => e.stopPropagation()}
+            style={{ padding: '24px' }}
+            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-md bg-white border border-stone-200 rounded-2xl shadow-2xl z-50 animate-fade-in text-left pointer-events-auto max-h-[85vh] overflow-y-auto select-none"
+          >
+            <div className="flex items-center justify-between border-b border-stone-150 pb-3 mb-4">
+              <div className="flex flex-col text-left">
+                <span className="text-[10px] uppercase font-black tracking-widest text-stone-400">Bluetooth Page Turner Setup</span>
+                <h3 className="text-base font-black text-stone-900 mt-0.5">Cài đặt Bàn đạp Pedal</h3>
+              </div>
+              <button 
+                onClick={() => { setShowPedalConfig(false); setRecordingAction(null); }} 
+                onTouchStart={(e) => { e.stopPropagation(); setShowPedalConfig(false); setRecordingAction(null); }}
+                className="text-stone-400 hover:text-stone-600 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-stone-500 leading-relaxed mb-4 bg-stone-50 border border-stone-100 rounded-xl p-3">
+              Hầu hết các bàn đạp Bluetooth (như PageTurner) hoạt động như bàn phím không dây. Nhấp vào <strong>Ghi nhận (Map)</strong>, sau đó nhấn nút trên Pedal của bạn để gán lệnh tương ứng.
+            </p>
+
+            <div className="flex flex-col gap-3.5 max-h-[45vh] overflow-y-auto pr-1">
+              {[
+                { key: 'pageDown', label: 'Cuộn xuống / Page Down', desc: 'Cuộn sheet nhạc xuống dưới' },
+                { key: 'pageUp', label: 'Cuộn lên / Page Up', desc: 'Cuộn sheet nhạc lên trên' },
+                { key: 'keyUp', label: 'Tăng tông / Key Up (+1)', desc: 'Tăng tông bài hát lên nửa cung' },
+                { key: 'keyDown', label: 'Giảm tông / Key Down (-1)', desc: 'Giảm tông bài hát xuống nửa cung' },
+                { key: 'styleNext', label: 'Điệu tiếp theo / Next Style', desc: 'Chuyển sang điệu trống tiếp theo' },
+                { key: 'stylePrev', label: 'Điệu trước / Prev Style', desc: 'Chuyển về điệu trống trước đó' },
+                { key: 'tempoFast', label: 'Tăng tốc độ / Tempo +5', desc: 'Tăng tốc độ nhịp điệu trống' },
+                { key: 'tempoSlow', label: 'Giảm tốc độ / Tempo -5', desc: 'Giảm tốc độ nhịp điệu trống' },
+                { key: 'styleToggle', label: 'Phát/Dừng điệu / Start-Stop Beat', desc: 'Bật hoặc tắt nhịp trống đệm' }
+              ].map(item => {
+                const isListening = recordingAction === item.key;
+                return (
+                  <div key={item.key} className="flex items-center justify-between gap-3 border-b border-stone-100 pb-3">
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-xs font-bold text-stone-800">{item.label}</span>
+                      <span className="text-[10px] text-stone-400 leading-none mt-1 truncate">{item.desc}</span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className={`font-mono text-xs font-black px-2.5 py-1 rounded-md border ${
+                        isListening 
+                          ? 'bg-red-50 border-red-200 text-red-700 animate-pulse' 
+                          : 'bg-stone-50 border-stone-200 text-stone-700'
+                      }`}>
+                        {isListening ? 'Ấn nút pedal...' : (pedalMappings[item.key] === ' ' ? 'Space' : pedalMappings[item.key] || 'Chưa gán')}
+                      </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setRecordingAction(isListening ? null : item.key);
+                        }}
+                        onTouchStart={(e) => {
+                          e.stopPropagation();
+                          setRecordingAction(isListening ? null : item.key);
+                        }}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition select-none cursor-pointer ${
+                          isListening
+                            ? 'bg-stone-800 hover:bg-stone-900 text-white'
+                            : 'bg-[#FFF6E9] hover:bg-[#FFE8CC] border border-[#FFE8CC]/60 text-[#FF8A00]'
+                        }`}
+                      >
+                        {isListening ? 'Hủy' : 'Map'}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="flex justify-between items-center mt-5 pt-3 border-t border-stone-150 gap-3">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const defaults = {
+                    pageUp: 'PageUp',
+                    pageDown: 'PageDown',
+                    keyUp: 'ArrowRight',
+                    keyDown: 'ArrowLeft',
+                    styleNext: ']',
+                    stylePrev: '[',
+                    tempoFast: '=',
+                    tempoSlow: '-',
+                    styleToggle: ' '
+                  };
+                  setPedalMappings(defaults);
+                  localStorage.setItem('campfire_pedal_mappings', JSON.stringify(defaults));
+                }}
+                onTouchStart={(e) => e.stopPropagation()}
+                className="px-3.5 py-2 text-stone-500 hover:text-stone-850 hover:bg-stone-50 text-xs font-bold rounded-lg border border-stone-250 transition cursor-pointer"
+              >
+                Khôi phục Mặc định
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowPedalConfig(false); }}
+                onTouchStart={(e) => e.stopPropagation()}
+                className="px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-lg transition cursor-pointer shadow-sm"
+              >
+                Hoàn tất
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
       {autoplayTimer !== null && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-[#1e1b4b] text-white border border-indigo-900 px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-3 animate-bounce select-none font-sans text-xs">
           <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-ping"></span>
