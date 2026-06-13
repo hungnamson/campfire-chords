@@ -1164,7 +1164,11 @@ export default function SongViewer({
         return;
       }
 
-      if (document.activeElement && ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+      if (
+        document.activeElement && 
+        ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName) &&
+        songContainerRef.current?.contains(document.activeElement)
+      ) {
         return;
       }
 
@@ -1276,6 +1280,13 @@ export default function SongViewer({
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [pedalMappings, recordingAction, currentRhythm, playingStyle, DRUM_STYLES]);
+
+  // Clear any background input focus when SongViewer opens to let window receive keypresses
+  useEffect(() => {
+    if (document.activeElement && ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+      document.activeElement.blur();
+    }
+  }, [song]);
 
   // Session Recording Handlers & Cleanups
   useEffect(() => {
