@@ -3345,7 +3345,7 @@ export default function SongViewer({
 
       {/* Visual Toast Notification for multi-touch gestures */}
       {toastVisible && (
-        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-55 bg-[#4B2E20] text-[#FFF6E9] border border-orange-300 px-4.5 py-2 rounded-full shadow-2xl font-bold text-xs animate-fade-in select-none tracking-wide flex items-center gap-2">
+        <div className="fixed top-[140px] left-1/2 -translate-x-1/2 z-55 bg-[#4B2E20] text-[#FFF6E9] border border-orange-300 px-4.5 py-2 rounded-full shadow-2xl font-bold text-xs animate-fade-in select-none tracking-wide flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-orange-400"></span>
           {toastMessage}
         </div>
