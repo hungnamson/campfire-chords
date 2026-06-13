@@ -601,6 +601,7 @@ export default function SongViewer({
   const sessionRecorderRef = useRef(null);
   const sessionStreamRef = useRef(null);
   const sessionTimerRef = useRef(null);
+  const sessionMimeTypeRef = useRef('audio/webm');
 
   // Audio Context and Scheduling refs
   const audioContextRef = useRef(null);
@@ -1149,8 +1150,27 @@ export default function SongViewer({
       });
       sessionStreamRef.current = stream;
 
+      // Determine supported mimeType for recorder (especially for iOS Safari compatibility)
+      let mimeType = 'audio/webm';
+      if (typeof MediaRecorder.isTypeSupported === 'function') {
+        if (MediaRecorder.isTypeSupported('audio/mp4')) {
+          mimeType = 'audio/mp4';
+        } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+          mimeType = 'audio/webm';
+        } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
+          mimeType = 'audio/ogg';
+        }
+      } else {
+        // Fallback detection for iOS Safari
+        const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+        if (isSafari) {
+          mimeType = 'audio/mp4';
+        }
+      }
+      sessionMimeTypeRef.current = mimeType;
+
       let chunks = [];
-      const recorder = new MediaRecorder(stream);
+      const recorder = new MediaRecorder(stream, { mimeType });
       
       recorder.ondataavailable = (e) => {
         if (e.data && e.data.size > 0) {
@@ -1159,7 +1179,7 @@ export default function SongViewer({
       };
       
       recorder.onstop = () => {
-        const blob = new Blob(chunks, { type: 'audio/webm' });
+        const blob = new Blob(chunks, { type: sessionMimeTypeRef.current });
         const url = URL.createObjectURL(blob);
         setSessionAudioUrl(url);
       };
@@ -1734,11 +1754,11 @@ export default function SongViewer({
                        <div className="flex gap-2">
                          <a
                            href={sessionAudioUrl}
-                           download={`HaCungNhau_Session_${new Date().toISOString().slice(0, 10)}.webm`}
+                           download={`HaCungNhau_Session_${new Date().toISOString().slice(0, 10)}.${sessionMimeTypeRef.current.split('/')[1] || 'webm'}`}
                            onClick={(e) => e.stopPropagation()}
                            className="flex-grow py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-center font-bold text-xs rounded-lg transition flex items-center justify-center gap-1 cursor-pointer shadow-sm"
                          >
-                           Tải xuống (.webm)
+                           Tải xuống (.{sessionMimeTypeRef.current.split('/')[1] || 'webm'})
                          </a>
                          <button
                            onClick={(e) => {
@@ -2640,12 +2660,12 @@ export default function SongViewer({
                   <div className="flex gap-2">
                     <a
                       href={sessionAudioUrl}
-                      download={`HaCungNhau_Session_${new Date().toISOString().slice(0, 10)}.webm`}
+                      download={`HaCungNhau_Session_${new Date().toISOString().slice(0, 10)}.${sessionMimeTypeRef.current.split('/')[1] || 'webm'}`}
                       onClick={(e) => e.stopPropagation()}
                       onTouchStart={(e) => e.stopPropagation()}
                       className="flex-grow py-2 bg-orange-500 hover:bg-orange-600 text-white text-center font-bold text-xs rounded-lg transition flex items-center justify-center gap-1 cursor-pointer shadow-sm"
                     >
-                      Tải xuống (.webm)
+                      Tải xuống (.{sessionMimeTypeRef.current.split('/')[1] || 'webm'})
                     </a>
                     <button
                       onClick={(e) => {
