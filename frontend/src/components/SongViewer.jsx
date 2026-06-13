@@ -594,6 +594,14 @@ export default function SongViewer({
   const [detectionErrorMsg, setDetectionErrorMsg] = useState('');
   const [recordedAudioUrl, setRecordedAudioUrl] = useState(null);
 
+  // Session Recording States & Refs
+  const [isSessionRecording, setIsSessionRecording] = useState(false);
+  const [sessionRecordDuration, setSessionRecordDuration] = useState(0);
+  const [sessionAudioUrl, setSessionAudioUrl] = useState(null);
+  const sessionRecorderRef = useRef(null);
+  const sessionStreamRef = useRef(null);
+  const sessionTimerRef = useRef(null);
+
   // Audio Context and Scheduling refs
   const audioContextRef = useRef(null);
   const schedulerIntervalRef = useRef(null);
@@ -1117,6 +1125,66 @@ export default function SongViewer({
     }
   };
 
+  // Session Recording Handlers & Cleanups
+  useEffect(() => {
+    return () => {
+      if (sessionTimerRef.current) clearInterval(sessionTimerRef.current);
+      if (sessionStreamRef.current) {
+        sessionStreamRef.current.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, []);
+
+  const startSessionRecording = async () => {
+    try {
+      setSessionAudioUrl(null);
+      setSessionRecordDuration(0);
+      
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      sessionStreamRef.current = stream;
+
+      let chunks = [];
+      const recorder = new MediaRecorder(stream);
+      
+      recorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) {
+          chunks.push(e.data);
+        }
+      };
+      
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'audio/webm' });
+        const url = URL.createObjectURL(blob);
+        setSessionAudioUrl(url);
+      };
+
+      sessionRecorderRef.current = recorder;
+      recorder.start();
+      setIsSessionRecording(true);
+
+      sessionTimerRef.current = setInterval(() => {
+        setSessionRecordDuration(prev => prev + 1);
+      }, 1000);
+
+    } catch (err) {
+      console.error('Failed to start session recording:', err);
+      alert('Không thể bắt đầu ghi âm. Vui lòng cấp quyền truy cập micro.');
+    }
+  };
+
+  const stopSessionRecording = () => {
+    if (sessionRecorderRef.current && sessionRecorderRef.current.state !== 'inactive') {
+      sessionRecorderRef.current.stop();
+    }
+    if (sessionStreamRef.current) {
+      sessionStreamRef.current.getTracks().forEach(track => track.stop());
+    }
+    if (sessionTimerRef.current) {
+      clearInterval(sessionTimerRef.current);
+    }
+    setIsSessionRecording(false);
+  };
+
   const startKeyDetection = async () => {
     try {
       setDetectionErrorMsg('');
@@ -1607,6 +1675,77 @@ export default function SongViewer({
                      />
                      <span className="text-[9px] font-bold text-stone-400">200</span>
                    </div>
+                 </div>
+
+                 {/* Session Recorder Panel */}
+                 <div className="bg-[#FFF6E9] border border-[#F1E4D2] rounded-xl p-3 mb-3.5 flex flex-col gap-2 select-none">
+                   <div className="flex items-center justify-between border-b border-[#F1E4D2]/60 pb-1.5">
+                     <span className="text-[10px] uppercase font-black tracking-widest text-[#4B2E20] flex items-center gap-1.5">
+                       <Mic className="w-3.5 h-3.5 text-orange-500" />
+                       Ghi âm buổi hát / Session Record
+                     </span>
+                   </div>
+
+                   {!isSessionRecording && !sessionAudioUrl && (
+                     <button
+                       onClick={(e) => {
+                         e.stopPropagation();
+                         startSessionRecording();
+                       }}
+                       className="w-full py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-lg transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                     >
+                       <span className="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+                       Bắt đầu ghi âm
+                     </button>
+                   )}
+
+                   {isSessionRecording && (
+                     <div className="flex items-center justify-between gap-3">
+                       <div className="flex items-center gap-1.5">
+                         <span className="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse"></span>
+                         <span className="text-xs font-mono font-black text-stone-850">
+                           {Math.floor(sessionRecordDuration / 60).toString().padStart(2, '0')}:
+                           {(sessionRecordDuration % 60).toString().padStart(2, '0')}
+                         </span>
+                       </div>
+                       <button
+                         onClick={(e) => {
+                           e.stopPropagation();
+                           stopSessionRecording();
+                         }}
+                         className="px-4 py-1.5 bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs rounded-lg transition active:scale-95 cursor-pointer"
+                       >
+                         Dừng ghi âm
+                       </button>
+                     </div>
+                   )}
+
+                   {sessionAudioUrl && !isSessionRecording && (
+                     <div className="flex flex-col gap-2">
+                       <div className="flex items-center gap-2">
+                         <audio src={sessionAudioUrl} controls className="w-full h-8 rounded-lg outline-none bg-white/50" />
+                       </div>
+                       <div className="flex gap-2">
+                         <a
+                           href={sessionAudioUrl}
+                           download={`HaCungNhau_Session_${new Date().toISOString().slice(0, 10)}.webm`}
+                           onClick={(e) => e.stopPropagation()}
+                           className="flex-grow py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-center font-bold text-xs rounded-lg transition flex items-center justify-center gap-1 cursor-pointer shadow-sm"
+                         >
+                           Tải xuống (.webm)
+                         </a>
+                         <button
+                           onClick={(e) => {
+                             e.stopPropagation();
+                             startSessionRecording();
+                           }}
+                           className="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 border border-stone-250 text-stone-700 font-bold text-xs rounded-lg transition active:scale-95 cursor-pointer"
+                         >
+                           Ghi âm lại
+                         </button>
+                       </div>
+                     </div>
+                   )}
                  </div>
 
                  {/* List Header */}
