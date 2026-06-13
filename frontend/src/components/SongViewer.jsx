@@ -1190,6 +1190,7 @@ export default function SongViewer({
       if (
         document.activeElement && 
         ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName) &&
+        document.activeElement !== hiddenInputRef.current &&
         songContainerRef.current?.contains(document.activeElement)
       ) {
         return;
