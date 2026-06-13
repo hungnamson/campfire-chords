@@ -1140,7 +1140,13 @@ export default function SongViewer({
       setSessionAudioUrl(null);
       setSessionRecordDuration(0);
       
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false
+        }
+      });
       sessionStreamRef.current = stream;
 
       let chunks = [];
