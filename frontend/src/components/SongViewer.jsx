@@ -2978,9 +2978,27 @@ export default function SongViewer({
               </button>
             </div>
 
-            <p className="text-xs text-stone-500 leading-relaxed mb-4 bg-stone-50 border border-stone-100 rounded-xl p-3">
+            <p className="text-xs text-stone-500 leading-relaxed mb-3 bg-stone-50 border border-stone-100 rounded-xl p-3">
               Hầu hết các bàn đạp Bluetooth (như PageTurner) hoạt động như bàn phím không dây. Nhấp vào <strong>Ghi nhận (Map)</strong>, sau đó nhấn nút trên Pedal của bạn để gán lệnh tương ứng.
             </p>
+
+            {(() => {
+              const isIOS = typeof window !== 'undefined' && (
+                /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+              );
+              if (!isIOS) return null;
+              return (
+                <div className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 leading-relaxed">
+                  <strong className="block text-xs text-amber-950 mb-1">💡 Hướng dẫn sửa lỗi kẹt phím trên iPad:</strong>
+                  Nếu iPad không nhận phím Mũi tên (Mode 2 & 3) hoặc phím Space (Mode 5), hãy vào:
+                  <ul className="list-disc list-inside mt-1.5 space-y-1 pl-0.5">
+                    <li><strong>Cài đặt &gt; Trợ năng &gt; Bàn phím &gt; Truy cập bàn phím toàn phần</strong> và chuyển sang <strong>TẮT (OFF)</strong>.</li>
+                  </ul>
+                  Trình duyệt Safari sẽ nhận diện được toàn bộ 5 chế độ của bàn đạp ngay sau khi tắt cài đặt này.
+                </div>
+              );
+            })()}
 
             <div className="flex flex-col gap-3.5 max-h-[40vh] overflow-y-auto pr-1">
               {[
