@@ -623,12 +623,12 @@ export default function SongViewer({
   const handleClosePedalConfig = () => {
     setShowPedalConfig(false);
     setRecordingAction(null);
-    if (songContainerRef.current) {
-      songContainerRef.current.focus();
+    if (hiddenInputRef.current) {
+      hiddenInputRef.current.focus();
     }
     setTimeout(() => {
-      if (songContainerRef.current) {
-        songContainerRef.current.focus();
+      if (hiddenInputRef.current) {
+        hiddenInputRef.current.focus();
       }
     }, 50);
   };
@@ -1304,14 +1304,14 @@ export default function SongViewer({
     };
   }, [pedalMappings, recordingAction, currentRhythm, playingStyle, DRUM_STYLES]);
 
-  // Clear any background input focus and focus the main viewer container on iOS Safari
+  // Clear any background input focus and focus the keycatcher textarea on iOS Safari
   useEffect(() => {
-    if (document.activeElement && ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+    if (document.activeElement && ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName) && document.activeElement !== hiddenInputRef.current) {
       document.activeElement.blur();
     }
-    // Set focus to the main container so window/document receives keydowns
-    if (!showPedalConfig && songContainerRef.current) {
-      songContainerRef.current.focus();
+    // Set focus to the keycatcher so window/document receives keydowns
+    if (!showPedalConfig && hiddenInputRef.current) {
+      hiddenInputRef.current.focus();
     }
   }, [song, showPedalConfig]);
 
@@ -1626,8 +1626,18 @@ export default function SongViewer({
       onClick={(e) => {
         e.stopPropagation();
         triggerShowControls();
+        const clickedTag = e.target.tagName;
+        if (!['INPUT', 'TEXTAREA'].includes(clickedTag) && hiddenInputRef.current) {
+          hiddenInputRef.current.focus();
+        }
       }}
-      onTouchStart={triggerShowControls}
+      onTouchStart={(e) => {
+        triggerShowControls();
+        const clickedTag = e.target.tagName;
+        if (!['INPUT', 'TEXTAREA'].includes(clickedTag) && hiddenInputRef.current) {
+          hiddenInputRef.current.focus();
+        }
+      }}
       tabIndex={0}
       className="song-viewer-container outline-none flex flex-col min-h-screen text-stone-900 bg-stone-100 md:bg-white pb-28 animate-fade-in-opacity w-full md:max-w-[96vw] self-center mx-auto md:shadow-lg md:border-x md:border-stone-200/80 cursor-default relative" 
       ref={songContainerRef}
@@ -3063,40 +3073,6 @@ export default function SongViewer({
             style={{ padding: '24px' }}
             className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-md bg-white border border-stone-200 rounded-2xl shadow-2xl z-50 animate-fade-in text-left pointer-events-auto max-h-[85vh] overflow-y-auto select-none"
           >
-            {/* Hidden textarea to capture physical keyboard keys on iPad Safari */}
-            <textarea
-              ref={hiddenInputRef}
-              inputMode="none"
-              onKeyDown={(e) => {
-                if (recordingAction) {
-                  e.preventDefault();
-                  const mappedKey = e.key;
-                  setPedalMappings(prev => {
-                    const updated = { ...prev, [recordingAction]: mappedKey };
-                    localStorage.setItem('campfire_pedal_mappings', JSON.stringify(updated));
-                    return updated;
-                  });
-                  setRecordingAction(null);
-                  if (hiddenInputRef.current) {
-                    hiddenInputRef.current.blur();
-                  }
-                }
-              }}
-              style={{
-                position: 'absolute',
-                left: '-9999px',
-                top: '-9999px',
-                width: '10px',
-                height: '10px',
-                opacity: 0.01,
-                border: 'none',
-                outline: 'none',
-                resize: 'none',
-                overflow: 'hidden',
-              }}
-              aria-hidden="true"
-            />
-
             <div className="flex items-center justify-between border-b border-stone-150 pb-3 mb-4">
               <div className="flex flex-col text-left">
                 <span className="text-[10px] uppercase font-black tracking-widest text-stone-400">Bluetooth Page Turner Setup</span>
@@ -3314,6 +3290,37 @@ export default function SongViewer({
           {toastMessage}
         </div>
       )}
+
+      {/* Hidden textarea to capture physical keyboard keys on iPad Safari globally */}
+      <textarea
+        ref={hiddenInputRef}
+        inputMode="none"
+        onKeyDown={(e) => {
+          if (recordingAction) {
+            e.preventDefault();
+            const mappedKey = e.key;
+            setPedalMappings(prev => {
+              const updated = { ...prev, [recordingAction]: mappedKey };
+              localStorage.setItem('campfire_pedal_mappings', JSON.stringify(updated));
+              return updated;
+            });
+            setRecordingAction(null);
+          }
+        }}
+        style={{
+          position: 'absolute',
+          left: '-9999px',
+          top: '-9999px',
+          width: '10px',
+          height: '10px',
+          opacity: 0.01,
+          border: 'none',
+          outline: 'none',
+          resize: 'none',
+          overflow: 'hidden',
+        }}
+        aria-hidden="true"
+      />
     </div>
   );
 }
