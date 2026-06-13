@@ -622,6 +622,7 @@ export default function SongViewer({
   });
   const [importCode, setImportCode] = useState('');
   const [importStatus, setImportStatus] = useState('');
+  const hiddenInputRef = useRef(null);
 
   // Audio Context and Scheduling refs
   const audioContextRef = useRef(null);
@@ -1145,6 +1146,17 @@ export default function SongViewer({
       setDetectionState('error');
     }
   };
+
+  // Auto-focus hidden input on iPad mapping triggers to capture physical key events
+  useEffect(() => {
+    if (recordingAction && hiddenInputRef.current) {
+      setTimeout(() => {
+        if (hiddenInputRef.current) {
+          hiddenInputRef.current.focus();
+        }
+      }, 50);
+    }
+  }, [recordingAction]);
 
   // Bluetooth Pedal Keydown Event Listener
   useEffect(() => {
@@ -2888,6 +2900,30 @@ export default function SongViewer({
             style={{ padding: '24px' }}
             className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-md bg-white border border-stone-200 rounded-2xl shadow-2xl z-50 animate-fade-in text-left pointer-events-auto max-h-[85vh] overflow-y-auto select-none"
           >
+            {/* Hidden input to capture physical keyboard keys on iPad Safari */}
+            <input
+              ref={hiddenInputRef}
+              type="text"
+              inputMode="none"
+              onKeyDown={(e) => {
+                if (recordingAction) {
+                  e.preventDefault();
+                  const mappedKey = e.key;
+                  setPedalMappings(prev => {
+                    const updated = { ...prev, [recordingAction]: mappedKey };
+                    localStorage.setItem('campfire_pedal_mappings', JSON.stringify(updated));
+                    return updated;
+                  });
+                  setRecordingAction(null);
+                  if (hiddenInputRef.current) {
+                    hiddenInputRef.current.blur();
+                  }
+                }
+              }}
+              className="opacity-0 absolute pointer-events-none w-0 h-0"
+              aria-hidden="true"
+            />
+
             <div className="flex items-center justify-between border-b border-stone-150 pb-3 mb-4">
               <div className="flex flex-col text-left">
                 <span className="text-[10px] uppercase font-black tracking-widest text-stone-400">Bluetooth Page Turner Setup</span>
