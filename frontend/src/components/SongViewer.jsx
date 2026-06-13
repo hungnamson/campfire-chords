@@ -1807,7 +1807,8 @@ export default function SongViewer({
                   <div className="fixed inset-0 z-40" onClick={() => setShowShareMenu(false)}></div>
                   <div className="absolute right-0 mt-2 w-48 bg-white border border-stone-200 rounded-xl shadow-2xl z-50 p-2 text-left">
                     <button
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setShowShareMenu(false);
                         setShowPedalConfig(true);
                       }}
@@ -2209,7 +2210,8 @@ export default function SongViewer({
                   <div className="fixed inset-0 z-40" onClick={() => setShowShareMenu(false)}></div>
                   <div className="absolute right-0 mt-2 w-48 bg-white border border-stone-200 rounded-lg shadow-xl z-50 p-1.5 text-left">
                     <button
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setShowShareMenu(false);
                         setShowPedalConfig(true);
                       }}
