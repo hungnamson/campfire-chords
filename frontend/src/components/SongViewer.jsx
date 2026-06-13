@@ -1170,7 +1170,7 @@ export default function SongViewer({
       sessionMimeTypeRef.current = mimeType;
 
       let chunks = [];
-      const recorder = new MediaRecorder(stream, { mimeType });
+      const recorder = new MediaRecorder(stream, { mimeType, audioBitsPerSecond: 256000 });
       
       recorder.ondataavailable = (e) => {
         if (e.data && e.data.size > 0) {
