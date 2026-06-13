@@ -3504,7 +3504,7 @@ export default function App() {
                       {/* Grid Selector Popover */}
                       <div className="absolute bottom-full left-4 right-4 sm:left-1/2 sm:-translate-x-1/2 sm:w-[325px] sm:max-w-sm mb-3.5 bg-white border border-stone-200 rounded-xl shadow-2xl p-4 z-50 animate-fade-in text-center select-none max-h-[82vh] overflow-y-auto no-scrollbar">
                         <div className="flex items-center justify-between border-b border-stone-100 pb-2 mb-3">
-                          <span className="text-[10px] uppercase font-extrabold tracking-widest text-stone-400">Quick Key Selection - v1.8.0</span>
+                          <span className="text-[10px] uppercase font-extrabold tracking-widest text-stone-400">Quick Key Selection - v1.9.0</span>
                           <button
                             onClick={() => {
                               setTransposeOffset(0);
@@ -3773,14 +3773,31 @@ export default function App() {
             </div>
 
             <div className="flex flex-col gap-6 overflow-y-auto pr-1 no-scrollbar">
-              {/* v1.8.0 */}
+              {/* v1.9.0 */}
               <div className="flex gap-4">
                 <div className="flex flex-col items-center">
-                  <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-700 tracking-wider font-mono">v1.8.0</span>
+                  <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-700 tracking-wider font-mono">v1.9.0</span>
                   <div className="w-[1.5px] bg-stone-200 flex-grow mt-2"></div>
                 </div>
                 <div className="flex-grow pb-2">
                   <span className="text-[10px] font-black uppercase text-stone-400 tracking-widest">Hiện tại / Current</span>
+                  <p className="text-xs font-bold text-stone-800 mt-1">Hash Routing & Ghi âm Buổi hát (Session Record)</p>
+                  <ul className="list-disc list-inside text-[11px] text-stone-600 mt-2 space-y-1 pl-1">
+                    <li>Định tuyến URL Hash (Hash Routing): Đồng bộ hóa các tab, bài hát và setlist với lịch sử trình duyệt. Nhấn nút Back/Forward của trình duyệt để điều hướng mượt mà thay vì thoát app.</li>
+                    <li>Ghi âm buổi hát (Session Record): Cho phép người dùng ghi âm trực tiếp giọng hát và nhạc cụ qua micro để kiểm tra chất lượng.</li>
+                    <li>Tối ưu hóa âm thanh ghi âm: Tắt bộ khử tiếng vang (echoCancellation) mặc định của trình duyệt để thu âm thanh mượt mà không bị ngắt quãng khi đang phát điệu trống (Style).</li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* v1.8.0 */}
+              <div className="flex gap-4">
+                <div className="flex flex-col items-center">
+                  <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-stone-100 border border-stone-200 text-stone-755 tracking-wider font-mono">v1.8.0</span>
+                  <div className="w-[1.5px] bg-stone-200 flex-grow mt-2"></div>
+                </div>
+                <div className="flex-grow pb-2">
+                  <span className="text-[10px] font-black uppercase text-stone-400 tracking-widest">13/06/2026</span>
                   <p className="text-xs font-bold text-stone-800 mt-1">Giao diện Trang chủ & Setlists mới</p>
                   <ul className="list-disc list-inside text-[11px] text-stone-600 mt-2 space-y-1 pl-1">
                     <li>Trang chủ mới: Thêm 4 thẻ Thao tác nhanh, thanh cuộn Khám phá thể loại và Xếp hạng Bài hát thịnh hành.</li>
