@@ -1767,6 +1767,16 @@ export default function SongViewer({
                     <button
                       onClick={() => {
                         setShowShareMenu(false);
+                        setShowPedalConfig(true);
+                      }}
+                      className="w-full flex-shrink-0 flex items-center gap-2.5 p-2.5 hover:bg-stone-50 text-xs rounded-lg text-stone-700 transition-colors"
+                    >
+                      <Keyboard className="w-4 h-4 text-stone-500" />
+                      <span>Cài đặt Bàn đạp Pedal</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowShareMenu(false);
                         setShowRhythmMenu(true);
                       }}
                       className="w-full flex-shrink-0 flex items-center gap-2.5 p-2.5 hover:bg-stone-50 text-xs rounded-lg text-stone-700 transition-colors"
@@ -2137,14 +2147,7 @@ export default function SongViewer({
               <Youtube className="w-4.5 h-4.5" />
             </button>
 
-            {/* Bluetooth Pedal Settings Trigger */}
-            <button
-              onClick={() => setShowPedalConfig(true)}
-              className="p-1.5 rounded-full hover:bg-stone-200 text-stone-400 hover:text-stone-700 transition-colors"
-              title="Bluetooth Pedal Settings"
-            >
-              <Keyboard className="w-4.5 h-4.5" />
-            </button>
+
 
             {/* Share/Print Menu Trigger */}
             <div className="relative">
@@ -2159,6 +2162,16 @@ export default function SongViewer({
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setShowShareMenu(false)}></div>
                   <div className="absolute right-0 mt-2 w-48 bg-white border border-stone-200 rounded-lg shadow-xl z-50 p-1.5 text-left">
+                    <button
+                      onClick={() => {
+                        setShowShareMenu(false);
+                        setShowPedalConfig(true);
+                      }}
+                      className="w-full flex items-center gap-2 p-2 hover:bg-stone-50 text-xs rounded text-stone-700 transition-colors"
+                    >
+                      <Keyboard className="w-3.5 h-3.5 text-stone-500" />
+                      <span>Bàn Đạp Pedal</span>
+                    </button>
                     {navigator.share && (
                       <button
                         onClick={async () => {
@@ -2627,15 +2640,7 @@ export default function SongViewer({
             <LayoutGrid className="w-5 h-5" />
           </button>
 
-          {/* Button 4: Bluetooth Pedal Config Modal Toggle */}
-          <button
-            onClick={(e) => { e.stopPropagation(); triggerShowControls(); setShowPedalConfig(true); }}
-            onTouchStart={(e) => { e.stopPropagation(); triggerShowControls(); }}
-            className={`w-11 h-11 flex items-center justify-center bg-white/95 border border-stone-200 rounded-full shadow-lg hover:bg-stone-100 text-stone-700 active:scale-90 transition pointer-events-auto backdrop-blur-sm`}
-            title="Bluetooth Pedal Settings"
-          >
-            <Keyboard className="w-5 h-5" />
-          </button>
+
         </div>
       )}
 
