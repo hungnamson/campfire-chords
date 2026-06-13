@@ -66,6 +66,8 @@ export default function App() {
   const [fetchSongsError, setFetchSongsError] = useState(false);
   const [activeSongId, setActiveSongId] = useState(null);
   const [activeTab, setActiveTab] = useState('library'); // library, setlists, add
+  const [selectedPlaylistId, setSelectedPlaylistId] = useState(null);
+  const [activePlaylistSongs, setActivePlaylistSongs] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [onlineResults, setOnlineResults] = useState([]);
@@ -599,10 +601,7 @@ export default function App() {
 
   // Playlist state
   const [newPlaylistName, setNewPlaylistName] = useState('');
-  const [selectedPlaylistId, setSelectedPlaylistId] = useState(null);
 
-  // Next/Prev setlist navigation context
-  const [activePlaylistSongs, setActivePlaylistSongs] = useState([]);
 
   // Monitor online status
   useEffect(() => {
@@ -617,6 +616,58 @@ export default function App() {
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
+
+  // Hash Routing Synchronizer
+  useEffect(() => {
+    const parseHash = () => {
+      const hash = window.location.hash || '#/library';
+      
+      if (hash.startsWith('#/song/')) {
+        const songId = hash.replace('#/song/', '');
+        const parsedId = isNaN(Number(songId)) ? songId : Number(songId);
+        setActiveSongId(parsedId);
+      } else if (hash.startsWith('#/setlist/')) {
+        const playlistId = hash.replace('#/setlist/', '');
+        const parsedId = isNaN(Number(playlistId)) ? playlistId : Number(playlistId);
+        setSelectedPlaylistId(parsedId);
+        setActiveTab('setlists');
+        setActiveSongId(null);
+      } else {
+        const tab = hash.replace('#/', '');
+        const validTabs = ['library', 'setlists', 'history', 'add'];
+        if (validTabs.includes(tab)) {
+          setActiveTab(tab);
+        } else {
+          setActiveTab('library');
+        }
+        setSelectedPlaylistId(null);
+        setActiveSongId(null);
+      }
+    };
+
+    parseHash();
+
+    window.addEventListener('hashchange', parseHash);
+    return () => {
+      window.removeEventListener('hashchange', parseHash);
+    };
+  }, []);
+
+  // Update hash when state changes
+  useEffect(() => {
+    let expectedHash = '#/library';
+    if (activeSongId !== null) {
+      expectedHash = `#/song/${activeSongId}`;
+    } else if (selectedPlaylistId !== null) {
+      expectedHash = `#/setlist/${selectedPlaylistId}`;
+    } else {
+      expectedHash = `#/${activeTab}`;
+    }
+
+    if (window.location.hash !== expectedHash) {
+      window.location.hash = expectedHash;
+    }
+  }, [activeTab, activeSongId, selectedPlaylistId]);
 
   // Fetch initial data
   useEffect(() => {
