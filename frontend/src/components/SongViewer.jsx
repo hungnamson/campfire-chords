@@ -647,6 +647,41 @@ export default function SongViewer({
     }, 1500);
   };
 
+  const updateBpm = (newBpm) => {
+    const activeStyleName = currentRhythm || DRUM_STYLES[0].name;
+    const targetStyle = DRUM_STYLES.find(s => s.name === activeStyleName);
+    if (targetStyle) {
+      setDrumStyles(prev => prev.map(s => s.name === activeStyleName ? { ...s, bpm: newBpm } : s));
+      if (playingStyle === activeStyleName && targetStyle.audioFile && audioPlayerRef.current) {
+        audioPlayerRef.current.playbackRate = newBpm / targetStyle.originalBpm;
+      }
+    }
+  };
+
+  const tapTimesRef = useRef([]);
+  const handleTapTempo = (e) => {
+    if (e) e.stopPropagation();
+    const now = Date.now();
+    // Keep taps from the last 2 seconds
+    const recentTaps = tapTimesRef.current.filter(t => now - t < 2000);
+    recentTaps.push(now);
+    tapTimesRef.current = recentTaps;
+
+    if (recentTaps.length >= 2) {
+      let totalInterval = 0;
+      for (let i = 1; i < recentTaps.length; i++) {
+        totalInterval += (recentTaps[i] - recentTaps[i - 1]);
+      }
+      const avgInterval = totalInterval / (recentTaps.length - 1);
+      const calculatedBpm = Math.round(60000 / avgInterval);
+      const newBpm = Math.max(40, Math.min(200, calculatedBpm));
+      updateBpm(newBpm);
+      triggerToast(`Bpm Tap: ${newBpm} BPM`);
+    } else {
+      triggerToast("Chạm nhịp nữa...");
+    }
+  };
+
   // Audio Context and Scheduling refs
   const audioContextRef = useRef(null);
   const schedulerIntervalRef = useRef(null);
@@ -1657,14 +1692,21 @@ export default function SongViewer({
           
           <div className="flex items-center gap-2.5 shrink-0">
             {hasRhythmMatch && (
-              <span 
-                onClick={(e) => { e.stopPropagation(); setShowRhythmMenu(true); }}
-                className="px-2 py-1 bg-orange-100 text-orange-800 text-[10px] font-black uppercase rounded-full tracking-wider border border-orange-200 select-none cursor-pointer active:scale-95 transition flex items-center gap-1"
-              >
-                <span>{currentRhythm}</span>
-                <span className="opacity-40">•</span>
-                <span className="font-mono text-[9px]">{(DRUM_STYLES.find(s => s.name === currentRhythm) || DRUM_STYLES[0]).bpm} BPM</span>
-              </span>
+              <>
+                <span 
+                  onClick={(e) => { e.stopPropagation(); setShowRhythmMenu(true); }}
+                  className="px-2 py-1 bg-orange-100 text-orange-800 text-[10px] font-black uppercase rounded-full tracking-wider border border-orange-200 select-none cursor-pointer active:scale-95 transition"
+                >
+                  {currentRhythm}
+                </span>
+                <button 
+                  onClick={handleTapTempo}
+                  className="px-2 py-1 bg-amber-100 text-amber-800 text-[10px] font-black uppercase rounded-full tracking-wider border border-amber-200 select-none cursor-pointer active:scale-90 transition font-mono active:bg-amber-200"
+                  title="Chạm để dò tốc độ (Tap Tempo)"
+                >
+                  {(DRUM_STYLES.find(s => s.name === currentRhythm) || DRUM_STYLES[0]).bpm} BPM
+                </button>
+              </>
             )}
 
             {/* Play Button in mobile header (now opens the Rhythm Selector modal) */}
@@ -1921,17 +1963,21 @@ export default function SongViewer({
 
             <button
               onClick={() => setShowRhythmMenu(!showRhythmMenu)}
-              className="rhythm-trigger-button px-2.5 py-1.5 bg-stone-200/60 hover:bg-stone-200 border border-stone-300/60 rounded-full text-[10px] font-black text-stone-600 uppercase tracking-wider select-none cursor-pointer flex items-center gap-1.5 transition-all duration-150 active:scale-95 shadow-sm"
+              className="rhythm-trigger-button px-2.5 py-1.5 bg-stone-200/60 hover:bg-stone-200 border border-stone-300/60 rounded-full text-[10px] font-black text-stone-600 uppercase tracking-wider select-none cursor-pointer flex items-center gap-1 transition-all duration-150 active:scale-95 shadow-sm"
             >
               <span>{hasRhythmMatch ? currentRhythm.trim() : 'SELECT STYLE'}</span>
-              {hasRhythmMatch && (
-                <>
-                  <span className="opacity-40">•</span>
-                  <span className="font-mono text-[9px]">{(DRUM_STYLES.find(s => s.name === currentRhythm) || DRUM_STYLES[0]).bpm} BPM</span>
-                </>
-              )}
               {playingStyle && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>}
             </button>
+
+            {hasRhythmMatch && (
+              <button 
+                onClick={handleTapTempo}
+                className="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-full text-[10px] font-black uppercase tracking-wider select-none cursor-pointer flex items-center gap-1 transition-all duration-150 active:scale-90 shadow-sm font-mono active:bg-amber-200"
+                title="Chạm để dò tốc độ (Tap Tempo)"
+              >
+                {(DRUM_STYLES.find(s => s.name === currentRhythm) || DRUM_STYLES[0]).bpm} BPM
+              </button>
+            )}
 
              {showRhythmMenu && (
                <div 

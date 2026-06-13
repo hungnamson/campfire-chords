@@ -3504,7 +3504,7 @@ export default function App() {
                       {/* Grid Selector Popover */}
                       <div className="absolute bottom-full left-4 right-4 sm:left-1/2 sm:-translate-x-1/2 sm:w-[325px] sm:max-w-sm mb-3.5 bg-white border border-stone-200 rounded-xl shadow-2xl p-4 z-50 animate-fade-in text-center select-none max-h-[82vh] overflow-y-auto no-scrollbar">
                         <div className="flex items-center justify-between border-b border-stone-100 pb-2 mb-3">
-                          <span className="text-[10px] uppercase font-extrabold tracking-widest text-stone-400">Quick Key Selection - v1.12.8</span>
+                          <span className="text-[10px] uppercase font-extrabold tracking-widest text-stone-400">Quick Key Selection - v1.12.9</span>
                           <button
                             onClick={() => {
                               setTransposeOffset(0);
@@ -3773,14 +3773,30 @@ export default function App() {
             </div>
 
             <div className="flex flex-col gap-6 overflow-y-auto pr-1 no-scrollbar">
-              {/* v1.12.8 */}
+              {/* v1.12.9 */}
               <div className="flex gap-4">
                 <div className="flex flex-col items-center">
-                  <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-700 tracking-wider font-mono">v1.12.8</span>
+                  <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-700 tracking-wider font-mono">v1.12.9</span>
                   <div className="w-[1.5px] bg-stone-200 flex-grow mt-2"></div>
                 </div>
                 <div className="flex-grow pb-2">
                   <span className="text-[10px] font-black uppercase text-stone-400 tracking-widest">Hiện tại / Current</span>
+                  <p className="text-xs font-bold text-stone-800 mt-1">Tách biệt nút Điệu và Tốc độ / Tích hợp Bộ dò Tap Tempo</p>
+                  <ul className="list-disc list-inside text-[11px] text-stone-600 mt-2 space-y-1 pl-1">
+                    <li>Tách biệt nhãn: Chia tách phần hiển thị tên điệu nhạc và tốc độ BPM thành hai thẻ nút riêng biệt, giúp giao diện thông thoáng và dễ tương tác hơn.</li>
+                    <li>Bộ dò tốc độ Tap Tempo: Biến nút BPM thành bộ phát hiện nhịp gõ (Tap Tempo detector). Khi chạm liên tiếp vào nút này, ứng dụng sẽ tự động tính toán khoảng thời gian giữa các lần chạm để thiết lập tốc độ (BPM) tương ứng cho nhịp điệu trống.</li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* v1.12.8 */}
+              <div className="flex gap-4">
+                <div className="flex flex-col items-center">
+                  <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-stone-100 border border-stone-200 text-stone-755 tracking-wider font-mono">v1.12.8</span>
+                  <div className="w-[1.5px] bg-stone-200 flex-grow mt-2"></div>
+                </div>
+                <div className="flex-grow pb-2">
+                  <span className="text-[10px] font-black uppercase text-stone-400 tracking-widest">13/06/2026 (Đêm)</span>
                   <p className="text-xs font-bold text-stone-800 mt-1">Chuyển cấu hình Bàn đạp Pedal vào Menu Cài đặt bài viết</p>
                   <ul className="list-disc list-inside text-[11px] text-stone-600 mt-2 space-y-1 pl-1">
                     <li>Dọn dẹp giao diện: Loại bỏ hoàn toàn các biểu tượng bàn phím (Keyboard Icon) chuyên dụng trên thanh công cụ và phím nổi overlay để tránh gây rối mắt.</li>
