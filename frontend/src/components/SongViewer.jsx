@@ -635,6 +635,17 @@ export default function SongViewer({
   const [importCode, setImportCode] = useState('');
   const [importStatus, setImportStatus] = useState('');
   const hiddenInputRef = useRef(null);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastVisible, setToastVisible] = useState(false);
+  const toastTimeoutRef = useRef(null);
+  const triggerToast = (msg) => {
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    setToastMessage(msg);
+    setToastVisible(true);
+    toastTimeoutRef.current = setTimeout(() => {
+      setToastVisible(false);
+    }, 1500);
+  };
 
   // Audio Context and Scheduling refs
   const audioContextRef = useRef(null);
@@ -1303,6 +1314,99 @@ export default function SongViewer({
       songContainerRef.current.focus();
     }
   }, [song, showPedalConfig]);
+
+  // iPad Multi-Touch Gestures (2-finger swipes)
+  useEffect(() => {
+    const touchStart = { x: 0, y: 0, time: 0 };
+    let hasTouchStarted = false;
+
+    const handleTouchStart = (e) => {
+      if (e.touches.length === 2) {
+        hasTouchStarted = true;
+        touchStart.x = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        touchStart.y = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        touchStart.time = Date.now();
+      } else {
+        hasTouchStarted = false;
+      }
+    };
+
+    const handleTouchMove = (e) => {
+      if (e.touches.length === 2 && hasTouchStarted) {
+        // Prevent zoom, pinch, and native page scrolling for 2-finger actions
+        if (e.cancelable) e.preventDefault();
+      }
+    };
+
+    const handleTouchEnd = (e) => {
+      if (!hasTouchStarted) return;
+      hasTouchStarted = false;
+
+      if (e.changedTouches.length > 0) {
+        // Calculate average end position of changed touches
+        let sumX = 0;
+        let sumY = 0;
+        for (let i = 0; i < e.changedTouches.length; i++) {
+          sumX += e.changedTouches[i].clientX;
+          sumY += e.changedTouches[i].clientY;
+        }
+        const x = sumX / e.changedTouches.length;
+        const y = sumY / e.changedTouches.length;
+
+        const diffX = x - touchStart.x;
+        const diffY = y - touchStart.y;
+        const diffTime = Date.now() - touchStart.time;
+
+        const threshold = 55; // pixels threshold
+        if (diffTime < 800) {
+          if (Math.abs(diffX) > Math.abs(diffY)) {
+            // Horizontal Swipe -> Change Tempo
+            if (Math.abs(diffX) > threshold) {
+              const activeStyleName = currentRhythm || DRUM_STYLES[0].name;
+              const targetStyle = DRUM_STYLES.find(s => s.name === activeStyleName);
+              if (targetStyle) {
+                const bpmDiff = diffX > 0 ? 5 : -5;
+                const newBpm = Math.max(40, Math.min(200, targetStyle.bpm + bpmDiff));
+                setDrumStyles(prev => prev.map(s => s.name === activeStyleName ? { ...s, bpm: newBpm } : s));
+                if (playingStyle === activeStyleName && targetStyle.audioFile && audioPlayerRef.current) {
+                  audioPlayerRef.current.playbackRate = newBpm / targetStyle.originalBpm;
+                }
+                triggerToast(`Tempo: ${newBpm} BPM (${diffX > 0 ? '+5' : '-5'})`);
+              }
+            }
+          } else {
+            // Vertical Swipe -> Change Style
+            if (Math.abs(diffY) > threshold) {
+              const currentIndex = DRUM_STYLES.findIndex(s => s.name === currentRhythm);
+              if (currentIndex !== -1) {
+                const indexDiff = diffY < 0 ? 1 : -1; // Swipe Up = next, Swipe Down = prev
+                const nextIndex = (currentIndex + indexDiff + DRUM_STYLES.length) % DRUM_STYLES.length;
+                const nextStyle = DRUM_STYLES[nextIndex];
+                setCurrentRhythm(nextStyle.name);
+                if (playingStyle) startBeat(nextStyle.name);
+                triggerToast(`Điệu trống: ${nextStyle.name}`);
+              }
+            }
+          }
+        }
+      }
+    };
+
+    const container = songContainerRef.current;
+    if (container) {
+      container.addEventListener('touchstart', handleTouchStart, { passive: true });
+      container.addEventListener('touchmove', handleTouchMove, { passive: false });
+      container.addEventListener('touchend', handleTouchEnd, { passive: true });
+    }
+
+    return () => {
+      if (container) {
+        container.removeEventListener('touchstart', handleTouchStart);
+        container.removeEventListener('touchmove', handleTouchMove);
+        container.removeEventListener('touchend', handleTouchEnd);
+      }
+    };
+  }, [currentRhythm, playingStyle, DRUM_STYLES]);
 
   // Session Recording Handlers & Cleanups
   useEffect(() => {
@@ -3200,6 +3304,14 @@ export default function SongViewer({
           >
             Hủy / Stop
           </button>
+        </div>
+      )}
+
+      {/* Visual Toast Notification for multi-touch gestures */}
+      {toastVisible && (
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-55 bg-[#4B2E20] text-[#FFF6E9] border border-orange-300 px-4.5 py-2 rounded-full shadow-2xl font-bold text-xs animate-fade-in select-none tracking-wide flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-orange-400"></span>
+          {toastMessage}
         </div>
       )}
     </div>
