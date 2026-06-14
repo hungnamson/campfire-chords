@@ -25,6 +25,7 @@ const Youtube = (props) => (
 export default function SongViewer({ 
   song, 
   onBack, 
+  onSearchClick,
   onToggleFavorite, 
   playlists, 
   onAddSongToPlaylist, 
@@ -81,8 +82,7 @@ export default function SongViewer({
     setAutoplayTimer(3);
   };
   const [showKeySelector, setShowKeySelector] = useState(false);
-  const [showLocalSearch, setShowLocalSearch] = useState(false);
-  const [localSearchQuery, setLocalSearchQuery] = useState('');
+  const localSearchQuery = '';
 
   const escapeRegExp = (string) => {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -1823,14 +1823,9 @@ export default function SongViewer({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                setShowLocalSearch(!showLocalSearch);
-                if (showLocalSearch) {
-                  setLocalSearchQuery('');
-                }
+                if (onSearchClick) onSearchClick();
               }}
-              className={`p-1.5 rounded-full transition active:scale-95 ${
-                showLocalSearch ? 'bg-orange-100 text-[#FF8A00]' : 'hover:bg-stone-100 text-[#4B2E20]'
-              }`}
+              className="p-1.5 rounded-full hover:bg-stone-100 text-[#4B2E20] active:scale-95 transition"
             >
               <Search className="w-5 h-5" />
             </button>
@@ -2333,17 +2328,10 @@ export default function SongViewer({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                setShowLocalSearch(!showLocalSearch);
-                if (showLocalSearch) {
-                  setLocalSearchQuery('');
-                }
+                if (onSearchClick) onSearchClick();
               }}
-              className={`p-1.5 rounded-full transition active:scale-95 ${
-                showLocalSearch 
-                  ? 'bg-orange-100 text-orange-600 hover:bg-orange-150' 
-                  : 'hover:bg-stone-200 text-stone-400 hover:text-stone-700'
-              }`}
-              title="Tìm lời bài hát"
+              className="p-1.5 rounded-full hover:bg-stone-200 text-stone-400 hover:text-stone-700 transition-colors"
+              title="Tìm kiếm bài hát"
             >
               <Search className="w-4.5 h-4.5" />
             </button>
