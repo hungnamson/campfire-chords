@@ -3504,7 +3504,7 @@ export default function App() {
                       {/* Grid Selector Popover */}
                       <div className="absolute bottom-full left-4 right-4 sm:left-1/2 sm:-translate-x-1/2 sm:w-[325px] sm:max-w-sm mb-3.5 bg-white border border-stone-200 rounded-xl shadow-2xl p-4 z-50 animate-fade-in text-center select-none max-h-[82vh] overflow-y-auto no-scrollbar">
                         <div className="flex items-center justify-between border-b border-stone-100 pb-2 mb-3">
-                          <span className="text-[10px] uppercase font-extrabold tracking-widest text-stone-400">Quick Key Selection - v1.12.11</span>
+                          <span className="text-[10px] uppercase font-extrabold tracking-widest text-stone-400">Quick Key Selection - v1.13.0</span>
                           <button
                             onClick={() => {
                               setTransposeOffset(0);
@@ -3773,14 +3773,30 @@ export default function App() {
             </div>
 
             <div className="flex flex-col gap-6 overflow-y-auto pr-1 no-scrollbar">
-              {/* v1.12.11 */}
+              {/* v1.13.0 */}
               <div className="flex gap-4">
                 <div className="flex flex-col items-center">
-                  <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-700 tracking-wider font-mono">v1.12.11</span>
+                  <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-700 tracking-wider font-mono">v1.13.0</span>
                   <div className="w-[1.5px] bg-stone-200 flex-grow mt-2"></div>
                 </div>
                 <div className="flex-grow pb-2">
                   <span className="text-[10px] font-black uppercase text-stone-400 tracking-widest">Hiện tại / Current</span>
+                  <p className="text-xs font-bold text-stone-800 mt-1">Cập nhật Bộ Sưu Tập Drumbeats WAV Chất Lượng Cao</p>
+                  <ul className="list-disc list-inside text-[11px] text-stone-600 mt-2 space-y-1 pl-1">
+                    <li>Nhạc đệm chất lượng cao: Thay thế toàn bộ các tệp trống cũ bằng 20 bản thu điệu trống định dạng `.wav` chất lượng cao, tối ưu khả năng tạo nhịp đệm vòng lặp (looping).</li>
+                    <li>Đồng bộ hóa nhịp độ: Cập nhật cấu hình nhịp điệu `DRUM_STYLES` để liên kết chính xác nhịp BPM gốc từ tên tệp tin thực tế, giúp duy trì tốc độ và tính toán tỉ lệ phát lại (`playbackRate`) chính xác tuyệt đối.</li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* v1.12.11 */}
+              <div className="flex gap-4">
+                <div className="flex flex-col items-center">
+                  <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-stone-100 border border-stone-200 text-stone-755 tracking-wider font-mono">v1.12.11</span>
+                  <div className="w-[1.5px] bg-stone-200 flex-grow mt-2"></div>
+                </div>
+                <div className="flex-grow pb-2">
+                  <span className="text-[10px] font-black uppercase text-stone-400 tracking-widest">14/06/2026 (Sáng)</span>
                   <p className="text-xs font-bold text-stone-800 mt-1">Duy trì kết nối Pedal sau khi sử dụng Tap Tempo</p>
                   <ul className="list-disc list-inside text-[11px] text-stone-600 mt-2 space-y-1 pl-1">
                     <li>Khôi phục tiêu điểm: Tự động chuyển tiêu điểm (focus) ngược lại vùng thu phím ẩn (keycatcher textarea) ngay sau khi chạm vào nút dò nhịp Tap Tempo. Điều này ngăn chặn việc mất liên kết phím và giúp các thiết bị bàn đạp Bluetooth tiếp tục hoạt động bình thường.</li>
