@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react';
 import { Heart, ArrowLeft, Plus, Check, Minimize2, Maximize2, Info, ExternalLink, X, Share2, Printer, Link, Play, Square, Search, MoreVertical, ChevronDown, LayoutGrid, Pause, Mic, ChevronLeft, ChevronRight, Keyboard } from 'lucide-react';
 import { transposeChord, NOTE_TO_SEMITONE } from '../utils/transposer';
 import ChordDiagram from './ChordDiagram';
