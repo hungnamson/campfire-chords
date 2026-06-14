@@ -74,6 +74,16 @@
       "timestamp": "2026-06-14T21:58:31.137Z",
       "userId": "hungtm",
       "sessionId": "sqdr2t4qnme"
+    },
+    {
+      "timestamp": "2026-06-14T22:00:45.765Z",
+      "userId": "hungtm",
+      "sessionId": "tpnsaq4wnw"
+    },
+    {
+      "timestamp": "2026-06-14T22:02:24.570Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn"
     }
   ],
   "featureUsage": {
@@ -269,6 +279,36 @@
       "timestamp": "2026-06-14T21:57:39.003Z",
       "userId": "hungtm",
       "sessionId": "rznfdkm8dfj",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T22:01:15.945Z",
+      "userId": "hungtm",
+      "sessionId": "tpnsaq4wnw",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T22:01:45.973Z",
+      "userId": "hungtm",
+      "sessionId": "tpnsaq4wnw",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T22:02:15.983Z",
+      "userId": "hungtm",
+      "sessionId": "tpnsaq4wnw",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T22:02:54.572Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T22:03:24.578Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
       "durationSeconds": 30
     }
   ]

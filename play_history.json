@@ -220,5 +220,17 @@
     "songId": "nhan-canh-chim-chieu-0-9",
     "playCount": 1,
     "lastPlayed": "2026-06-14T21:44:39.554Z"
+  },
+  {
+    "userId": "hungtm",
+    "songId": "bay-di-canh-chim-bien-0-9",
+    "playCount": 2,
+    "lastPlayed": "2026-06-14T22:02:44.187Z"
+  },
+  {
+    "userId": "hungtm",
+    "songId": "canh-hoa-yeu-0-9",
+    "playCount": 1,
+    "lastPlayed": "2026-06-14T22:02:40.980Z"
   }
 ]

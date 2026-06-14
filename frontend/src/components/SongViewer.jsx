@@ -99,12 +99,14 @@ export default function SongViewer({
   };
 
   const songSuggestions = useMemo(() => {
+    if (!songs || !Array.isArray(songs)) return [];
     if (!songSearchInput.trim()) return [];
     const query = removeAccents(songSearchInput).trim();
     if (!query) return [];
     
     return songs
       .map(s => {
+        if (!s || !s.title) return null;
         const cleanTitle = removeAccents(s.title);
         const cleanArtist = removeAccents(s.artist || '');
         
@@ -122,7 +124,8 @@ export default function SongViewer({
       })
       .filter(Boolean)
       .sort((a, b) => b.score - a.score)
-      .map(item => item.song)
+      .map(item => item?.song)
+      .filter(Boolean)
       .slice(0, 8);
   }, [songSearchInput, songs]);
 
@@ -651,8 +654,8 @@ export default function SongViewer({
 
   const isMobile = windowSize.width < 768;
 
-  const cleanArtist = (song.artist && song.artist.trim() !== '0-9' && song.artist.toLowerCase().trim() !== 'khuyết danh') ? song.artist.trim() : '';
-  const cleanComposer = (song.composer && song.composer.trim() !== '0-9' && song.composer.toLowerCase().trim() !== 'khuyết danh') ? song.composer.trim() : '';
+  const cleanArtist = (song && song.artist && typeof song.artist === 'string' && song.artist.trim() !== '0-9' && song.artist.toLowerCase().trim() !== 'khuyết danh') ? song.artist.trim() : '';
+  const cleanComposer = (song && song.composer && typeof song.composer === 'string' && song.composer.trim() !== '0-9' && song.composer.toLowerCase().trim() !== 'khuyết danh') ? song.composer.trim() : '';
   
   const displayMeta = (() => {
     if (cleanArtist && cleanComposer) {
