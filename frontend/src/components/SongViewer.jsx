@@ -667,6 +667,11 @@ export default function SongViewer({
     recentTaps.push(now);
     tapTimesRef.current = recentTaps;
 
+    // Restore key catcher focus to keep keyboard pedal active
+    if (hiddenInputRef.current) {
+      hiddenInputRef.current.focus();
+    }
+
     if (recentTaps.length >= 2) {
       let totalInterval = 0;
       for (let i = 1; i < recentTaps.length; i++) {
