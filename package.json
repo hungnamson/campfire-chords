@@ -1,6 +1,6 @@
 {
   "name": "campfire-chords",
-  "version": "1.13.1",
+  "version": "1.13.2",
   "description": "Offline Lyrics & Chords Guitar App for Campfires",
   "type": "module",
   "main": "server.js",

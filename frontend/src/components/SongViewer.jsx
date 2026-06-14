@@ -1714,9 +1714,6 @@ export default function SongViewer({
       }}
       onTouchStart={(e) => {
         triggerShowControls();
-        if (!isInteractiveElement(e.target) && hiddenInputRef.current) {
-          hiddenInputRef.current.focus();
-        }
       }}
       tabIndex={0}
       className="song-viewer-container outline-none flex flex-col min-h-screen text-stone-900 bg-stone-100 md:bg-white pb-28 animate-fade-in-opacity w-full md:max-w-[96vw] self-center mx-auto md:shadow-lg md:border-x md:border-stone-200/80 cursor-default relative" 
