@@ -81,6 +81,47 @@ export default function SongViewer({
     setAutoplayTimer(3);
   };
   const [showKeySelector, setShowKeySelector] = useState(false);
+  const [showLocalSearch, setShowLocalSearch] = useState(false);
+  const [localSearchQuery, setLocalSearchQuery] = useState('');
+
+  const escapeRegExp = (string) => {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  };
+
+  const highlightText = (text, query) => {
+    if (!query || !text) return text;
+    const parts = text.split(new RegExp(`(${escapeRegExp(query)})`, 'gi'));
+    return parts.map((part, i) => 
+      part.toLowerCase() === query.toLowerCase() 
+        ? <mark key={i} className="bg-yellow-250 text-stone-950 px-0.5 rounded font-extrabold">{part}</mark>
+        : part
+    );
+  };
+
+  const isInteractiveElement = (el) => {
+    if (!el) return false;
+    let cur = el;
+    while (cur && cur !== document.body) {
+      if (cur.tagName && ['BUTTON', 'INPUT', 'TEXTAREA', 'A', 'SELECT', 'OPTION'].includes(cur.tagName)) {
+        return true;
+      }
+      if (cur.getAttribute && (
+        cur.getAttribute('role') === 'button' || 
+        cur.getAttribute('contenteditable') === 'true' ||
+        (cur.className && typeof cur.className === 'string' && (
+          cur.className.includes('rhythm-trigger-button') ||
+          cur.className.includes('style-menu') ||
+          cur.className.includes('share-menu') ||
+          cur.className.includes('chord-inline')
+        ))
+      )) {
+        return true;
+      }
+      cur = cur.parentNode;
+    }
+    return false;
+  };
+
   const [keepScreenAwake, setKeepScreenAwake] = useState(true);
   const wakeLockRef = useRef(null);
 
@@ -1667,15 +1708,13 @@ export default function SongViewer({
       onClick={(e) => {
         e.stopPropagation();
         triggerShowControls();
-        const clickedTag = e.target.tagName;
-        if (!['INPUT', 'TEXTAREA'].includes(clickedTag) && hiddenInputRef.current) {
+        if (!isInteractiveElement(e.target) && hiddenInputRef.current) {
           hiddenInputRef.current.focus();
         }
       }}
       onTouchStart={(e) => {
         triggerShowControls();
-        const clickedTag = e.target.tagName;
-        if (!['INPUT', 'TEXTAREA'].includes(clickedTag) && hiddenInputRef.current) {
+        if (!isInteractiveElement(e.target) && hiddenInputRef.current) {
           hiddenInputRef.current.focus();
         }
       }}
@@ -1734,15 +1773,16 @@ export default function SongViewer({
 
             {/* Search Trigger Button */}
             <button
-              onClick={() => {
-                onBack();
-                // Trigger focus search input
-                setTimeout(() => {
-                  const searchInput = document.querySelector('input[type="text"]') || document.getElementById('search-input');
-                  if (searchInput) searchInput.focus();
-                }, 150);
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowLocalSearch(!showLocalSearch);
+                if (showLocalSearch) {
+                  setLocalSearchQuery('');
+                }
               }}
-              className="p-1.5 rounded-full hover:bg-stone-100 text-[#4B2E20] active:scale-95 transition"
+              className={`p-1.5 rounded-full transition active:scale-95 ${
+                showLocalSearch ? 'bg-orange-100 text-[#FF8A00]' : 'hover:bg-stone-100 text-[#4B2E20]'
+              }`}
             >
               <Search className="w-5 h-5" />
             </button>
@@ -2188,6 +2228,25 @@ export default function SongViewer({
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
+            {/* Local Search Trigger Button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowLocalSearch(!showLocalSearch);
+                if (showLocalSearch) {
+                  setLocalSearchQuery('');
+                }
+              }}
+              className={`p-1.5 rounded-full transition active:scale-95 ${
+                showLocalSearch 
+                  ? 'bg-orange-100 text-orange-600 hover:bg-orange-150' 
+                  : 'hover:bg-stone-200 text-stone-400 hover:text-stone-700'
+              }`}
+              title="Tìm lời bài hát"
+            >
+              <Search className="w-4.5 h-4.5" />
+            </button>
+
             {/* YouTube Search Button */}
             <button
               onClick={() => {
@@ -2368,7 +2427,41 @@ export default function SongViewer({
         </header>
       )}
 
-
+      {showLocalSearch && (
+        <div 
+          onClick={(e) => e.stopPropagation()} 
+          className="sticky top-[52px] z-20 bg-stone-50 border-b border-stone-200 px-4 py-2 flex items-center gap-2 shadow-xs animate-fade-in w-full md:max-w-xl mx-auto md:rounded-lg md:border md:my-2"
+        >
+          <div className="relative flex-grow">
+            <input
+              type="text"
+              placeholder="Tìm lời nhạc trong bài..."
+              value={localSearchQuery}
+              onChange={(e) => setLocalSearchQuery(e.target.value)}
+              className="w-full bg-white border border-stone-250 rounded-lg pl-8 pr-8 py-1.5 text-xs outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/20"
+              autoFocus
+            />
+            <Search className="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+            {localSearchQuery && (
+              <button
+                onClick={() => setLocalSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+          <button
+            onClick={() => {
+              setShowLocalSearch(false);
+              setLocalSearchQuery('');
+            }}
+            className="text-[10px] font-black uppercase text-stone-500 hover:text-stone-855 bg-stone-200/50 hover:bg-stone-200 px-3 py-2 rounded-lg transition"
+          >
+            Đóng
+          </button>
+        </div>
+      )}
 
       <main className={`flex-grow flex flex-col transition-all duration-200 ${localIsCompact ? 'px-3.5 py-2 md:p-3' : 'px-4.5 py-4 md:p-0 bg-white'}`}>
         {playlistLength > 0 && (
@@ -2439,7 +2532,7 @@ export default function SongViewer({
               if (parsed.isComment) {
                 return (
                   <div key={index} className={`comment-line ${isMobile ? 'compact' : ''}`}>
-                    {parsed.text}
+                    {highlightText(parsed.text, localSearchQuery)}
                   </div>
                 );
               }
@@ -2456,7 +2549,7 @@ export default function SongViewer({
                           {chunk.chord}
                         </span>
                       )}
-                      {chunk.text}
+                      {highlightText(chunk.text, localSearchQuery)}
                     </React.Fragment>
                   ))}
                 </div>

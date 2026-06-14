@@ -184,5 +184,23 @@
     "songId": "mua-chieu-lam-thuy-van",
     "playCount": 2,
     "lastPlayed": "2026-06-13T20:07:53.975Z"
+  },
+  {
+    "userId": "hungtm",
+    "songId": "tinh-khuc-buon-0-9",
+    "playCount": 1,
+    "lastPlayed": "2026-06-14T19:04:19.952Z"
+  },
+  {
+    "userId": "hungtm",
+    "songId": "yeu-em-giua-doi-quen-lang-0-9",
+    "playCount": 1,
+    "lastPlayed": "2026-06-14T19:04:53.017Z"
+  },
+  {
+    "userId": "hungtm",
+    "songId": "truong-cu-tinh-xua-0-9",
+    "playCount": 2,
+    "lastPlayed": "2026-06-14T19:05:52.538Z"
   }
 ]
