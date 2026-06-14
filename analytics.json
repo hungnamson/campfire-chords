@@ -19,6 +19,21 @@
       "timestamp": "2026-06-14T21:41:35.783Z",
       "userId": "hungtm",
       "sessionId": "aac2bsiwysc"
+    },
+    {
+      "timestamp": "2026-06-14T21:43:41.231Z",
+      "userId": "hungtm",
+      "sessionId": "h76i6prb9dl"
+    },
+    {
+      "timestamp": "2026-06-14T21:43:56.740Z",
+      "userId": "hungtm",
+      "sessionId": "8ikjpbiz3ji"
+    },
+    {
+      "timestamp": "2026-06-14T21:47:15.508Z",
+      "userId": "hungtm",
+      "sessionId": "16p8ww7qewh"
     }
   ],
   "featureUsage": {
@@ -64,6 +79,60 @@
       "timestamp": "2026-06-14T21:43:05.784Z",
       "userId": "hungtm",
       "sessionId": "aac2bsiwysc",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T21:43:35.782Z",
+      "userId": "hungtm",
+      "sessionId": "aac2bsiwysc",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T21:44:26.738Z",
+      "userId": "hungtm",
+      "sessionId": "8ikjpbiz3ji",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T21:44:56.742Z",
+      "userId": "hungtm",
+      "sessionId": "8ikjpbiz3ji",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T21:45:26.736Z",
+      "userId": "hungtm",
+      "sessionId": "8ikjpbiz3ji",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T21:45:56.735Z",
+      "userId": "hungtm",
+      "sessionId": "8ikjpbiz3ji",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T21:46:26.738Z",
+      "userId": "hungtm",
+      "sessionId": "8ikjpbiz3ji",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T21:46:56.736Z",
+      "userId": "hungtm",
+      "sessionId": "8ikjpbiz3ji",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T21:47:45.505Z",
+      "userId": "hungtm",
+      "sessionId": "16p8ww7qewh",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T21:48:15.508Z",
+      "userId": "hungtm",
+      "sessionId": "16p8ww7qewh",
       "durationSeconds": 30
     }
   ]

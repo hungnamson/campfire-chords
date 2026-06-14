@@ -1721,7 +1721,58 @@ export default function SongViewer({
     >
             {isMobile ? (
         <header className="sticky top-0 z-30 bg-[#FFFBF6]/95 backdrop-blur border-b border-stone-200/60 flex items-center justify-between px-4 py-3 shadow-none">
-          <div className="flex items-center gap-3 min-w-0 flex-grow mr-2">
+          {showLocalSearch ? (
+            <div 
+              className="flex items-center gap-3 w-full animate-fade-in"
+              onClick={(e) => e.stopPropagation()}
+              onTouchStart={(e) => e.stopPropagation()}
+            >
+              <div className="relative flex-grow">
+                <input
+                  type="text"
+                  placeholder="Tìm lời nhạc trong bài..."
+                  value={localSearchQuery}
+                  onChange={(e) => setLocalSearchQuery(e.target.value)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setLocalSearchQuery('');
+                  }}
+                  onTouchStart={(e) => {
+                    e.stopPropagation();
+                  }}
+                  onFocus={() => {
+                    setLocalSearchQuery('');
+                  }}
+                  className="w-full bg-stone-100 border border-stone-200 rounded-full pl-8 pr-8 py-1.5 text-xs outline-none focus:bg-white focus:border-orange-500 focus:ring-1 focus:ring-orange-500/20 text-[#4B2E20]"
+                  autoFocus
+                />
+                <Search className="w-3.5 h-3.5 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                {localSearchQuery && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setLocalSearchQuery('');
+                    }}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowLocalSearch(false);
+                  setLocalSearchQuery('');
+                }}
+                className="text-xs font-black uppercase text-stone-550 hover:text-[#FF8A00] transition shrink-0"
+              >
+                Đóng
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-3 min-w-0 flex-grow mr-2">
             <button 
               onClick={onBack}
               className="p-1.5 hover:bg-stone-200/50 rounded-full transition text-stone-700 active:scale-95 shrink-0 animate-fade-in"
@@ -1943,14 +1994,67 @@ export default function SongViewer({
               )}
             </div>
           </div>
+        </>
+        )}
         </header>
       ) : (
         <header className={`sticky top-0 z-30 bg-[#f5f3ef]/90 backdrop-blur border-b border-stone-200 flex items-center justify-between shadow-sm transition-all duration-200 ${
           localIsCompact ? 'px-3 py-1' : 'py-2 song-viewer-padding-x'
         }`}>
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={onBack}
+          {showLocalSearch ? (
+            <div 
+              className="flex items-center gap-3 w-full animate-fade-in md:max-w-xl mx-auto py-1"
+              onClick={(e) => e.stopPropagation()}
+              onTouchStart={(e) => e.stopPropagation()}
+            >
+              <div className="relative flex-grow">
+                <input
+                  type="text"
+                  placeholder="Tìm lời nhạc trong bài..."
+                  value={localSearchQuery}
+                  onChange={(e) => setLocalSearchQuery(e.target.value)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setLocalSearchQuery('');
+                  }}
+                  onTouchStart={(e) => {
+                    e.stopPropagation();
+                  }}
+                  onFocus={() => {
+                    setLocalSearchQuery('');
+                  }}
+                  className="w-full bg-white border border-stone-250 rounded-lg pl-8 pr-8 py-1.5 text-xs outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/20 text-[#4B2E20]"
+                  autoFocus
+                />
+                <Search className="w-3.5 h-3.5 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                {localSearchQuery && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setLocalSearchQuery('');
+                    }}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowLocalSearch(false);
+                  setLocalSearchQuery('');
+                }}
+                className="text-xs font-black uppercase text-stone-550 hover:text-[#FF8A00] transition shrink-0"
+              >
+                Đóng
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={onBack}
               className="p-2 hover:bg-stone-200 rounded-full transition-colors text-stone-600 hover:text-stone-900 shrink-0"
             >
               <ArrowLeft className="w-5 h-5" />
@@ -2421,45 +2525,10 @@ export default function SongViewer({
               </div>
             )}
           </div>
-        </header>
-      )}
-
-      {showLocalSearch && (
-        <div 
-          onClick={(e) => e.stopPropagation()} 
-          onTouchStart={(e) => e.stopPropagation()}
-          className="sticky top-[52px] z-20 bg-stone-50 border-b border-stone-200 px-4 py-2 flex items-center gap-2 shadow-xs animate-fade-in w-full md:max-w-xl mx-auto md:rounded-lg md:border md:my-2"
-        >
-          <div className="relative flex-grow">
-            <input
-              type="text"
-              placeholder="Tìm lời nhạc trong bài..."
-              value={localSearchQuery}
-              onChange={(e) => setLocalSearchQuery(e.target.value)}
-              className="w-full bg-white border border-stone-250 rounded-lg pl-8 pr-8 py-1.5 text-xs outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/20"
-              autoFocus
-            />
-            <Search className="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-            {localSearchQuery && (
-              <button
-                onClick={() => setLocalSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-          <button
-            onClick={() => {
-              setShowLocalSearch(false);
-              setLocalSearchQuery('');
-            }}
-            className="text-[10px] font-black uppercase text-stone-500 hover:text-stone-855 bg-stone-200/50 hover:bg-stone-200 px-3 py-2 rounded-lg transition"
-          >
-            Đóng
-          </button>
-        </div>
-      )}
+        </>
+        )}
+      </header>
+    )}
 
       <main className={`flex-grow flex flex-col transition-all duration-200 ${localIsCompact ? 'px-3.5 py-2 md:p-3' : 'px-4.5 py-4 md:p-0 bg-white'}`}>
         {playlistLength > 0 && (

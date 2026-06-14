@@ -176,8 +176,8 @@
   {
     "userId": "hungtm",
     "songId": "noi-nay-co-anh-0-9",
-    "playCount": 7,
-    "lastPlayed": "2026-06-14T21:41:16.614Z"
+    "playCount": 9,
+    "lastPlayed": "2026-06-14T21:47:18.325Z"
   },
   {
     "userId": "hungtm",
@@ -214,5 +214,11 @@
     "songId": "di-vang-0-9",
     "playCount": 1,
     "lastPlayed": "2026-06-14T21:41:47.143Z"
+  },
+  {
+    "userId": "hungtm",
+    "songId": "nhan-canh-chim-chieu-0-9",
+    "playCount": 1,
+    "lastPlayed": "2026-06-14T21:44:39.554Z"
   }
 ]
