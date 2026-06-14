@@ -2430,6 +2430,7 @@ export default function SongViewer({
       {showLocalSearch && (
         <div 
           onClick={(e) => e.stopPropagation()} 
+          onTouchStart={(e) => e.stopPropagation()}
           className="sticky top-[52px] z-20 bg-stone-50 border-b border-stone-200 px-4 py-2 flex items-center gap-2 shadow-xs animate-fade-in w-full md:max-w-xl mx-auto md:rounded-lg md:border md:my-2"
         >
           <div className="relative flex-grow">

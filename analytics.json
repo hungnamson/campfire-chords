@@ -1,0 +1,37 @@
+{
+  "visits": [
+    {
+      "timestamp": "2026-06-14T21:39:29.229Z",
+      "userId": "hungtm",
+      "sessionId": "28v64zf3cvg"
+    }
+  ],
+  "featureUsage": {
+    "transpose": 0,
+    "tuner": 0,
+    "share": 0,
+    "print": 0,
+    "search_online": 0,
+    "favorite_toggle": 0
+  },
+  "sessionDurations": [
+    {
+      "timestamp": "2026-06-14T21:39:59.226Z",
+      "userId": "hungtm",
+      "sessionId": "28v64zf3cvg",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T21:40:29.227Z",
+      "userId": "hungtm",
+      "sessionId": "28v64zf3cvg",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T21:40:59.222Z",
+      "userId": "hungtm",
+      "sessionId": "28v64zf3cvg",
+      "durationSeconds": 30
+    }
+  ]
+}
