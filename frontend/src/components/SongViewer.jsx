@@ -44,6 +44,8 @@ export default function SongViewer({
   hasPrev,
   playlistIndex,
   playlistLength,
+  songs = [],
+  onSongSelect,
 }) {
   const [isScrolling, setIsScrolling] = useState(false);
   const [scrollSpeed, setScrollSpeed] = useState(3); // 1 to 10
@@ -83,6 +85,46 @@ export default function SongViewer({
   };
   const [showKeySelector, setShowKeySelector] = useState(false);
   const localSearchQuery = '';
+  const [showSongSearch, setShowSongSearch] = useState(false);
+  const [songSearchInput, setSongSearchInput] = useState('');
+
+  const removeAccents = (str) => {
+    if (!str) return '';
+    return str
+      .toString()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[đĐ]/g, 'd');
+  };
+
+  const songSuggestions = useMemo(() => {
+    if (!songSearchInput.trim()) return [];
+    const query = removeAccents(songSearchInput).trim();
+    if (!query) return [];
+    
+    return songs
+      .map(s => {
+        const cleanTitle = removeAccents(s.title);
+        const cleanArtist = removeAccents(s.artist || '');
+        
+        let score = 0;
+        if (cleanTitle.startsWith(query)) {
+          score += 100;
+        } else if (cleanTitle.includes(query)) {
+          score += 50;
+        }
+        if (cleanArtist.includes(query)) {
+          score += 10;
+        }
+        
+        return score > 0 ? { song: s, score } : null;
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.score - a.score)
+      .map(item => item.song)
+      .slice(0, 8);
+  }, [songSearchInput, songs]);
 
   const escapeRegExp = (string) => {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -1721,37 +1763,37 @@ export default function SongViewer({
     >
             {isMobile ? (
         <header className="sticky top-0 z-30 bg-[#FFFBF6]/95 backdrop-blur border-b border-stone-200/60 flex items-center justify-between px-4 py-3 shadow-none">
-          {showLocalSearch ? (
+          {showSongSearch ? (
             <div 
-              className="flex items-center gap-3 w-full animate-fade-in"
+              className="flex items-center gap-3 w-full animate-fade-in relative"
               onClick={(e) => e.stopPropagation()}
               onTouchStart={(e) => e.stopPropagation()}
             >
               <div className="relative flex-grow">
                 <input
                   type="text"
-                  placeholder="Tìm lời nhạc trong bài..."
-                  value={localSearchQuery}
-                  onChange={(e) => setLocalSearchQuery(e.target.value)}
+                  placeholder="Tìm kiếm bài hát..."
+                  value={songSearchInput}
+                  onChange={(e) => setSongSearchInput(e.target.value)}
                   onClick={(e) => {
                     e.stopPropagation();
-                    setLocalSearchQuery('');
+                    setSongSearchInput('');
                   }}
                   onTouchStart={(e) => {
                     e.stopPropagation();
                   }}
                   onFocus={() => {
-                    setLocalSearchQuery('');
+                    setSongSearchInput('');
                   }}
                   className="w-full bg-stone-100 border border-stone-200 rounded-full pl-8 pr-8 py-1.5 text-xs outline-none focus:bg-white focus:border-orange-500 focus:ring-1 focus:ring-orange-500/20 text-[#4B2E20]"
                   autoFocus
                 />
                 <Search className="w-3.5 h-3.5 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                {localSearchQuery && (
+                {songSearchInput && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      setLocalSearchQuery('');
+                      setSongSearchInput('');
                     }}
                     className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
                   >
@@ -1762,13 +1804,45 @@ export default function SongViewer({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  setShowLocalSearch(false);
-                  setLocalSearchQuery('');
+                  setShowSongSearch(false);
+                  setSongSearchInput('');
                 }}
                 className="text-xs font-black uppercase text-stone-550 hover:text-[#FF8A00] transition shrink-0"
               >
                 Đóng
               </button>
+              
+              {/* Floating suggestions dropdown */}
+              {songSearchInput.trim() && (
+                <div className="absolute top-[calc(100%+12px)] left-0 right-0 bg-white border border-stone-200 rounded-xl shadow-2xl max-h-80 overflow-y-auto z-[60] animate-fade-in divide-y divide-stone-100 p-1">
+                  {songSuggestions.length === 0 ? (
+                    <div className="px-4 py-3 text-xs text-stone-400 italic text-center">
+                      Không tìm thấy bài hát nào
+                    </div>
+                  ) : (
+                    songSuggestions.map((s) => (
+                      <div
+                        key={s.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowSongSearch(false);
+                          setSongSearchInput('');
+                          if (onSongSelect) onSongSelect(s.id);
+                        }}
+                        className="px-3 py-2 hover:bg-orange-50 cursor-pointer flex items-center justify-between transition rounded-lg text-left"
+                      >
+                        <div className="flex flex-col min-w-0 pr-2">
+                          <span className="text-xs font-bold text-stone-850 truncate">{s.title}</span>
+                          <span className="text-[10px] text-stone-500 truncate">{s.artist || 'Khuyết danh'}</span>
+                        </div>
+                        <span className="text-[10px] font-black uppercase text-stone-450 bg-stone-100 px-1.5 py-0.5 rounded tracking-wide shrink-0 font-mono">
+                          {s.key}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
           ) : (
             <>
@@ -1823,9 +1897,14 @@ export default function SongViewer({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                if (onSearchClick) onSearchClick();
+                setShowSongSearch(!showSongSearch);
+                if (!showSongSearch) {
+                  setSongSearchInput('');
+                }
               }}
-              className="p-1.5 rounded-full hover:bg-stone-100 text-[#4B2E20] active:scale-95 transition"
+              className={`p-1.5 rounded-full transition active:scale-95 ${
+                showSongSearch ? 'bg-orange-100 text-[#FF8A00]' : 'hover:bg-stone-100 text-[#4B2E20]'
+              }`}
             >
               <Search className="w-5 h-5" />
             </button>
@@ -1996,37 +2075,37 @@ export default function SongViewer({
         <header className={`sticky top-0 z-30 bg-[#f5f3ef]/90 backdrop-blur border-b border-stone-200 flex items-center justify-between shadow-sm transition-all duration-200 ${
           localIsCompact ? 'px-3 py-1' : 'py-2 song-viewer-padding-x'
         }`}>
-          {showLocalSearch ? (
+          {showSongSearch ? (
             <div 
-              className="flex items-center gap-3 w-full animate-fade-in md:max-w-xl mx-auto py-1"
+              className="flex items-center gap-3 w-full animate-fade-in md:max-w-xl mx-auto py-1 relative"
               onClick={(e) => e.stopPropagation()}
               onTouchStart={(e) => e.stopPropagation()}
             >
               <div className="relative flex-grow">
                 <input
                   type="text"
-                  placeholder="Tìm lời nhạc trong bài..."
-                  value={localSearchQuery}
-                  onChange={(e) => setLocalSearchQuery(e.target.value)}
+                  placeholder="Tìm kiếm bài hát..."
+                  value={songSearchInput}
+                  onChange={(e) => setSongSearchInput(e.target.value)}
                   onClick={(e) => {
                     e.stopPropagation();
-                    setLocalSearchQuery('');
+                    setSongSearchInput('');
                   }}
                   onTouchStart={(e) => {
                     e.stopPropagation();
                   }}
                   onFocus={() => {
-                    setLocalSearchQuery('');
+                    setSongSearchInput('');
                   }}
                   className="w-full bg-white border border-stone-250 rounded-lg pl-8 pr-8 py-1.5 text-xs outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/20 text-[#4B2E20]"
                   autoFocus
                 />
                 <Search className="w-3.5 h-3.5 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                {localSearchQuery && (
+                {songSearchInput && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      setLocalSearchQuery('');
+                      setSongSearchInput('');
                     }}
                     className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
                   >
@@ -2037,13 +2116,45 @@ export default function SongViewer({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  setShowLocalSearch(false);
-                  setLocalSearchQuery('');
+                  setShowSongSearch(false);
+                  setSongSearchInput('');
                 }}
                 className="text-xs font-black uppercase text-stone-550 hover:text-[#FF8A00] transition shrink-0"
               >
                 Đóng
               </button>
+              
+              {/* Floating suggestions dropdown */}
+              {songSearchInput.trim() && (
+                <div className="absolute top-[calc(100%+12px)] left-0 right-0 bg-white border border-stone-200 rounded-xl shadow-2xl max-h-80 overflow-y-auto z-[60] animate-fade-in divide-y divide-stone-100 p-1">
+                  {songSuggestions.length === 0 ? (
+                    <div className="px-4 py-3 text-xs text-stone-400 italic text-center">
+                      Không tìm thấy bài hát nào
+                    </div>
+                  ) : (
+                    songSuggestions.map((s) => (
+                      <div
+                        key={s.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowSongSearch(false);
+                          setSongSearchInput('');
+                          if (onSongSelect) onSongSelect(s.id);
+                        }}
+                        className="px-3 py-2 hover:bg-orange-50 cursor-pointer flex items-center justify-between transition rounded-lg text-left"
+                      >
+                        <div className="flex flex-col min-w-0 pr-2">
+                          <span className="text-xs font-bold text-stone-855 truncate">{s.title}</span>
+                          <span className="text-[10px] text-stone-500 truncate">{s.artist || 'Khuyết danh'}</span>
+                        </div>
+                        <span className="text-[10px] font-black uppercase text-stone-450 bg-stone-100 px-1.5 py-0.5 rounded tracking-wide shrink-0 font-mono">
+                          {s.key}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
           ) : (
             <>
@@ -2328,9 +2439,16 @@ export default function SongViewer({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                if (onSearchClick) onSearchClick();
+                setShowSongSearch(!showSongSearch);
+                if (!showSongSearch) {
+                  setSongSearchInput('');
+                }
               }}
-              className="p-1.5 rounded-full hover:bg-stone-200 text-stone-400 hover:text-stone-700 transition-colors"
+              className={`p-1.5 rounded-full transition active:scale-95 ${
+                showSongSearch 
+                  ? 'bg-orange-100 text-orange-600 hover:bg-orange-150' 
+                  : 'hover:bg-stone-200 text-stone-400 hover:text-stone-700'
+              }`}
               title="Tìm kiếm bài hát"
             >
               <Search className="w-4.5 h-4.5" />

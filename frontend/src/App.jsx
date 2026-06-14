@@ -2417,6 +2417,11 @@ export default function App() {
                     hasPrev={hasPrev}
                     playlistIndex={playlistIndex}
                     playlistLength={activePlaylistSongs.length}
+                    songs={songs}
+                    onSongSelect={(id) => {
+                      setActiveSongId(id);
+                      setOnlineSong(null);
+                    }}
                   />
                 );
               })()}
