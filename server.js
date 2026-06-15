@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { onRequest } from "firebase-functions/v2/https";
+import * as functions from "firebase-functions";
 import {
   getSongs,
   getSong,
@@ -712,5 +712,5 @@ if (!process.env.FIREBASE_CONFIG) {
   });
 }
 
-// Export Express app as a Firebase Cloud Function V2
-export const api = onRequest({ cors: true, minInstances: 1 }, app);
+// Export Express app as a Firebase Cloud Function V1 (1st Gen)
+export const api = functions.https.onRequest(app);

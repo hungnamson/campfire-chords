@@ -5,6 +5,7 @@
   },
   "functions": {
     "source": ".",
+    "runtime": "nodejs22",
     "ignore": [
       "frontend",
       "node_modules",
