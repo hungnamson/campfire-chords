@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { onRequest } from "firebase-functions/v2/https";
 import {
   getSongs,
   getSong,
@@ -705,6 +706,11 @@ app.get('*', (req, res) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
-});
+if (!process.env.FIREBASE_CONFIG) {
+  app.listen(PORT, () => {
+    console.log(`Server running at http://localhost:${PORT}`);
+  });
+}
+
+// Export Express app as a Firebase Cloud Function V2
+export const api = onRequest({ cors: true, minInstances: 1 }, app);
