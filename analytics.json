@@ -84,6 +84,21 @@
       "timestamp": "2026-06-14T22:02:24.570Z",
       "userId": "hungtm",
       "sessionId": "v4d2mf7ihjn"
+    },
+    {
+      "timestamp": "2026-06-15T00:52:36.062Z",
+      "userId": "hungtm",
+      "sessionId": "hx43wd9z52"
+    },
+    {
+      "timestamp": "2026-06-15T00:57:51.682Z",
+      "userId": "hungtm",
+      "sessionId": "op502vrzr7"
+    },
+    {
+      "timestamp": "2026-06-15T02:27:59.343Z",
+      "userId": "hungtm",
+      "sessionId": "xeq8arrvz7"
     }
   ],
   "featureUsage": {
@@ -309,6 +324,1248 @@
       "timestamp": "2026-06-14T22:03:24.578Z",
       "userId": "hungtm",
       "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T22:03:54.581Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T22:04:24.580Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T22:04:54.575Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T22:05:24.880Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T22:09:11.436Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T22:26:29.264Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T22:27:29.270Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T22:28:29.269Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T22:29:29.272Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T22:30:29.272Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T22:31:29.272Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T22:32:29.272Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T22:33:29.273Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T22:34:29.272Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T22:35:29.273Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T22:36:29.274Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T22:37:29.275Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T22:38:29.275Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T22:39:29.276Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T22:40:29.276Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T22:41:29.276Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T22:42:29.277Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T22:43:29.277Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T22:44:29.277Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T22:45:29.279Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T22:46:29.284Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T22:47:29.278Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T22:48:29.279Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T22:49:29.281Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T22:50:29.282Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T22:51:29.282Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T22:52:29.281Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T22:53:29.282Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T22:54:29.281Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T22:55:29.287Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T22:56:29.293Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T22:57:29.286Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T22:58:29.289Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T22:59:29.288Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:00:29.290Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:01:29.290Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:02:29.290Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:03:29.290Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:04:29.290Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:05:29.291Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:06:29.298Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:07:29.292Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:08:29.294Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:09:29.295Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:10:29.296Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:11:29.295Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:12:29.295Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:13:29.296Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:14:29.298Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:15:29.298Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:16:29.301Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:17:29.298Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:18:29.294Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:19:29.300Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:20:29.296Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:21:29.299Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:22:29.299Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:23:29.300Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:24:29.279Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:25:29.274Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:26:29.278Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:27:29.277Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:28:29.276Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:29:29.277Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:30:29.276Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:31:29.275Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:32:29.275Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:33:29.276Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:34:29.275Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:35:29.277Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:36:29.277Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:37:29.275Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:38:29.278Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:39:29.278Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:40:29.278Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:41:29.278Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:42:29.277Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:43:29.278Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:44:29.274Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:45:29.277Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:46:29.278Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:47:29.277Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:48:29.277Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:49:29.278Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:50:29.277Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:51:29.278Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:52:29.278Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:53:29.278Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:54:29.270Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:55:29.269Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:56:29.267Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:57:29.267Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:58:29.268Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-14T23:59:29.267Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:00:29.267Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:01:29.263Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:02:29.261Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:03:29.263Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:04:29.267Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:05:29.266Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:06:29.272Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:07:29.267Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:08:29.265Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:09:29.266Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:10:29.266Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:11:29.266Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:12:29.267Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:13:29.265Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:14:29.266Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:15:29.267Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:16:29.261Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:17:29.273Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:18:29.265Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:19:29.266Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:20:29.266Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:21:29.264Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:22:29.273Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:23:29.273Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:24:29.272Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:25:29.271Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:26:29.272Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:27:29.277Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:28:29.273Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:29:29.271Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:30:29.272Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:31:29.273Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:32:29.273Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:33:29.276Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:34:29.273Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:35:29.271Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:36:29.273Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:37:29.278Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:38:29.271Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:39:29.272Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:40:29.274Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:41:29.273Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:42:29.274Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:43:29.273Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:44:29.273Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:45:29.273Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:46:29.268Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:47:29.267Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:48:29.269Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:49:29.268Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:50:29.269Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:51:29.269Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:52:29.716Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:52:35.133Z",
+      "userId": "hungtm",
+      "sessionId": "v4d2mf7ihjn",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:53:06.441Z",
+      "userId": "hungtm",
+      "sessionId": "hx43wd9z52",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:53:36.518Z",
+      "userId": "hungtm",
+      "sessionId": "hx43wd9z52",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:54:06.536Z",
+      "userId": "hungtm",
+      "sessionId": "hx43wd9z52",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:54:36.521Z",
+      "userId": "hungtm",
+      "sessionId": "hx43wd9z52",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:55:06.534Z",
+      "userId": "hungtm",
+      "sessionId": "hx43wd9z52",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:55:36.454Z",
+      "userId": "hungtm",
+      "sessionId": "hx43wd9z52",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:56:43.531Z",
+      "userId": "hungtm",
+      "sessionId": "hx43wd9z52",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:57:43.526Z",
+      "userId": "hungtm",
+      "sessionId": "hx43wd9z52",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:58:21.687Z",
+      "userId": "hungtm",
+      "sessionId": "op502vrzr7",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:58:51.687Z",
+      "userId": "hungtm",
+      "sessionId": "op502vrzr7",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:59:22.529Z",
+      "userId": "hungtm",
+      "sessionId": "op502vrzr7",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T00:59:52.514Z",
+      "userId": "hungtm",
+      "sessionId": "op502vrzr7",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T01:00:22.473Z",
+      "userId": "hungtm",
+      "sessionId": "op502vrzr7",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T01:00:52.531Z",
+      "userId": "hungtm",
+      "sessionId": "op502vrzr7",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T01:01:21.684Z",
+      "userId": "hungtm",
+      "sessionId": "op502vrzr7",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T01:01:52.533Z",
+      "userId": "hungtm",
+      "sessionId": "op502vrzr7",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T01:02:22.539Z",
+      "userId": "hungtm",
+      "sessionId": "op502vrzr7",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T01:02:52.547Z",
+      "userId": "hungtm",
+      "sessionId": "op502vrzr7",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T01:03:43.544Z",
+      "userId": "hungtm",
+      "sessionId": "op502vrzr7",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T01:04:43.523Z",
+      "userId": "hungtm",
+      "sessionId": "op502vrzr7",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T01:05:43.569Z",
+      "userId": "hungtm",
+      "sessionId": "op502vrzr7",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T01:06:43.530Z",
+      "userId": "hungtm",
+      "sessionId": "op502vrzr7",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T01:07:43.562Z",
+      "userId": "hungtm",
+      "sessionId": "op502vrzr7",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T01:08:44.213Z",
+      "userId": "hungtm",
+      "sessionId": "op502vrzr7",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T01:56:30.370Z",
+      "userId": "hungtm",
+      "sessionId": "op502vrzr7",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T02:14:50.072Z",
+      "userId": "hungtm",
+      "sessionId": "op502vrzr7",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T02:15:47.615Z",
+      "userId": "hungtm",
+      "sessionId": "op502vrzr7",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T02:16:47.207Z",
+      "userId": "hungtm",
+      "sessionId": "op502vrzr7",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T02:17:47.213Z",
+      "userId": "hungtm",
+      "sessionId": "op502vrzr7",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T02:18:47.215Z",
+      "userId": "hungtm",
+      "sessionId": "op502vrzr7",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T02:19:47.212Z",
+      "userId": "hungtm",
+      "sessionId": "op502vrzr7",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T02:20:47.277Z",
+      "userId": "hungtm",
+      "sessionId": "op502vrzr7",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T02:21:47.213Z",
+      "userId": "hungtm",
+      "sessionId": "op502vrzr7",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T02:22:47.203Z",
+      "userId": "hungtm",
+      "sessionId": "op502vrzr7",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T02:23:47.210Z",
+      "userId": "hungtm",
+      "sessionId": "op502vrzr7",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T02:24:47.217Z",
+      "userId": "hungtm",
+      "sessionId": "op502vrzr7",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T02:25:47.584Z",
+      "userId": "hungtm",
+      "sessionId": "op502vrzr7",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T02:26:47.197Z",
+      "userId": "hungtm",
+      "sessionId": "op502vrzr7",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T02:27:47.210Z",
+      "userId": "hungtm",
+      "sessionId": "op502vrzr7",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T02:27:55.375Z",
+      "userId": "hungtm",
+      "sessionId": "op502vrzr7",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T02:28:29.344Z",
+      "userId": "hungtm",
+      "sessionId": "xeq8arrvz7",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T02:28:59.345Z",
+      "userId": "hungtm",
+      "sessionId": "xeq8arrvz7",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T02:29:30.195Z",
+      "userId": "hungtm",
+      "sessionId": "xeq8arrvz7",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T02:30:00.231Z",
+      "userId": "hungtm",
+      "sessionId": "xeq8arrvz7",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T02:30:30.232Z",
+      "userId": "hungtm",
+      "sessionId": "xeq8arrvz7",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T02:31:00.201Z",
+      "userId": "hungtm",
+      "sessionId": "xeq8arrvz7",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T02:31:47.221Z",
+      "userId": "hungtm",
+      "sessionId": "xeq8arrvz7",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T02:31:59.348Z",
+      "userId": "hungtm",
+      "sessionId": "xeq8arrvz7",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T02:32:30.221Z",
+      "userId": "hungtm",
+      "sessionId": "xeq8arrvz7",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T02:32:59.348Z",
+      "userId": "hungtm",
+      "sessionId": "xeq8arrvz7",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T02:33:29.350Z",
+      "userId": "hungtm",
+      "sessionId": "xeq8arrvz7",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T02:33:59.354Z",
+      "userId": "hungtm",
+      "sessionId": "xeq8arrvz7",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T02:34:29.351Z",
+      "userId": "hungtm",
+      "sessionId": "xeq8arrvz7",
+      "durationSeconds": 30
+    },
+    {
+      "timestamp": "2026-06-15T02:34:59.353Z",
+      "userId": "hungtm",
+      "sessionId": "xeq8arrvz7",
       "durationSeconds": 30
     }
   ]

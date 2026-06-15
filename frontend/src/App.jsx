@@ -196,6 +196,7 @@ export default function App() {
   const [sessionReport, setSessionReport] = useState(null);
   const [sessionComment, setSessionComment] = useState('');
   const [showQrScanner, setShowQrScanner] = useState(false);
+  const [showPwaGuideModal, setShowPwaGuideModal] = useState(false);
   const qrScannerRef = useRef(null);
   const [setlistFilter, setSetlistFilter] = useState('all');
   const [setlistSearch, setSetlistSearch] = useState('');
@@ -2128,13 +2129,16 @@ export default function App() {
             {showSettingsMenu && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setShowSettingsMenu(false)}></div>
-                <div className="absolute right-0 top-full mt-2.5 w-64 max-h-[calc(100vh-140px)] md:max-h-[calc(100vh-90px)] overflow-y-auto no-scrollbar bg-white border border-stone-200/80 rounded-xl shadow-xl z-50 p-2 text-left animate-fade-in select-none flex flex-col gap-1.5">
-                  {/* User profile / Auth panel */}
+                <div className="absolute right-0 top-full mt-3 w-72 max-h-[calc(100vh-140px)] md:max-h-[calc(100vh-90px)] overflow-y-auto no-scrollbar bg-white border border-stone-200/80 rounded-2xl shadow-xl z-50 p-3.5 text-left animate-fade-in select-none flex flex-col gap-2">
+                  {/* User profile / Auth panel (Redesigned with plenty of space & padding) */}
                   {currentUser ? (
-                    <div className="px-4 py-3 border-b border-stone-100 mb-1.5 flex flex-col gap-1.5">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs text-stone-700 font-bold truncate max-w-[140px]">{currentUser.email}</span>
-                        <span className={`text-[9px] uppercase font-black tracking-wider px-1.5 py-0.5 rounded border shrink-0 ${
+                    <div className="px-5 py-4 border border-[#FFF6E9] bg-[#FFFBF6] rounded-xl mb-1 flex flex-col gap-2.5">
+                      <div className="flex items-center justify-between gap-3 min-w-0">
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-[9px] uppercase font-black tracking-widest text-[#FF8A00]">Tài khoản / Account</span>
+                          <span className="text-xs text-stone-800 font-extrabold truncate mt-0.5" title={currentUser.email}>{currentUser.email}</span>
+                        </div>
+                        <span className={`text-[9px] uppercase font-black tracking-wider px-2 py-0.5 rounded-full border shrink-0 ${
                           currentUser.role === 'admin' 
                             ? 'bg-red-50 text-red-700 border-red-200' 
                             : 'bg-stone-50 text-stone-600 border-stone-200'
@@ -2148,13 +2152,13 @@ export default function App() {
                           setCurrentUser(null);
                           setShowSettingsMenu(false);
                         }}
-                        className="text-left text-[11px] font-bold text-red-700 hover:text-red-800 transition cursor-pointer"
+                        className="text-left text-[11px] font-bold text-red-600 hover:text-red-700 transition active:scale-95 duration-150 cursor-pointer mt-1"
                       >
                         Đăng xuất / Sign Out
                       </button>
                     </div>
                   ) : (
-                    <div className="px-4 py-2.5 border-b border-stone-100 mb-1.5">
+                    <div className="px-5 py-4 border border-stone-200/60 bg-stone-50/50 rounded-xl mb-1">
                       <button
                         onClick={() => {
                           setAuthMode('login');
@@ -2163,14 +2167,14 @@ export default function App() {
                           setShowAuthModal(true);
                           setShowSettingsMenu(false);
                         }}
-                        className="w-full text-center py-2 bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs rounded-xl transition shadow-sm cursor-pointer"
+                        className="w-full text-center py-2.5 bg-[#FF8A00] hover:bg-orange-600 text-white font-black text-xs rounded-xl transition shadow-md active:scale-95 cursor-pointer"
                       >
                         Đăng nhập / Sign In
                       </button>
                     </div>
                   )}
                   
-                  <p className="text-[10px] uppercase font-black tracking-widest text-stone-400 px-4 py-2 border-b border-stone-100 mb-1.5">Features</p>
+                  <p className="text-[10px] uppercase font-black tracking-widest text-stone-400 px-3.5 py-2.5 border-b border-stone-100/80 mb-1">Menu</p>
                   
                   <button
                     onClick={() => {
@@ -2496,96 +2500,110 @@ export default function App() {
 
                       {/* Quick Action Grid */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 select-none">
-                        {/* Action Card 1: Tìm bài hát */}
-                        <div className="bg-white border border-stone-200/80 rounded-2xl p-5 shadow-xs flex flex-col h-40 transition-all hover:shadow-md hover:border-orange-500/20 text-left">
-                          <h4 className="text-sm font-black text-stone-900 font-display flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-orange-500"></span>
-                            Tìm bài hát
-                          </h4>
-                          <p className="text-xs text-stone-500 mt-2 leading-relaxed flex-grow">Tìm nhanh lời nhạc, hợp âm cho bài hát bạn yêu thích.</p>
-                          <div className="flex gap-1.5 mt-auto">
-                            <input
-                              type="text"
-                              placeholder="Tên bài hát..."
-                              value={searchInput}
-                              onChange={(e) => setSearchInput(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  setSearchQuery(searchInput);
-                                }
-                              }}
-                              className="w-full px-2.5 py-1.5 bg-stone-50 border border-stone-200 rounded-lg text-xs font-semibold focus:outline-none"
-                            />
+                        {/* Action Card 1: Cài đặt ứng dụng PWA */}
+                        <div 
+                          onClick={() => setShowPwaGuideModal(true)}
+                          className="bg-white border border-stone-200/80 rounded-2xl p-5 shadow-xs flex flex-col h-40 transition-all hover:shadow-md hover:border-orange-500/20 text-left cursor-pointer bg-cover bg-center bg-no-repeat relative group overflow-hidden active:scale-[0.98]"
+                          style={{ backgroundImage: "url('/assets/ui-png/card_search_song.png')" }}
+                        >
+                          <div className="absolute inset-0 bg-white/90 group-hover:bg-white/85 transition-all duration-300"></div>
+                          <div className="relative z-10 flex flex-col h-full">
+                            <h4 className="text-sm font-black text-stone-900 font-display flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-orange-500 animate-bounce"></span>
+                              Cài đặt Ứng dụng
+                            </h4>
+                            <p className="text-xs text-stone-500 mt-2 leading-relaxed flex-grow">Thêm Campfire Chords vào màn hình chính điện thoại iOS & Android.</p>
                             <button 
-                              onClick={() => setSearchQuery(searchInput)}
-                              className="px-3 py-1.5 bg-[#FF8A00] hover:bg-orange-600 text-white rounded-lg text-xs font-bold transition active:scale-95 cursor-pointer shrink-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setShowPwaGuideModal(true);
+                              }}
+                              className="mt-auto self-start px-3.5 py-1.5 bg-[#FF8A00] hover:bg-orange-600 text-white rounded-lg text-xs font-bold transition active:scale-95 cursor-pointer shadow-xs"
                             >
-                              Tìm
+                              Xem hướng dẫn
                             </button>
                           </div>
                         </div>
 
                         {/* Action Card 2: Jam Session (Light green themed) */}
-                        <div className="bg-white border border-stone-200/80 rounded-2xl p-5 shadow-xs flex flex-col h-40 transition-all hover:shadow-md hover:border-green-500/20 text-left">
-                          <h4 className="text-sm font-black text-stone-900 font-display flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                            Tham gia Jam Session
-                          </h4>
-                          <p className="text-xs text-stone-500 mt-2 leading-relaxed flex-grow">Nhập mã hoặc quét QR để hát cùng nhóm ngay bây giờ!</p>
-                          <div className="flex gap-1.5 mt-auto">
-                            <input
-                              type="text"
-                              placeholder="Mã..."
-                              value={sessionInputCode}
-                              onChange={(e) => setSessionInputCode(e.target.value)}
-                              className="w-full px-2.5 py-1.5 bg-stone-50 border border-stone-200 rounded-lg text-xs font-mono font-black uppercase focus:outline-none"
-                            />
-                            <button 
-                              onClick={() => handleJoinJamSession(sessionInputCode)}
-                              className="px-2.5 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-bold transition active:scale-95 cursor-pointer shrink-0"
-                            >
-                              Vào
-                            </button>
-                            <button 
-                              onClick={() => setShowQrScanner(true)}
-                              className="p-1.5 bg-green-50 hover:bg-green-100 border border-green-200 text-green-700 rounded-lg transition active:scale-95 flex items-center justify-center cursor-pointer shrink-0"
-                              title="Quét QR Code"
-                            >
-                              <Camera className="w-4 h-4" />
-                            </button>
+                        <div 
+                          className="bg-white border border-stone-200/80 rounded-2xl p-5 shadow-xs flex flex-col h-40 transition-all hover:shadow-md hover:border-green-500/20 text-left bg-cover bg-center bg-no-repeat relative overflow-hidden"
+                          style={{ backgroundImage: "url('/assets/ui-png/card_join_jam_session.png')" }}
+                        >
+                          <div className="absolute inset-0 bg-white/90"></div>
+                          <div className="relative z-10 flex flex-col h-full">
+                            <h4 className="text-sm font-black text-stone-900 font-display flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                              Tham gia Jam Session
+                            </h4>
+                            <p className="text-xs text-stone-500 mt-2 leading-relaxed flex-grow">Nhập mã hoặc quét QR để hát cùng nhóm ngay bây giờ!</p>
+                            <div className="flex gap-1.5 mt-auto">
+                              <input
+                                type="text"
+                                placeholder="Mã..."
+                                value={sessionInputCode}
+                                onChange={(e) => setSessionInputCode(e.target.value)}
+                                className="w-full px-2.5 py-1.5 bg-stone-50 border border-stone-200 rounded-lg text-xs font-mono font-black uppercase focus:outline-none"
+                              />
+                              <button 
+                                onClick={() => handleJoinJamSession(sessionInputCode)}
+                                className="px-2.5 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-bold transition active:scale-95 cursor-pointer shrink-0"
+                              >
+                                Vào
+                              </button>
+                              <button 
+                                onClick={() => setShowQrScanner(true)}
+                                className="p-1.5 bg-green-50 hover:bg-green-100 border border-green-200 text-green-700 rounded-lg transition active:scale-95 flex items-center justify-center cursor-pointer shrink-0"
+                                title="Quét QR Code"
+                              >
+                                <Camera className="w-4 h-4" />
+                              </button>
+                            </div>
                           </div>
                         </div>
 
                         {/* Action Card 3: Tạo Setlist (Orange themed) */}
-                        <div className="bg-white border border-stone-200/80 rounded-2xl p-5 shadow-xs flex flex-col h-40 transition-all hover:shadow-md hover:border-orange-500/20 text-left">
-                          <h4 className="text-sm font-black text-stone-900 font-display flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-orange-400"></span>
-                            Tạo Setlist
-                          </h4>
-                          <p className="text-xs text-stone-500 mt-2 leading-relaxed flex-grow">Tạo danh sách bài hát cho mọi dịp hát cùng nhau.</p>
-                          <button 
-                            onClick={() => {
-                              setActiveTab('setlists');
-                            }}
-                            className="mt-auto w-full py-2 bg-[#FF8A00] hover:bg-orange-600 text-white rounded-xl text-xs font-bold transition active:scale-95 flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
-                          >
-                            <span>Tạo mới</span>
-                          </button>
+                        <div 
+                          className="bg-white border border-stone-200/80 rounded-2xl p-5 shadow-xs flex flex-col h-40 transition-all hover:shadow-md hover:border-orange-500/20 text-left bg-cover bg-center bg-no-repeat relative overflow-hidden"
+                          style={{ backgroundImage: "url('/assets/ui-png/card_create_setlist.png')" }}
+                        >
+                          <div className="absolute inset-0 bg-white/90"></div>
+                          <div className="relative z-10 flex flex-col h-full">
+                            <h4 className="text-sm font-black text-stone-900 font-display flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-orange-400"></span>
+                              Tạo Setlist
+                            </h4>
+                            <p className="text-xs text-stone-500 mt-2 leading-relaxed flex-grow">Tạo danh sách bài hát cho mọi dịp hát cùng nhau.</p>
+                            <button 
+                              onClick={() => {
+                                setActiveTab('setlists');
+                              }}
+                              className="mt-auto w-full py-2 bg-[#FF8A00] hover:bg-orange-600 text-white rounded-xl text-xs font-bold transition active:scale-95 flex items-center justify-center gap-1.5 shadow-sm cursor-pointer z-10"
+                            >
+                              <span>Tạo mới</span>
+                            </button>
+                          </div>
                         </div>
 
                         {/* Action Card 4: Tuner & Công cụ */}
-                        <div className="bg-white border border-stone-200/80 rounded-2xl p-5 shadow-xs flex flex-col h-40 transition-all hover:shadow-md hover:border-stone-500/20 text-left">
-                          <h4 className="text-sm font-black text-stone-900 font-display flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-stone-500"></span>
-                            Tuner & Công cụ
-                          </h4>
-                          <p className="text-xs text-stone-500 mt-2 leading-relaxed flex-grow">Lên dây đàn, nhịp điệu trống, hướng dẫn và nhiều hơn nữa.</p>
-                          <button 
-                            onClick={() => setShowTuner(true)}
-                            className="mt-auto w-full py-2 bg-stone-850 hover:bg-stone-800 text-white rounded-xl text-xs font-bold transition active:scale-95 flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
-                          >
-                            <span>Mở công cụ</span>
-                          </button>
+                        <div 
+                          className="bg-white border border-stone-200/80 rounded-2xl p-5 shadow-xs flex flex-col h-40 transition-all hover:shadow-md hover:border-stone-500/20 text-left bg-cover bg-center bg-no-repeat relative overflow-hidden"
+                          style={{ backgroundImage: "url('/assets/ui-png/card_tuner_tools.png')" }}
+                        >
+                          <div className="absolute inset-0 bg-white/90"></div>
+                          <div className="relative z-10 flex flex-col h-full">
+                            <h4 className="text-sm font-black text-stone-900 font-display flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-stone-500"></span>
+                              Tuner & Công cụ
+                            </h4>
+                            <p className="text-xs text-stone-500 mt-2 leading-relaxed flex-grow">Lên dây đàn, nhịp điệu trống, hướng dẫn và nhiều hơn nữa.</p>
+                            <button 
+                              onClick={() => setShowTuner(true)}
+                              className="mt-auto w-full py-2 bg-stone-850 hover:bg-stone-800 text-white rounded-xl text-xs font-bold transition active:scale-95 flex items-center justify-center gap-1.5 shadow-sm cursor-pointer z-10"
+                            >
+                              <span>Mở công cụ</span>
+                            </button>
+                          </div>
                         </div>
                       </div>
 
@@ -3529,7 +3547,7 @@ export default function App() {
                       {/* Grid Selector Popover */}
                       <div className="absolute bottom-full left-4 right-4 sm:left-1/2 sm:-translate-x-1/2 sm:w-[325px] sm:max-w-sm mb-3.5 bg-white border border-stone-200 rounded-xl shadow-2xl p-4 z-50 animate-fade-in text-center select-none max-h-[82vh] overflow-y-auto no-scrollbar">
                         <div className="flex items-center justify-between border-b border-stone-100 pb-2 mb-3">
-                          <span className="text-[10px] uppercase font-extrabold tracking-widest text-stone-400">Quick Key Selection - v1.13.6</span>
+                          <span className="text-[10px] uppercase font-extrabold tracking-widest text-stone-400">Quick Key Selection - v1.13.7</span>
                           <button
                             onClick={() => {
                               setTransposeOffset(0);
@@ -3798,14 +3816,30 @@ export default function App() {
             </div>
 
             <div className="flex flex-col gap-6 overflow-y-auto pr-1 no-scrollbar">
-              {/* v1.13.6 */}
+              {/* v1.13.7 */}
               <div className="flex gap-4">
                 <div className="flex flex-col items-center">
-                  <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-700 tracking-wider font-mono">v1.13.6</span>
+                  <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-700 tracking-wider font-mono">v1.13.7</span>
                   <div className="w-[1.5px] bg-stone-200 flex-grow mt-2"></div>
                 </div>
                 <div className="flex-grow pb-2">
                   <span className="text-[10px] font-black uppercase text-stone-400 tracking-widest">Hiện tại / Current</span>
+                  <p className="text-xs font-bold text-stone-800 mt-1">Nâng cấp hướng dẫn cài đặt PWA di động & Cải thiện giao diện Menu</p>
+                  <ul className="list-disc list-inside text-[11px] text-stone-600 mt-2 space-y-1 pl-1">
+                    <li>Thêm HD cài đặt PWA: Thay thế thẻ "Tìm bài hát" dư thừa trên Trang chủ bằng thẻ Hướng dẫn tải ứng dụng (Add to Home Screen) chi tiết cho iOS & Android.</li>
+                    <li>Mở rộng & Tạo khoảng thoáng cho Menu: Nới rộng kích thước menu settings (dropdown), tăng khoảng cách (padding/gap), làm nổi bật và tăng độ rộng rãi cho phần Thông tin người dùng (User Profile).</li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* v1.13.6 */}
+              <div className="flex gap-4">
+                <div className="flex flex-col items-center">
+                  <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-stone-100 border border-stone-200 text-stone-755 tracking-wider font-mono">v1.13.6</span>
+                  <div className="w-[1.5px] bg-stone-200 flex-grow mt-2"></div>
+                </div>
+                <div className="flex-grow pb-2">
+                  <span className="text-[10px] font-black uppercase text-stone-450 tracking-widest">15/06/2026</span>
                   <p className="text-xs font-bold text-stone-800 mt-1">Sửa lỗi trắng màn hình thiết bị di động & Tối ưu hoá an toàn dữ liệu</p>
                   <ul className="list-disc list-inside text-[11px] text-stone-600 mt-2 space-y-1 pl-1">
                     <li>Sửa lỗi trắng màn hình trên di động: Thêm các kiểm tra kiểu dữ liệu `typeof` an toàn khi trích xuất thông tin ca sĩ (artist) và nhạc sĩ (composer) trong bài hát, tránh lỗi truy xuất thuộc tính từ dữ liệu không hợp lệ.</li>
@@ -4739,6 +4773,85 @@ export default function App() {
           >
             Hủy bỏ / Cancel
           </button>
+        </div>
+      )}
+
+      {showPwaGuideModal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 select-none"
+          onClick={() => setShowPwaGuideModal(false)}
+        >
+          <div 
+            className="bg-white border border-stone-200 rounded-3xl max-w-md w-full shadow-2xl p-6 text-left animate-fade-in relative flex flex-col max-h-[85vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button 
+              onClick={() => setShowPwaGuideModal(false)}
+              className="absolute right-4 top-4 p-1.5 bg-stone-100 hover:bg-stone-200 text-stone-500 hover:text-stone-800 rounded-full transition active:scale-90"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <h3 className="text-lg font-black text-stone-900 font-display flex items-center gap-2 mb-1">
+              📲 Cài đặt Ứng dụng / Web App
+            </h3>
+            <p className="text-xs text-stone-500 mb-5 leading-relaxed">
+              Tải và lưu ứng dụng Campfire Chords trực tiếp lên màn hình chính trên điện thoại của bạn như ứng dụng thông thường để sử dụng nhanh chóng và mượt mà hơn.
+            </p>
+
+            <div className="space-y-6">
+              {/* iOS Safari Guide */}
+              <div className="border border-[#FFF6E9] bg-[#FFFBF6] rounded-2xl p-4">
+                <h4 className="text-xs font-black text-[#FF8A00] uppercase tracking-widest flex items-center gap-2 mb-2">
+                  <span className="w-1.5 h-3 bg-[#FF8A00] rounded-full"></span>
+                  Cho thiết bị iPhone & iPad (iOS)
+                </h4>
+                <ol className="list-decimal pl-4 text-xs text-stone-700 space-y-2 leading-relaxed">
+                  <li>
+                    Mở trình duyệt <strong className="text-stone-950 font-bold">Safari</strong> trên điện thoại và truy cập ứng dụng.
+                  </li>
+                  <li>
+                    Nhấp vào biểu tượng <strong className="text-stone-950 font-bold">Chia sẻ (Share)</strong> <span className="inline-block bg-white border border-stone-250 px-1 py-0.5 rounded text-[10px]">📤</span> ở thanh điều hướng phía dưới.
+                  </li>
+                  <li>
+                    Cuộn xuống dưới và chọn <strong className="text-stone-950 font-bold">Thêm vào MH chính (Add to Home Screen)</strong> <span className="inline-block bg-white border border-stone-250 px-1 py-0.5 rounded text-[10px]">➕</span>.
+                  </li>
+                  <li>
+                    Nhấp <strong className="text-stone-950 font-bold">Thêm (Add)</strong> ở góc trên bên phải để hoàn tất.
+                  </li>
+                </ol>
+              </div>
+
+              {/* Android Chrome Guide */}
+              <div className="border border-stone-200 bg-stone-50/50 rounded-2xl p-4">
+                <h4 className="text-xs font-black text-stone-800 uppercase tracking-widest flex items-center gap-2 mb-2">
+                  <span className="w-1.5 h-3 bg-stone-600 rounded-full"></span>
+                  Cho thiết bị Android (Chrome / Samsung)
+                </h4>
+                <ol className="list-decimal pl-4 text-xs text-stone-700 space-y-2 leading-relaxed">
+                  <li>
+                    Mở trình duyệt <strong className="text-stone-950 font-bold">Google Chrome</strong> và truy cập ứng dụng.
+                  </li>
+                  <li>
+                    Nhấn vào biểu tượng <strong className="text-stone-950 font-bold">Menu (3 chấm)</strong> ở góc trên bên phải.
+                  </li>
+                  <li>
+                    Chọn <strong className="text-stone-950 font-bold">Cài đặt ứng dụng (Install App)</strong> hoặc <strong className="text-stone-950 font-bold">Thêm vào màn hình chính</strong>.
+                  </li>
+                  <li>
+                    Xác nhận cài đặt để tạo biểu tượng ứng dụng ngoài màn hình.
+                  </li>
+                </ol>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowPwaGuideModal(false)}
+              className="mt-6 w-full py-2.5 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-xs font-bold transition active:scale-95 text-center cursor-pointer"
+            >
+              Đồng ý / Got it
+            </button>
+          </div>
         </div>
       )}
 
