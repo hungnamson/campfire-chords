@@ -1,26 +1,31 @@
 [
   {
+    "password": "hung2410",
+    "id": "henrytran",
+    "securityAnswer": "guitar",
+    "securityQuestion": "What is your favorite instrument?",
+    "role": "user",
+    "email": "henry.tran@fastsigns.com"
+  },
+  {
+    "email": "htran@fastsigns.com",
+    "id": "htran",
+    "securityAnswer": "guitar",
+    "securityQuestion": "What is your favorite instrument?",
+    "role": "user",
+    "password": "password"
+  },
+  {
+    "securityQuestion": "What is your favorite instrument?",
+    "securityAnswer": "guitar",
+    "role": "admin",
     "id": "hungtm",
     "email": "hungtm@gmail.com",
-    "password": "Henrytran",
-    "role": "admin",
-    "securityQuestion": "What is your favorite instrument?",
-    "securityAnswer": "guitar"
+    "password": "Henrytran"
   },
   {
-    "id": "htran",
-    "email": "htran@fastsigns.com",
-    "password": "password",
-    "role": "user",
-    "securityQuestion": "What is your favorite instrument?",
-    "securityAnswer": "guitar"
-  },
-  {
-    "id": "henrytran",
-    "email": "henry.tran@fastsigns.com",
-    "password": "hung2410",
-    "role": "user",
-    "securityQuestion": "What is your favorite instrument?",
-    "securityAnswer": "guitar"
+    "phone": "7607839966",
+    "homeCourt": "Torrey Pines Pickleball",
+    "skill": "3.0"
   }
 ]

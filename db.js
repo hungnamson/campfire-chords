@@ -1,6 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { initializeApp } from 'firebase/app';
+import { getFirestore, doc, setDoc, deleteDoc, getDocs, collection } from 'firebase/firestore';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -16,6 +18,132 @@ let playlistsCache = null;
 let usersCache = null;
 let playHistoryCache = null;
 let favoritesCache = null;
+
+// Firebase Initialization
+const CONFIG_FILE = path.join(__dirname, 'firebase-config.json');
+let firebaseApp = null;
+let firestoreDb = null;
+let isFirebaseInitialized = false;
+
+try {
+  if (fs.existsSync(CONFIG_FILE)) {
+    const firebaseConfig = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf-8'));
+    firebaseApp = initializeApp(firebaseConfig);
+    firestoreDb = getFirestore(firebaseApp);
+    isFirebaseInitialized = true;
+    console.log('✅ Firebase initialized successfully for db.js.');
+  } else {
+    console.warn('⚠️ firebase-config.json not found. Operating in local-only offline mode.');
+  }
+} catch (err) {
+  console.error('⚠️ Firebase initialization failed:', err);
+}
+
+// Background Firestore sync write helper
+function firestoreWrite(collectionName, docId, data) {
+  if (!isFirebaseInitialized) return;
+  setDoc(doc(firestoreDb, collectionName, String(docId)), data)
+    .catch(err => console.error(`⚠️ Failed to write to Firestore ${collectionName}/${docId}:`, err));
+}
+
+// Background Firestore sync delete helper
+function firestoreDelete(collectionName, docId) {
+  if (!isFirebaseInitialized) return;
+  deleteDoc(doc(firestoreDb, collectionName, String(docId)))
+    .catch(err => console.error(`⚠️ Failed to delete from Firestore ${collectionName}/${docId}:`, err));
+}
+
+// Asynchronously sync Firestore collections to local cache on startup
+async function syncFromFirestore() {
+  if (!isFirebaseInitialized) return;
+  try {
+    console.log('🔄 Syncing local cache databases from Firebase Firestore...');
+
+    // 1. Sync Users
+    const usersSnap = await getDocs(collection(firestoreDb, 'users'));
+    const users = [];
+    usersSnap.forEach(d => users.push(d.data()));
+    if (users.length > 0) {
+      usersCache = users;
+      fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2), 'utf-8');
+      console.log(`  - Synced ${users.length} users`);
+    }
+
+    // 2. Sync Playlists
+    const playlistsSnap = await getDocs(collection(firestoreDb, 'playlists'));
+    const playlists = [];
+    playlistsSnap.forEach(d => playlists.push(d.data()));
+    if (playlists.length > 0) {
+      playlistsCache = playlists;
+      fs.writeFileSync(PLAYLISTS_FILE, JSON.stringify(playlists, null, 2), 'utf-8');
+      console.log(`  - Synced ${playlists.length} playlists`);
+    }
+
+    // 3. Sync Play History
+    const historySnap = await getDocs(collection(firestoreDb, 'play_history'));
+    const history = [];
+    historySnap.forEach(d => {
+      const data = d.data();
+      delete data.id; // remove composite key before saving local JSON
+      history.push(data);
+    });
+    if (history.length > 0) {
+      playHistoryCache = history;
+      fs.writeFileSync(PLAY_HISTORY_FILE, JSON.stringify(history, null, 2), 'utf-8');
+      console.log(`  - Synced ${history.length} play history entries`);
+    }
+
+    // 4. Sync Favorites
+    const favoritesSnap = await getDocs(collection(firestoreDb, 'favorites'));
+    const favorites = {};
+    favoritesSnap.forEach(d => {
+      const data = d.data();
+      favorites[data.userId] = data.songIds || [];
+    });
+    if (Object.keys(favorites).length > 0) {
+      favoritesCache = favorites;
+      fs.writeFileSync(FAVORITES_FILE, JSON.stringify(favorites, null, 2), 'utf-8');
+      console.log(`  - Synced favorites for ${Object.keys(favorites).length} users`);
+    }
+
+    // 5. Sync Songs
+    const songsSnap = await getDocs(collection(firestoreDb, 'songs'));
+    const songs = [];
+    songsSnap.forEach(d => songs.push(d.data()));
+    if (songs.length > 0) {
+      songsCache = songs;
+      fs.writeFileSync(SONGS_FILE, JSON.stringify(songs, null, 2), 'utf-8');
+      console.log(`  - Synced ${songs.length} songs from Firestore.`);
+    }
+
+    // 6. Sync Analytics
+    try {
+      const analyticsSnap = await getDocs(collection(firestoreDb, 'analytics'));
+      const analyticsObj = { visits: [], featureUsage: {}, sessionDurations: [] };
+      analyticsSnap.forEach(d => {
+        const id = d.id;
+        const data = d.data();
+        if (id === 'visits') analyticsObj.visits = data.visits || [];
+        else if (id === 'featureUsage') analyticsObj.featureUsage = data || {};
+        else if (id === 'sessionDurations') analyticsObj.sessionDurations = data.sessionDurations || [];
+      });
+      if (analyticsSnap.size > 0) {
+        analyticsCache = analyticsObj;
+        fs.writeFileSync(ANALYTICS_FILE, JSON.stringify(analyticsObj, null, 2), 'utf-8');
+        console.log(`  - Synced analytics metrics`);
+      }
+    } catch (anSyncErr) {
+      console.error('  - Syncing analytics failed:', anSyncErr);
+    }
+
+    console.log('✅ Firebase Firestore synchronization completed successfully.');
+  } catch (err) {
+    console.error('⚠️ Firestore sync failed (using local offline caches):', err);
+  }
+}
+
+// Trigger startup sync
+syncFromFirestore();
 
 // Helper to generate a URL-friendly slug
 export function slugify(text) {
@@ -372,6 +500,7 @@ export function addSong(songData) {
       existing.rhythm = songData.rhythm ? songData.rhythm.trim() : existing.rhythm;
       
       saveSongs(songs);
+      firestoreWrite('songs', existing.id, existing);
       console.log(`🧹 Database Self-Healing: Updated existing song "${existing.title}" with longer content.`);
     }
     return existing;
@@ -402,6 +531,7 @@ export function addSong(songData) {
 
   songs.push(newSong);
   saveSongs(songs);
+  firestoreWrite('songs', newSong.id, newSong);
   return newSong;
 }
 
@@ -423,6 +553,7 @@ export function updateSong(id, songData) {
   };
 
   saveSongs(songs);
+  firestoreWrite('songs', id, songs[index]);
   return songs[index];
 }
 
@@ -431,6 +562,7 @@ export function deleteSong(id) {
   const filtered = songs.filter(s => s.id !== id);
   if (songs.length === filtered.length) return false;
   saveSongs(filtered);
+  firestoreDelete('songs', id);
   return true;
 }
 
@@ -441,6 +573,7 @@ export function toggleFavorite(id) {
 
   songs[index].isFavorite = !songs[index].isFavorite;
   saveSongs(songs);
+  firestoreWrite('songs', id, songs[index]);
   return songs[index];
 }
 
@@ -495,6 +628,7 @@ export function createPlaylist(name) {
 
   playlists.push(newPlaylist);
   savePlaylists(playlists);
+  firestoreWrite('playlists', newPlaylist.id, newPlaylist);
   return newPlaylist;
 }
 
@@ -506,6 +640,7 @@ export function addSongToPlaylist(playlistId, songId) {
   if (!playlists[index].songIds.includes(songId)) {
     playlists[index].songIds.push(songId);
     savePlaylists(playlists);
+    firestoreWrite('playlists', playlistId, playlists[index]);
   }
   return playlists[index];
 }
@@ -517,6 +652,7 @@ export function removeSongFromPlaylist(playlistId, songId) {
 
   playlists[index].songIds = playlists[index].songIds.filter(id => id !== songId);
   savePlaylists(playlists);
+  firestoreWrite('playlists', playlistId, playlists[index]);
   return playlists[index];
 }
 
@@ -525,6 +661,7 @@ export function deletePlaylist(id) {
   const filtered = playlists.filter(p => p.id !== id);
   if (playlists.length === filtered.length) return false;
   savePlaylists(filtered);
+  firestoreDelete('playlists', id);
   return true;
 }
 
@@ -557,15 +694,17 @@ export function getUsers() {
     
     // Auto-create hungtm if it doesn't exist
     if (!usersCache.some(u => u.email === 'hungtm@gmail.com')) {
-      usersCache.push({
+      const adminUser = {
         id: 'hungtm',
         email: 'hungtm@gmail.com',
         password: 'Henrytran',
         role: 'admin',
         securityQuestion: 'What is your favorite instrument?',
         securityAnswer: 'guitar'
-      });
+      };
+      usersCache.push(adminUser);
       saveUsers(usersCache);
+      firestoreWrite('users', 'hungtm', adminUser);
     }
     return usersCache;
   } catch (error) {
@@ -612,6 +751,7 @@ export function addUser(userData) {
   
   users.push(newUser);
   saveUsers(users);
+  firestoreWrite('users', newUser.id, newUser);
   return newUser;
 }
 
@@ -665,6 +805,7 @@ export function toggleUserFavorite(userId, songId) {
   }
   
   saveFavoritesDb(favorites);
+  firestoreWrite('favorites', userId, { id: userId, userId, songIds: favorites[userId] });
   return favorites[userId];
 }
 
@@ -711,22 +852,28 @@ export function incrementPlayCount(userId, songId) {
   const history = getPlayHistoryDb();
   const index = history.findIndex(h => h.userId === userId && h.songId === songId);
   
+  let entry;
   if (index !== -1) {
     history[index].playCount += 1;
     history[index].lastPlayed = new Date().toISOString();
+    entry = history[index];
   } else {
-    history.push({
+    entry = {
       userId,
       songId,
       playCount: 1,
       lastPlayed: new Date().toISOString()
-    });
+    };
+    history.push(entry);
   }
   
   savePlayHistoryDb(history);
+  firestoreWrite('play_history', `${userId}_${songId}`, {
+    id: `${userId}_${songId}`,
+    ...entry
+  });
   
-  const entry = history.find(h => h.userId === userId && h.songId === songId);
-  return entry ? entry.playCount : 1;
+  return entry.playCount;
 }
 
 // ----------------------------------------------------
@@ -780,12 +927,14 @@ function saveAnalyticsDb(data) {
 export function trackVisit(userId, sessionId) {
   const db = getAnalyticsDb();
   if (!db.visits) db.visits = [];
-  db.visits.push({
+  const entry = {
     timestamp: new Date().toISOString(),
     userId: userId || null,
     sessionId: sessionId
-  });
+  };
+  db.visits.push(entry);
   saveAnalyticsDb(db);
+  firestoreWrite('analytics', 'visits', { visits: db.visits });
 }
 
 export function trackFeatureUse(featureName) {
@@ -802,6 +951,7 @@ export function trackFeatureUse(featureName) {
   }
   db.featureUsage[featureName] = (db.featureUsage[featureName] || 0) + 1;
   saveAnalyticsDb(db);
+  firestoreWrite('analytics', 'featureUsage', db.featureUsage);
 }
 
 export function trackSessionDuration(userId, sessionId, durationSeconds) {
@@ -809,13 +959,15 @@ export function trackSessionDuration(userId, sessionId, durationSeconds) {
   if (!db.sessionDurations) {
     db.sessionDurations = [];
   }
-  db.sessionDurations.push({
+  const entry = {
     timestamp: new Date().toISOString(),
     userId: userId || null,
     sessionId: sessionId,
     durationSeconds: durationSeconds
-  });
+  };
+  db.sessionDurations.push(entry);
   saveAnalyticsDb(db);
+  firestoreWrite('analytics', 'sessionDurations', { sessionDurations: db.sessionDurations });
 }
 
 export function getStats() {
